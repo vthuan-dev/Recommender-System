@@ -1,0 +1,32 @@
+# Dependencies
+/node_modules
+npm-debug.log
+yarn-error.log
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Build files
+/build
+/dist
+
+# IDE files
+.vscode
+.idea
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Optional: Ignore package-lock.json if you're using npm
+# package-lock.json
+
+# Optional: Ignore yarn.lock if you're using Yarn
+# yarn.lock
