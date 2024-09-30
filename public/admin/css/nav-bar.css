@@ -1,0 +1,107 @@
+.navigation {
+    background-color: #ffc107;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    padding: 10px;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.logo img {
+    height: 50px;
+    border-radius: 10px;
+    transition: transform 0.3s ease;
+}
+
+.logo img:hover {
+    transform: scale(1.05);
+}
+
+.timkiem {
+    flex: 1 1 100%;
+    margin: 10px 0;
+    position: relative;
+    order: 3;
+}
+
+.timkiem input[type="text"] {
+    width: 100%;
+    padding: 10px 40px 10px 15px;
+    border: 1px solid #ddd;
+    border-radius: 20px;
+    font-size: 16px;
+}
+
+.timkiem button {
+    position: absolute;
+    right: 5px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    font-size: 20px;
+    color: #555;
+    cursor: pointer;
+}
+
+.tragop {
+    display: none;
+}
+
+.giohang, .dangnhap-dangky {
+    display: flex;
+    align-items: center;
+    margin-left: 10px;
+    text-decoration: none;
+    color: #333;
+}
+
+.giohang i, .dangnhap-dangky i {
+    font-size: 24px;
+    margin-right: 5px;
+}
+
+.giohang span, .dangnhap-dangky span {
+    display: none;
+}
+
+@media (min-width: 576px) {
+    .navigation {
+        flex-wrap: nowrap;
+    }
+
+    .timkiem {
+        flex: 1 1 auto;
+        order: initial;
+        margin: 0 10px;
+    }
+
+    .giohang span, .dangnhap-dangky span {
+        display: inline;
+    }
+}
+
+@media (min-width: 768px) {
+    .logo img {
+        height: 60px;
+    }
+
+    .giohang, .dangnhap-dangky {
+        font-size: 16px;
+        margin-left: 20px;
+    }
+}
+
+@media (min-width: 992px) {
+    .tragop {
+        display: block;
+    }
+
+    .tragop img {
+        height: 40px;
+        border-radius: 10px;
+    }
+}

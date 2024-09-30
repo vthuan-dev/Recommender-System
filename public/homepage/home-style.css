@@ -1,154 +1,13 @@
 body {
     margin: 0;
-    font-family: Arial, Helvetica, sans-serif;
+    font-family: 'Roboto', Arial, sans-serif;
     margin-top: 5px;
     height: auto;
+    background-color: #f8f9fa;
 }
 
-.navigation {
-    background-color: rgb(230, 179, 76); 
-    display: flex;
-    flex-direction: row;
-    top: 0px;
-    height: 78px;
-    z-index: 999;
-    position: sticky;
-}
-
-@media (max-width: 768px) {
-    .navigation {
-        flex-direction: column;
-        align-items: center;
-        height: auto;
-    }
-
-    .logo img {
-        margin-left: 0;
-        width: 180px;
-    }
-
-    .navigation form {
-        margin-top: 10px;
-    }
-}
-
-@media (max-width: 480px) {
-    .tragop, .danhmuc {
-        display: none;
-    }
-}
-
-
-.navigation li a:hover {
-    background-color: #111;
-}
-
-
-.logo img {
-    display: block;
-    margin-left: 190px;
-    width: 220px;
-    margin-bottom: 10px;
-    border-radius: 20px;
-}
-.navigation form {
-    display: flex;
-    align-items: center;
-}
-
-.navigation input[type="text"] {
-    padding: 6px;
-    font-size: 17px;
-    border: 1px solid #ccc; /* change this line */
-    border-radius: 4px; /* add this line */
-    outline: none; /* add this line */
-    width: 500px;
-    padding-left: 30px; /* Tạo không gian cho icon */
-
-}
-
-.navigation button {
-    color: black;
-    padding: 6px 10px;
-    font-size: 17px;
-    margin-left: 10px;
-    border: 1px solid #ccc; /* add this line */
-    border-radius: 4px; /* add this line */
-    cursor: pointer;
-    outline: none; /* add this line */
-    background-color: rgb(223, 230, 233); /* add this line */
-}
-
-.dangnhap-dangky{
-    display: flex;
-    justify-content: center;
-    margin-top: 6px;
-    margin-right: 0px;
-    margin-left: 70px;
-
-}
-.dangnhap-dangky i{
-    font-size: 35px;
-    margin-top: 10px;
-    color: white;
-}
-
-.dangnhap-dangky a{
-    text-decoration: none;
-    flex-direction: column;
-    display: flex;
-    align-items: center;
-}
-.giohang{
-    margin-left:90px;
-    margin-top: 10px;
-    height: 45px;
-}
-.giohang i{
-    font-size: 35px;
-    margin-top: 10px;
-    color: white;
-}
-.giohang a {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-decoration: none;
-}
-.danhmuc{
-    margin-left:80px;
-    margin-top: 13px;
-
-
-}
-.tragop img{
-    width: 150px;
-    margin-left: 65px;
-    margin-top: 0px;
-    border-radius: 20px;
-
-}
-.tragop{
-    width: 150px;
-}
-
-.timkiem{
-    margin-top: 10px;
-    margin-left: 90px;
-    margin-top: 19px;
-    position: relative;
-}
-.timkiem i{
-    position: absolute;
-    left: 10px;
-    top: 30%;
-    transform: translateY(-50%);   
-    color: gray;
-}
-
-
-.pagebody{
-    background-color: rgb(223, 228, 234) ;
+.pagebody {
+    background-color: rgb(223, 228, 234);
     width: 80%;
     height: 100%;
     margin-left: auto;
@@ -157,7 +16,7 @@ body {
 
 .product-list {
     display: flex;
-    flex-wrap:wrap ;
+    flex-wrap: wrap;
     justify-content: space-between;
 }
 
@@ -170,6 +29,18 @@ body {
     box-shadow: 0 0 5px rgba(0, 0, 0, 0.1); 
     height: 400px;
     position: relative;
+    transition: all 0.3s ease;
+}
+
+.product-item:hover {
+    box-shadow: 0 10px 20px rgba(0,0,0,0.19), 0 6px 6px rgba(0,0,0,0.23);
+    transform: translateY(-5px);
+}
+
+.product-item img {
+    width: 200px;
+    height: auto;
+    border-radius: 10px;
 }
 
 .product-item .detail-text {
@@ -183,13 +54,11 @@ body {
     transition: all 0.3s ease;
     text-align: center;
     border-radius: 20px;
+    background-color: rgba(255, 234, 167, 0.8);
 }
 
 .product-item:hover .detail-text {
     display: block;
-    border-radius: 20px;
-    color: black;
-    background-color: rgb(255, 234, 167);
 }
 
 .product-item::before {
@@ -209,69 +78,29 @@ body {
     opacity: 1;
 }
 
-.product-item img {
-    width: 200px;
-    height: auto;
-}
-.product-item img {
-    width: 200px;
-    height: auto;
-    border-radius: 10px;
-}
-.dropdown .dropbtn {
-    background-color: rgb(223, 230, 233);
-    color: rgb(53, 130, 131);
-    padding: 16px;
-    font-size: 16px;
-    border: none;
-    cursor: pointer;
-}
-
-
-
-.dropdown {
-    position: relative;
-    display: inline-block;
-  }
-  
-  .dropdown-content {
-    display: none;
+.add-to-cart {
     position: absolute;
-    background-color: #f9f9f9;
-    min-width: 160px;
-    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
-    z-index: 1;
-  }
-  
-  .dropdown-content a {
-    padding: 12px 16px;
-    text-decoration: none;
-    display: block;
-    transition: all 0.3s ease;
-    background-color: rgb(236, 204, 104);
-
-  }
-  
-  .dropdown-content a:hover {
-    background-color: #f1f1f1;
-
-}
-  
-  .dropdown:hover .dropdown-content {
-    display: block;
-  }
-  
-  .dropbtn {
-    background-color: #4CAF50;
+    bottom: 10px;
+    left: 10px;
+    right: 10px;
+    display: none;
+    text-align: center;
+    padding: 10px 0;
+    background-color: #a19b3d;
     color: white;
-    padding: 16px;
-    font-size: 16px;
     border: none;
     cursor: pointer;
-  }
-  
-.giohang{
-    margin-left: 40px;
+    font-size: 16px;
+    border-radius: 4px;
+    transition: background-color 0.3s ease;
+}
+
+.product-item:hover .add-to-cart {
+    display: block;
+}
+
+.add-to-cart:hover {
+    background-color: #c0c737;
 }
 
 .device-type {
@@ -296,22 +125,19 @@ body {
     cursor: pointer;
 }
 
+.device-type a {
+    text-decoration: none;
+    color: rgb(2, 5, 22);
+}
+
 .mySlides img {
     display: none;
-   
 }
 
 .uudai .mySlides {
     display: block;
     margin-left: auto;
     margin-right: auto;
-    
-}
-
-.product-item:hover {
-    box-shadow: 0 10px 20px rgba(0,0,0,0.19), 0 6px 6px rgba(0,0,0,0.23);
-    transform: translateY(-5px);
-    transition: all .2s;
 }
 
 footer {
@@ -319,6 +145,8 @@ footer {
     color: black;
     padding: 20px;
     text-align: center;
+    margin-top: auto;
+}
 
 footer h3 {
     margin-top: 0;
@@ -328,86 +156,32 @@ footer p {
     margin: 0.5em 0;
 }
 
-p{
+p {
     color: rgb(241, 196, 15);
     font-weight: bold;
 }
-h2{
+
+h2 {
     font-weight: bold;
     margin-left: 15px;
 }
-}
-.device-type a {
-    text-decoration: none;
-    color: rgb(2, 5, 22);
-}
 
-/* CSS */
-/* CSS *//* CSS */
 html, body {
-  height: 100%;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-footer {
-  margin-top: auto;
-}
-
-.product-item {
-    position: relative;
-}
-
-.add-to-cart {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    display: none;
-    width: 100%;
-    text-align: center;
-    padding: 10px 0;
-    background-color: #a19b3d;
-    color: white;
-    border: none;
-    cursor: pointer;
-    font-size: 16px;
-    border-radius: 4px;
-    transition: background-color 0.3s ease;
-}
-
-.product-item:hover .add-to-cart {
-    display: block;
-}
-
-.add-to-cart:hover {
-    background-color: #c0c737;
-}
-.dangnhap-dangky {
-    /* Định dạng cho khối chứa liên kết đăng nhập/đăng ký */
+    height: 100%;
+    margin: 0;
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 10px;
-    background-color: #f9f9f9;
-    border-radius: 5px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+    flex-direction: column;
 }
 
-.dangnhap-dangky a {
-    /* Định dạng cho liên kết đăng nhập/đăng ký */
-    color: #333;
-    text-decoration: none;
-    margin-left: 10px;
+@media (max-width: 768px) {
+    .device-type .btn {
+        font-size: 12px;
+        padding: 8px;
+    }
 }
 
-.dangnhap-dangky a:hover {
-    /* Định dạng khi di chuột qua liên kết đăng nhập/đăng ký */
-    color: #007BFF;
+@media (max-width: 576px) {
+    .product-item {
+        height: 350px;
+    }
 }
-
-.dangnhap-dangky .fas {
-    /* Định dạng cho biểu tượng Font Awesome */
-    margin-right: 5px;
-}
-

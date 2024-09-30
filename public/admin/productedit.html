@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sửa Sản Phẩm</title>
+</head>
+<body>
+    <div class="admin-content-right">
+        <div class="admin-content-right-product-add">
+            <h1>Sửa Sản Phẩm</h1>
+            <form action="" method="POST" enctype="multipart/form-data">
+                <input type="text" name="product_name" placeholder="Nhập tên sản phẩm" value="">
+                <input type="text" name="description" placeholder="Nhập mô tả sản phẩm" value="">
+                <select name="category" required>
+                    <option value="">Chọn loại sản phẩm</option>
+                    <option value="Điện thoại">Điện thoại</option>
+                    <option value="Laptop">Laptop</option>
+                    <option value="Tivi">Tivi</option>
+                    <option value="Đồng hồ">Đồng hồ</option>
+                </select>
+                <input type="file" name="image" accept="image/*" value="">
+                <input type="text" name="manufacturer" placeholder="Nhập nhà sản xuất" value="">
+                <input type="text" name="warranty" placeholder="Nhập bảo hành" value="">
+                <select name="vat_included" required>
+                    <option value="">Chọn VAT</option>
+                    <option value="1">Đã bao gồm VAT</option>
+                    <option value="0">Chưa bao gồm VAT</option>
+                </select>
+                <input type="text" name="variant_name" placeholder="Nhập Phiên bản" value="">
+                <input type="text" name="price" placeholder="Nhập giá" value="">
+                <button type="submit">Sửa</button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>
