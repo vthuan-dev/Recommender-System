@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Thêm sản phẩm và biến thể</title>
+    <link rel="stylesheet" href="product.css">
+</head>
+<body>
+    <header>
+        <h1>TOP</h1>
+    </header>
+    <div class="admin-content-left">
+        <ul>
+            <li><a href="#">Quản lý sản phẩm</a>
+                <ul>
+                    <li><a href="#">Thêm sản phẩm</a></li>
+                    <li><a href="#">Danh sách sản phẩm</a></li>
+                </ul>
+            </li>
+            <li><a href="#">Quản lý người dùng</a>
+                <ul>
+                    <li><a href="#">Thêm người dùng</a></li>
+                    <li><a href="#">Danh sách người dùng</a></li>
+                </ul>
+            </li>
+        </ul>
+    </div>
+    <div class="admin-content-right">
+        <div class="admin-content-right-product-add">
+            <h1>Thêm Sản Phẩm</h1>
+            <form action="">
+                <input type="text" placeholder="Nhập tên sản phẩm">
+                <input type="text" placeholder="Nhập mô tả sản phẩm">
+                <select name="category" required>
+                    <option value="">Chọn loại sản phẩm</option>
+                    <option value="Điện thoại">Điện thoại</option>
+                    <option value="Laptop">Laptop</option>
+                    <option value="Tivi">Tivi</option>
+                    <option value="Đồng hồ">Đồng hồ</option>
+                </select>
+                <input type="file" name="image" accept="image/*">
+
+                <input type="text" placeholder="Nhập nhà sản xuất">
+                <input type="text" placeholder="Nhập bảo hành">
+                <input type="text" placeholder="Nhập loại sản phẩm">
+                <input type="text" placeholder="Nhập giá">
+                <button type="submit">Thêm</button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>
