@@ -1,25 +1,44 @@
 const express = require('express');
-const db = require('./database/config');
-const authMiddleware = require('./middlewares/auth');
-const userRoutes = require('./routes/userRoute');
-
 const app = express();
+const cors = require('cors');
+const bodyParser = require('body-parser');
+const path = require('path');
+const dotenv = require('dotenv');
+const { pool } = require('./database/dbconfig');
+dotenv.config();
 
-// Middleware
-app.use(express.json());
-app.use(authMiddleware);
 
-// Routes
-app.use('/api', userRoutes);
+const productRoutes = require('./client/products/product.js');
+const cartRoutes = require('./client/carts/cart.js');
+//const orderRoutes = require('./client/orders/order.js');
+const accountRoutes = require('./client/account/log.js');
 
-// Kết nối database
-db.connect((err) => {
-  if (err) {
-    console.error('Error connecting to database:', err);
-    return;
-  }
-  console.log('Connected to database');
+
+app.use(cors());
+app.use(bodyParser.json());
+//app.use(express.static(path.join(__dirname, 'public')));
+
+app.use('/api/products', productRoutes);
+app.use('/api/carts', cartRoutes);
+//app.use('/api/orders', orderRoutes);
+app.use('/api/account', accountRoutes);
+
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).send('Có lỗi xảy ra!');
 });
 
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+
+module.exports = app;
+
+
+
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => {
+    console.log(`Server đang chạy trên cổng ${PORT}`);
+});
+

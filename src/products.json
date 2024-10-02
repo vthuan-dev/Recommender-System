@@ -1,0 +1,2894 @@
+[
+  {
+    "id": 1,
+    "name": "Logitech Refined Metal Car",
+    "category_id": 5,
+    "category_name": "Phụ kiện máy tính",
+    "brand": "Logitech",
+    "price": 35016826,
+    "original_price": 18564395,
+    "thumbnail_url": "https://example.com/images/a8e7faaf-63b0-4c87-9b8e-9fbf6ca19f02.jpg",
+    "rating": 4.3048468759468115,
+    "review_count": 818,
+    "specs": [
+      {
+        "key": "Loại",
+        "value": "Chuột"
+      },
+      {
+        "key": "Kết nối",
+        "value": "Bluetooth"
+      },
+      {
+        "key": "Tương thích",
+        "value": "MacOS"
+      }
+    ]
+  },
+  {
+    "id": 2,
+    "name": "Xiaomi Generic Granite Pants",
+    "category_id": 10,
+    "category_name": "Thiết bị thông minh",
+    "brand": "Xiaomi",
+    "price": 29514916,
+    "original_price": 25399541,
+    "thumbnail_url": "https://example.com/images/c4c29a31-bccf-4717-a369-f31fabbddddf.jpg",
+    "rating": 4.283949413786964,
+    "review_count": 294,
+    "specs": [
+      {
+        "key": "Loại",
+        "value": "Loa thông minh"
+      },
+      {
+        "key": "Kết nối",
+        "value": "Zigbee"
+      },
+      {
+        "key": "Tương thích",
+        "value": "Tất cả"
+      },
+      {
+        "key": "Điều khiển bằng giọng nói",
+        "value": "Không"
+      }
+    ]
+  },
+  {
+    "id": 3,
+    "name": "Netgear Handmade Rubber Shirt",
+    "category_id": 9,
+    "category_name": "Thiết bị mạng",
+    "brand": "Netgear",
+    "price": 48413733,
+    "original_price": 37642557,
+    "thumbnail_url": "https://example.com/images/7a60d619-011b-4fed-8758-b4210c4e9ed0.jpg",
+    "rating": 4.2838497081519895,
+    "review_count": 273,
+    "specs": [
+      {
+        "key": "Loại",
+        "value": "Access Point"
+      },
+      {
+        "key": "Chuẩn Wi-Fi",
+        "value": "Wi-Fi 4"
+      },
+      {
+        "key": "Tốc độ",
+        "value": "1793 Mbps"
+      },
+      {
+        "key": "Số cổng LAN",
+        "value": 8
+      }
+    ]
+  },
+  {
+    "id": 4,
+    "name": "SteelSeries Handcrafted Granite Table",
+    "category_id": 5,
+    "category_name": "Phụ kiện máy tính",
+    "brand": "SteelSeries",
+    "price": 32236098,
+    "original_price": 37044679,
+    "thumbnail_url": "https://example.com/images/5507bbdb-f87f-46c2-b919-fb0e0809e12c.jpg",
+    "rating": 3.313606085018113,
+    "review_count": 552,
+    "specs": [
+      {
+        "key": "Loại",
+        "value": "Bàn phím"
+      },
+      {
+        "key": "Kết nối",
+        "value": "Không dây"
+      },
+      {
+        "key": "Tương thích",
+        "value": "Tất cả"
+      }
+    ]
+  },
+  {
+    "id": 5,
+    "name": "TP-Link Handmade Rubber Tuna",
+    "category_id": 9,
+    "category_name": "Thiết bị mạng",
+    "brand": "TP-Link",
+    "price": 7865855,
+    "original_price": 40887981,
+    "thumbnail_url": "https://example.com/images/0cd8f0b0-7225-44a0-beed-52fec2518581.jpg",
+    "rating": 3.112395590368658,
+    "review_count": 932,
+    "specs": [
+      {
+        "key": "Loại",
+        "value": "Modem"
+      },
+      {
+        "key": "Chuẩn Wi-Fi",
+        "value": "Wi-Fi 4"
+      },
+      {
+        "key": "Tốc độ",
+        "value": "1359 Mbps"
+      },
+      {
+        "key": "Số cổng LAN",
+        "value": 1
+      }
+    ]
+  },
+  {
+    "id": 6,
+    "name": "Amazon Modern Steel Shirt",
+    "category_id": 10,
+    "category_name": "Thiết bị thông minh",
+    "brand": "Amazon",
+    "price": 16624321,
+    "original_price": 44454480,
+    "thumbnail_url": "https://example.com/images/fa45c53d-6187-4127-be5e-820683d3dc40.jpg",
+    "rating": 3.316430291874983,
+    "review_count": 923,
+    "specs": [
+      {
+        "key": "Loại",
+        "value": "Loa thông minh"
+      },
+      {
+        "key": "Kết nối",
+        "value": "Wi-Fi"
+      },
+      {
+        "key": "Tương thích",
+        "value": "Tất cả"
+      },
+      {
+        "key": "Điều khiển bằng giọng nói",
+        "value": "Có"
+      }
+    ]
+  },
+  {
+    "id": 7,
+    "name": "Samsung Small Frozen Salad",
+    "category_id": 3,
+    "category_name": "Máy tính bảng",
+    "brand": "Samsung",
+    "price": 15592130,
+    "original_price": 30712182,
+    "thumbnail_url": "https://example.com/images/8b956361-dea0-4fd1-86cb-19f05406f772.jpg",
+    "rating": 4.756238048101672,
+    "review_count": 138,
+    "specs": [
+      {
+        "key": "Màn hình",
+        "value": "8 inch"
+      },
+      {
+        "key": "RAM",
+        "value": "8 GB"
+      },
+      {
+        "key": "Bộ nhớ trong",
+        "value": "32 GB"
+      },
+      {
+        "key": "Camera",
+        "value": "5 MP"
+      }
+    ]
+  },
+  {
+    "id": 8,
+    "name": "Amazon Fantastic Cotton Cheese",
+    "category_id": 10,
+    "category_name": "Thiết bị thông minh",
+    "brand": "Amazon",
+    "price": 2333827,
+    "original_price": 40034480,
+    "thumbnail_url": "https://example.com/images/96da5006-76d1-4390-83ed-2383292f8916.jpg",
+    "rating": 4.637711327069688,
+    "review_count": 327,
+    "specs": [
+      {
+        "key": "Loại",
+        "value": "Bóng đèn thông minh"
+      },
+      {
+        "key": "Kết nối",
+        "value": "Zigbee"
+      },
+      {
+        "key": "Tương thích",
+        "value": "Tất cả"
+      },
+      {
+        "key": "Điều khiển bằng giọng nói",
+        "value": "Không"
+      }
+    ]
+  },
+  {
+    "id": 9,
+    "name": "Oppo Unbranded Soft Gloves",
+    "category_id": 1,
+    "category_name": "Điện thoại di động",
+    "brand": "Oppo",
+    "price": 6519206,
+    "original_price": 10177969,
+    "thumbnail_url": "https://example.com/images/fdcb7acb-5579-4fc8-a8a6-e63a33bb5e1d.jpg",
+    "rating": 4.431704988948024,
+    "review_count": 985,
+    "specs": [
+      {
+        "key": "Màn hình",
+        "value": "6 inch"
+      },
+      {
+        "key": "RAM",
+        "value": "12 GB"
+      },
+      {
+        "key": "Bộ nhớ trong",
+        "value": "512 GB"
+      },
+      {
+        "key": "Camera",
+        "value": "76 MP"
+      }
+    ]
+  },
+  {
+    "id": 10,
+    "name": "Huawei Unbranded Frozen Hat",
+    "category_id": 7,
+    "category_name": "Smartwatch",
+    "brand": "Huawei",
+    "price": 32178547,
+    "original_price": 11384790,
+    "thumbnail_url": "https://example.com/images/87cbe702-8c5a-4f1a-8b2a-e49944e9998e.jpg",
+    "rating": 4.428639478083243,
+    "review_count": 505,
+    "specs": [
+      {
+        "key": "Màn hình",
+        "value": "1.357664762080009 inch"
+      },
+      {
+        "key": "Thời lượng pin",
+        "value": "11 ngày"
+      },
+      {
+        "key": "Chống nước",
+        "value": "IP68"
+      },
+      {
+        "key": "Tính năng sức khỏe",
+        "value": "Đếm bước chân"
+      }
+    ]
+  },
+  {
+    "id": 11,
+    "name": "Apple Small Fresh Ball",
+    "category_id": 7,
+    "category_name": "Smartwatch",
+    "brand": "Apple",
+    "price": 28372051,
+    "original_price": 8540255,
+    "thumbnail_url": "https://example.com/images/0fec4294-ab72-4206-96d0-d09e380955df.jpg",
+    "rating": 4.352273785142028,
+    "review_count": 678,
+    "specs": [
+      {
+        "key": "Màn hình",
+        "value": "1.6111316353469434 inch"
+      },
+      {
+        "key": "Thời lượng pin",
+        "value": "10 ngày"
+      },
+      {
+        "key": "Chống nước",
+        "value": "5 ATM"
+      },
+      {
+        "key": "Tính năng sức khỏe",
+        "value": "Đếm bước chân"
+      }
+    ]
+  },
+  {
+    "id": 12,
+    "name": "D-Link Luxurious Granite Tuna",
+    "category_id": 9,
+    "category_name": "Thiết bị mạng",
+    "brand": "D-Link",
+    "price": 40658953,
+    "original_price": 25831259,
+    "thumbnail_url": "https://example.com/images/d47490c4-2ce9-4076-970c-8e61ef5e92aa.jpg",
+    "rating": 3.7653241536710147,
+    "review_count": 288,
+    "specs": [
+      {
+        "key": "Loại",
+        "value": "Access Point"
+      },
+      {
+        "key": "Chuẩn Wi-Fi",
+        "value": "Wi-Fi 4"
+      },
+      {
+        "key": "Tốc độ",
+        "value": "4490 Mbps"
+      },
+      {
+        "key": "Số cổng LAN",
+        "value": 8
+      }
+    ]
+  },
+  {
+    "id": 13,
+    "name": "Otterbox Intelligent Soft Pants",
+    "category_id": 4,
+    "category_name": "Phụ kiện điện thoại",
+    "brand": "Otterbox",
+    "price": 46079639,
+    "original_price": 39468826,
+    "thumbnail_url": "https://example.com/images/90756dd6-fba5-43c6-80d9-e5e5a44306e7.jpg",
+    "rating": 3.2829388752594353,
+    "review_count": 91,
+    "specs": [
+      {
+        "key": "Loại",
+        "value": "Sạc dự phòng"
+      },
+      {
+        "key": "Tương thích",
+        "value": "iPhone"
+      },
+      {
+        "key": "Chất liệu",
+        "value": "Kính cường lực"
+      }
+    ]
+  },
+  {
+    "id": 14,
+    "name": "Google Intelligent Plastic Soap",
+    "category_id": 10,
+    "category_name": "Thiết bị thông minh",
+    "brand": "Google",
+    "price": 17283345,
+    "original_price": 37316500,
+    "thumbnail_url": "https://example.com/images/c68a936e-2acc-4a0a-a699-3b288534754a.jpg",
+    "rating": 3.015574058100488,
+    "review_count": 757,
+    "specs": [
+      {
+        "key": "Loại",
+        "value": "Ổ cắm thông minh"
+      },
+      {
+        "key": "Kết nối",
+        "value": "Bluetooth"
+      },
+      {
+        "key": "Tương thích",
+        "value": "Apple HomeKit"
+      },
+      {
+        "key": "Điều khiển bằng giọng nói",
+        "value": "Có"
+      }
+    ]
+  },
+  {
+    "id": 15,
+    "name": "Asus Electronic Concrete Towels",
+    "category_id": 2,
+    "category_name": "Laptop",
+    "brand": "Asus",
+    "price": 27416194,
+    "original_price": 2912862,
+    "thumbnail_url": "https://example.com/images/b094235d-b379-432a-b63d-5b996e6f5e63.jpg",
+    "rating": 3.9201763701482193,
+    "review_count": 158,
+    "specs": [
+      {
+        "key": "CPU",
+        "value": "AMD Ryzen 7"
+      },
+      {
+        "key": "RAM",
+        "value": "32 GB"
+      },
+      {
+        "key": "Ổ cứng",
+        "value": "256 GB SSD"
+      },
+      {
+        "key": "Màn hình",
+        "value": "15 inch"
+      }
+    ]
+  },
+  {
+    "id": 16,
+    "name": "Corsair Bespoke Wooden Chair",
+    "category_id": 5,
+    "category_name": "Phụ kiện máy tính",
+    "brand": "Corsair",
+    "price": 38420389,
+    "original_price": 29815427,
+    "thumbnail_url": "https://example.com/images/e4be7205-5369-4a54-b935-915454ccb142.jpg",
+    "rating": 3.5006434682532133,
+    "review_count": 73,
+    "specs": [
+      {
+        "key": "Loại",
+        "value": "Chuột"
+      },
+      {
+        "key": "Kết nối",
+        "value": "Bluetooth"
+      },
+      {
+        "key": "Tương thích",
+        "value": "Linux"
+      }
+    ]
+  },
+  {
+    "id": 17,
+    "name": "Vivo Ergonomic Wooden Salad",
+    "category_id": 1,
+    "category_name": "Điện thoại di động",
+    "brand": "Vivo",
+    "price": 9442068,
+    "original_price": 2082837,
+    "thumbnail_url": "https://example.com/images/4c0441e6-897e-41ce-be88-658496a1a387.jpg",
+    "rating": 4.644161041725593,
+    "review_count": 901,
+    "specs": [
+      {
+        "key": "Màn hình",
+        "value": "5 inch"
+      },
+      {
+        "key": "RAM",
+        "value": "12 GB"
+      },
+      {
+        "key": "Bộ nhớ trong",
+        "value": "128 GB"
+      },
+      {
+        "key": "Camera",
+        "value": "36 MP"
+      }
+    ]
+  },
+  {
+    "id": 18,
+    "name": "Apple Handmade Cotton Table",
+    "category_id": 1,
+    "category_name": "Điện thoại di động",
+    "brand": "Apple",
+    "price": 26465725,
+    "original_price": 34409053,
+    "thumbnail_url": "https://example.com/images/d3edc564-2f31-4561-9873-53cf0f72c7d9.jpg",
+    "rating": 4.811777774379015,
+    "review_count": 48,
+    "specs": [
+      {
+        "key": "Màn hình",
+        "value": "6 inch"
+      },
+      {
+        "key": "RAM",
+        "value": "12 GB"
+      },
+      {
+        "key": "Bộ nhớ trong",
+        "value": "512 GB"
+      },
+      {
+        "key": "Camera",
+        "value": "87 MP"
+      }
+    ]
+  },
+  {
+    "id": 19,
+    "name": "Asus Incredible Granite Pizza",
+    "category_id": 9,
+    "category_name": "Thiết bị mạng",
+    "brand": "Asus",
+    "price": 30676509,
+    "original_price": 31123006,
+    "thumbnail_url": "https://example.com/images/5b01dffc-2ae6-4482-8b18-240a6718cdf4.jpg",
+    "rating": 4.653277483823416,
+    "review_count": 503,
+    "specs": [
+      {
+        "key": "Loại",
+        "value": "Access Point"
+      },
+      {
+        "key": "Chuẩn Wi-Fi",
+        "value": "Wi-Fi 5"
+      },
+      {
+        "key": "Tốc độ",
+        "value": "2891 Mbps"
+      },
+      {
+        "key": "Số cổng LAN",
+        "value": 8
+      }
+    ]
+  },
+  {
+    "id": 20,
+    "name": "Asus Sleek Concrete Tuna",
+    "category_id": 9,
+    "category_name": "Thiết bị mạng",
+    "brand": "Asus",
+    "price": 19188379,
+    "original_price": 43791983,
+    "thumbnail_url": "https://example.com/images/42be1854-977b-4927-bb47-d90cc4c45ab5.jpg",
+    "rating": 4.6402239915890515,
+    "review_count": 367,
+    "specs": [
+      {
+        "key": "Loại",
+        "value": "Access Point"
+      },
+      {
+        "key": "Chuẩn Wi-Fi",
+        "value": "Wi-Fi 4"
+      },
+      {
+        "key": "Tốc độ",
+        "value": "626 Mbps"
+      },
+      {
+        "key": "Số cổng LAN",
+        "value": 2
+      }
+    ]
+  },
+  {
+    "id": 21,
+    "name": "Xiaomi Rustic Rubber Fish",
+    "category_id": 10,
+    "category_name": "Thiết bị thông minh",
+    "brand": "Xiaomi",
+    "price": 48061868,
+    "original_price": 5426049,
+    "thumbnail_url": "https://example.com/images/aa62f91d-cf9c-4ecd-b73c-601923ca3bbf.jpg",
+    "rating": 4.167183854208044,
+    "review_count": 718,
+    "specs": [
+      {
+        "key": "Loại",
+        "value": "Camera an ninh"
+      },
+      {
+        "key": "Kết nối",
+        "value": "Zigbee"
+      },
+      {
+        "key": "Tương thích",
+        "value": "Apple HomeKit"
+      },
+      {
+        "key": "Điều khiển bằng giọng nói",
+        "value": "Không"
+      }
+    ]
+  },
+  {
+    "id": 22,
+    "name": "HP Modern Concrete Table",
+    "category_id": 2,
+    "category_name": "Laptop",
+    "brand": "HP",
+    "price": 35902971,
+    "original_price": 33607996,
+    "thumbnail_url": "https://example.com/images/e3efcd1f-a738-4c2a-9069-b2ea998cadee.jpg",
+    "rating": 4.60714040531833,
+    "review_count": 328,
+    "specs": [
+      {
+        "key": "CPU",
+        "value": "AMD Ryzen 5"
+      },
+      {
+        "key": "RAM",
+        "value": "8 GB"
+      },
+      {
+        "key": "Ổ cứng",
+        "value": "512 GB SSD"
+      },
+      {
+        "key": "Màn hình",
+        "value": "16 inch"
+      }
+    ]
+  },
+  {
+    "id": 23,
+    "name": "Huawei Fantastic Cotton Chicken",
+    "category_id": 7,
+    "category_name": "Smartwatch",
+    "brand": "Huawei",
+    "price": 23405557,
+    "original_price": 6305034,
+    "thumbnail_url": "https://example.com/images/56988996-91cc-4634-a914-08c36be5f8ea.jpg",
+    "rating": 4.5904619193189244,
+    "review_count": 943,
+    "specs": [
+      {
+        "key": "Màn hình",
+        "value": "1.7829904317751435 inch"
+      },
+      {
+        "key": "Thời lượng pin",
+        "value": "14 ngày"
+      },
+      {
+        "key": "Chống nước",
+        "value": "5 ATM"
+      },
+      {
+        "key": "Tính năng sức khỏe",
+        "value": "Theo dõi giấc ngủ"
+      }
+    ]
+  },
+  {
+    "id": 24,
+    "name": "Realme Refined Rubber Car",
+    "category_id": 1,
+    "category_name": "Điện thoại di động",
+    "brand": "Realme",
+    "price": 7617267,
+    "original_price": 44810883,
+    "thumbnail_url": "https://example.com/images/4352bcb5-5010-4975-bf19-1f3991f76f28.jpg",
+    "rating": 4.633583033393444,
+    "review_count": 48,
+    "specs": [
+      {
+        "key": "Màn hình",
+        "value": "7 inch"
+      },
+      {
+        "key": "RAM",
+        "value": "6 GB"
+      },
+      {
+        "key": "Bộ nhớ trong",
+        "value": "256 GB"
+      },
+      {
+        "key": "Camera",
+        "value": "75 MP"
+      }
+    ]
+  },
+  {
+    "id": 25,
+    "name": "D-Link Bespoke Soft Car",
+    "category_id": 9,
+    "category_name": "Thiết bị mạng",
+    "brand": "D-Link",
+    "price": 33018309,
+    "original_price": 22362836,
+    "thumbnail_url": "https://example.com/images/6f1a4378-4cb7-45f8-9801-b52d7f7c49b9.jpg",
+    "rating": 4.482403710204812,
+    "review_count": 628,
+    "specs": [
+      {
+        "key": "Loại",
+        "value": "Router"
+      },
+      {
+        "key": "Chuẩn Wi-Fi",
+        "value": "Wi-Fi 4"
+      },
+      {
+        "key": "Tốc độ",
+        "value": "3288 Mbps"
+      },
+      {
+        "key": "Số cổng LAN",
+        "value": 4
+      }
+    ]
+  },
+  {
+    "id": 26,
+    "name": "SteelSeries Licensed Granite Ball",
+    "category_id": 5,
+    "category_name": "Phụ kiện máy tính",
+    "brand": "SteelSeries",
+    "price": 48780838,
+    "original_price": 22033489,
+    "thumbnail_url": "https://example.com/images/38633a2e-e91c-4665-8364-79af2ecb9593.jpg",
+    "rating": 3.8237658247171815,
+    "review_count": 336,
+    "specs": [
+      {
+        "key": "Loại",
+        "value": "Loa"
+      },
+      {
+        "key": "Kết nối",
+        "value": "Không dây"
+      },
+      {
+        "key": "Tương thích",
+        "value": "Tất cả"
+      }
+    ]
+  },
+  {
+    "id": 27,
+    "name": "Lenovo Luxurious Granite Chips",
+    "category_id": 2,
+    "category_name": "Laptop",
+    "brand": "Lenovo",
+    "price": 4982195,
+    "original_price": 45078391,
+    "thumbnail_url": "https://example.com/images/033dbc39-2597-46b5-92cf-8335ad5ded29.jpg",
+    "rating": 4.238835482079708,
+    "review_count": 464,
+    "specs": [
+      {
+        "key": "CPU",
+        "value": "AMD Ryzen 5"
+      },
+      {
+        "key": "RAM",
+        "value": "64 GB"
+      },
+      {
+        "key": "Ổ cứng",
+        "value": "512 GB SSD"
+      },
+      {
+        "key": "Màn hình",
+        "value": "15 inch"
+      }
+    ]
+  },
+  {
+    "id": 28,
+    "name": "Garmin Practical Steel Hat",
+    "category_id": 7,
+    "category_name": "Smartwatch",
+    "brand": "Garmin",
+    "price": 44276456,
+    "original_price": 4449401,
+    "thumbnail_url": "https://example.com/images/a3855cb1-9dff-42a8-958d-fac936e9e3b8.jpg",
+    "rating": 3.490586646535193,
+    "review_count": 593,
+    "specs": [
+      {
+        "key": "Màn hình",
+        "value": "1.023564412662981 inch"
+      },
+      {
+        "key": "Thời lượng pin",
+        "value": "6 ngày"
+      },
+      {
+        "key": "Chống nước",
+        "value": "Không"
+      },
+      {
+        "key": "Tính năng sức khỏe",
+        "value": "Đo nhịp tim"
+      }
+    ]
+  },
+  {
+    "id": 29,
+    "name": "Canon Incredible Wooden Mouse",
+    "category_id": 8,
+    "category_name": "Máy ảnh",
+    "brand": "Canon",
+    "price": 40842356,
+    "original_price": 33244983,
+    "thumbnail_url": "https://example.com/images/8b26e0b3-784f-4e2b-b721-39c2f579edb5.jpg",
+    "rating": 4.43223474280159,
+    "review_count": 820,
+    "specs": [
+      {
+        "key": "Độ phân giải",
+        "value": "35 MP"
+      },
+      {
+        "key": "Zoom quang học",
+        "value": "8x"
+      },
+      {
+        "key": "Kích thước cảm biến",
+        "value": "Micro 4/3"
+      },
+      {
+        "key": "Quay video",
+        "value": "8K"
+      }
+    ]
+  },
+  {
+    "id": 30,
+    "name": "Nikon Bespoke Frozen Computer",
+    "category_id": 8,
+    "category_name": "Máy ảnh",
+    "brand": "Nikon",
+    "price": 2149322,
+    "original_price": 41207112,
+    "thumbnail_url": "https://example.com/images/f8801871-2c15-4170-aa4b-5b36f46a89ef.jpg",
+    "rating": 3.013001864001543,
+    "review_count": 463,
+    "specs": [
+      {
+        "key": "Độ phân giải",
+        "value": "41 MP"
+      },
+      {
+        "key": "Zoom quang học",
+        "value": "12x"
+      },
+      {
+        "key": "Kích thước cảm biến",
+        "value": "Full-frame"
+      },
+      {
+        "key": "Quay video",
+        "value": "4K"
+      }
+    ]
+  },
+  {
+    "id": 31,
+    "name": "JBL Rustic Plastic Chips",
+    "category_id": 6,
+    "category_name": "Thiết bị âm thanh",
+    "brand": "JBL",
+    "price": 9183818,
+    "original_price": 27684853,
+    "thumbnail_url": "https://example.com/images/a9a3d764-e5e1-461e-9f51-db260e9d7707.jpg",
+    "rating": 4.34558512614671,
+    "review_count": 575,
+    "specs": [
+      {
+        "key": "Loại",
+        "value": "Loa bluetooth"
+      },
+      {
+        "key": "Thời lượng pin",
+        "value": "16 giờ"
+      },
+      {
+        "key": "Chống nước",
+        "value": "Có"
+      }
+    ]
+  },
+  {
+    "id": 32,
+    "name": "D-Link Unbranded Cotton Sausages",
+    "category_id": 9,
+    "category_name": "Thiết bị mạng",
+    "brand": "D-Link",
+    "price": 49943530,
+    "original_price": 41564986,
+    "thumbnail_url": "https://example.com/images/b09e0ebc-1595-4753-99aa-fd1d850a793c.jpg",
+    "rating": 3.7538465512446475,
+    "review_count": 640,
+    "specs": [
+      {
+        "key": "Loại",
+        "value": "Switch"
+      },
+      {
+        "key": "Chuẩn Wi-Fi",
+        "value": "Wi-Fi 6"
+      },
+      {
+        "key": "Tốc độ",
+        "value": "5055 Mbps"
+      },
+      {
+        "key": "Số cổng LAN",
+        "value": 1
+      }
+    ]
+  },
+  {
+    "id": 33,
+    "name": "Microsoft Fantastic Granite Pizza",
+    "category_id": 3,
+    "category_name": "Máy tính bảng",
+    "brand": "Microsoft",
+    "price": 27415461,
+    "original_price": 42759207,
+    "thumbnail_url": "https://example.com/images/c15d46b9-6e4d-4154-9256-cc3a507ef207.jpg",
+    "rating": 3.9019996889797404,
+    "review_count": 78,
+    "specs": [
+      {
+        "key": "Màn hình",
+        "value": "12 inch"
+      },
+      {
+        "key": "RAM",
+        "value": "2 GB"
+      },
+      {
+        "key": "Bộ nhớ trong",
+        "value": "128 GB"
+      },
+      {
+        "key": "Camera",
+        "value": "17 MP"
+      }
+    ]
+  },
+  {
+    "id": 34,
+    "name": "Samsung Incredible Bronze Shoes",
+    "category_id": 1,
+    "category_name": "Điện thoại di động",
+    "brand": "Samsung",
+    "price": 45086953,
+    "original_price": 44059658,
+    "thumbnail_url": "https://example.com/images/c94cb70d-a03a-440e-b7eb-dbce4c8f7452.jpg",
+    "rating": 3.5000364620006676,
+    "review_count": 448,
+    "specs": [
+      {
+        "key": "Màn hình",
+        "value": "7 inch"
+      },
+      {
+        "key": "RAM",
+        "value": "4 GB"
+      },
+      {
+        "key": "Bộ nhớ trong",
+        "value": "256 GB"
+      },
+      {
+        "key": "Camera",
+        "value": "15 MP"
+      }
+    ]
+  },
+  {
+    "id": 35,
+    "name": "Anker Modern Frozen Soap",
+    "category_id": 4,
+    "category_name": "Phụ kiện điện thoại",
+    "brand": "Anker",
+    "price": 46325095,
+    "original_price": 23885274,
+    "thumbnail_url": "https://example.com/images/04293b86-c751-453a-9e78-0170e7f18b25.jpg",
+    "rating": 3.8168717184060794,
+    "review_count": 201,
+    "specs": [
+      {
+        "key": "Loại",
+        "value": "Cáp sạc"
+      },
+      {
+        "key": "Tương thích",
+        "value": "Oppo"
+      },
+      {
+        "key": "Chất liệu",
+        "value": "Nhựa"
+      }
+    ]
+  },
+  {
+    "id": 36,
+    "name": "Xiaomi Fantastic Rubber Chicken",
+    "category_id": 1,
+    "category_name": "Điện thoại di động",
+    "brand": "Xiaomi",
+    "price": 48770207,
+    "original_price": 46892658,
+    "thumbnail_url": "https://example.com/images/0f50b98e-8ab3-44f4-965b-8bd91e6d789d.jpg",
+    "rating": 3.7049358878605814,
+    "review_count": 275,
+    "specs": [
+      {
+        "key": "Màn hình",
+        "value": "5 inch"
+      },
+      {
+        "key": "RAM",
+        "value": "8 GB"
+      },
+      {
+        "key": "Bộ nhớ trong",
+        "value": "128 GB"
+      },
+      {
+        "key": "Camera",
+        "value": "27 MP"
+      }
+    ]
+  },
+  {
+    "id": 37,
+    "name": "Anker Practical Frozen Computer",
+    "category_id": 4,
+    "category_name": "Phụ kiện điện thoại",
+    "brand": "Anker",
+    "price": 8098594,
+    "original_price": 21904036,
+    "thumbnail_url": "https://example.com/images/259c7761-9df0-4bb5-9568-506af9550c73.jpg",
+    "rating": 3.36061320021398,
+    "review_count": 324,
+    "specs": [
+      {
+        "key": "Loại",
+        "value": "Cáp sạc"
+      },
+      {
+        "key": "Tương thích",
+        "value": "Xiaomi"
+      },
+      {
+        "key": "Chất liệu",
+        "value": "Silicon"
+      }
+    ]
+  },
+  {
+    "id": 38,
+    "name": "Fujifilm Awesome Granite Sausages",
+    "category_id": 8,
+    "category_name": "Máy ảnh",
+    "brand": "Fujifilm",
+    "price": 35612658,
+    "original_price": 31964386,
+    "thumbnail_url": "https://example.com/images/b57d2882-e26b-4d36-8340-b9a5007d29f2.jpg",
+    "rating": 4.579957384070923,
+    "review_count": 864,
+    "specs": [
+      {
+        "key": "Độ phân giải",
+        "value": "59 MP"
+      },
+      {
+        "key": "Zoom quang học",
+        "value": "6x"
+      },
+      {
+        "key": "Kích thước cảm biến",
+        "value": "1 inch"
+      },
+      {
+        "key": "Quay video",
+        "value": "8K"
+      }
+    ]
+  },
+  {
+    "id": 39,
+    "name": "Netgear Handcrafted Rubber Keyboard",
+    "category_id": 9,
+    "category_name": "Thiết bị mạng",
+    "brand": "Netgear",
+    "price": 3794505,
+    "original_price": 35031751,
+    "thumbnail_url": "https://example.com/images/9e018f13-6797-4bae-aa97-e66f55fa8de5.jpg",
+    "rating": 3.8521559659384432,
+    "review_count": 710,
+    "specs": [
+      {
+        "key": "Loại",
+        "value": "Access Point"
+      },
+      {
+        "key": "Chuẩn Wi-Fi",
+        "value": "Wi-Fi 6"
+      },
+      {
+        "key": "Tốc độ",
+        "value": "1894 Mbps"
+      },
+      {
+        "key": "Số cổng LAN",
+        "value": 1
+      }
+    ]
+  },
+  {
+    "id": 40,
+    "name": "Nokia Bespoke Metal Soap",
+    "category_id": 1,
+    "category_name": "Điện thoại di động",
+    "brand": "Nokia",
+    "price": 45455983,
+    "original_price": 32847738,
+    "thumbnail_url": "https://example.com/images/e14d7e6c-020f-41c8-b3c8-aeba23b6ce18.jpg",
+    "rating": 3.6550343019585885,
+    "review_count": 702,
+    "specs": [
+      {
+        "key": "Màn hình",
+        "value": "5 inch"
+      },
+      {
+        "key": "RAM",
+        "value": "6 GB"
+      },
+      {
+        "key": "Bộ nhớ trong",
+        "value": "64 GB"
+      },
+      {
+        "key": "Camera",
+        "value": "79 MP"
+      }
+    ]
+  },
+  {
+    "id": 41,
+    "name": "Apple Fantastic Soft Gloves",
+    "category_id": 7,
+    "category_name": "Smartwatch",
+    "brand": "Apple",
+    "price": 46154870,
+    "original_price": 46073151,
+    "thumbnail_url": "https://example.com/images/8d17b404-c5ca-4922-8e8f-7e43e06bbca7.jpg",
+    "rating": 3.9863959341767075,
+    "review_count": 310,
+    "specs": [
+      {
+        "key": "Màn hình",
+        "value": "1.6701933603890222 inch"
+      },
+      {
+        "key": "Thời lượng pin",
+        "value": "14 ngày"
+      },
+      {
+        "key": "Chống nước",
+        "value": "IP68"
+      },
+      {
+        "key": "Tính năng sức khỏe",
+        "value": "Đếm bước chân"
+      }
+    ]
+  },
+  {
+    "id": 42,
+    "name": "Asus Intelligent Metal Bike",
+    "category_id": 2,
+    "category_name": "Laptop",
+    "brand": "Asus",
+    "price": 3683115,
+    "original_price": 41234944,
+    "thumbnail_url": "https://example.com/images/15a42857-58f8-491b-95f8-2341a9a1a64c.jpg",
+    "rating": 3.63353937413265,
+    "review_count": 21,
+    "specs": [
+      {
+        "key": "CPU",
+        "value": "AMD Ryzen 7"
+      },
+      {
+        "key": "RAM",
+        "value": "16 GB"
+      },
+      {
+        "key": "Ổ cứng",
+        "value": "512 GB SSD"
+      },
+      {
+        "key": "Màn hình",
+        "value": "15 inch"
+      }
+    ]
+  },
+  {
+    "id": 43,
+    "name": "Panasonic Incredible Granite Hat",
+    "category_id": 8,
+    "category_name": "Máy ảnh",
+    "brand": "Panasonic",
+    "price": 7267080,
+    "original_price": 11885416,
+    "thumbnail_url": "https://example.com/images/0864a3d4-7943-4a28-9387-0b425be3e9b1.jpg",
+    "rating": 3.3085800961084173,
+    "review_count": 198,
+    "specs": [
+      {
+        "key": "Độ phân giải",
+        "value": "22 MP"
+      },
+      {
+        "key": "Zoom quang học",
+        "value": "7x"
+      },
+      {
+        "key": "Kích thước cảm biến",
+        "value": "Micro 4/3"
+      },
+      {
+        "key": "Quay video",
+        "value": "8K"
+      }
+    ]
+  },
+  {
+    "id": 44,
+    "name": "Fujifilm Elegant Rubber Computer",
+    "category_id": 8,
+    "category_name": "Máy ảnh",
+    "brand": "Fujifilm",
+    "price": 17632073,
+    "original_price": 41042779,
+    "thumbnail_url": "https://example.com/images/2321b1ab-582a-4349-9d5d-b46bc898e42d.jpg",
+    "rating": 3.9520658852205504,
+    "review_count": 70,
+    "specs": [
+      {
+        "key": "Độ phân giải",
+        "value": "37 MP"
+      },
+      {
+        "key": "Zoom quang học",
+        "value": "7x"
+      },
+      {
+        "key": "Kích thước cảm biến",
+        "value": "Full-frame"
+      },
+      {
+        "key": "Quay video",
+        "value": "4K"
+      }
+    ]
+  },
+  {
+    "id": 45,
+    "name": "Anker Intelligent Concrete Car",
+    "category_id": 4,
+    "category_name": "Phụ kiện điện thoại",
+    "brand": "Anker",
+    "price": 15126337,
+    "original_price": 15981059,
+    "thumbnail_url": "https://example.com/images/686379bd-4a34-4df0-aec0-7f7d03d525e0.jpg",
+    "rating": 3.7430985351312804,
+    "review_count": 478,
+    "specs": [
+      {
+        "key": "Loại",
+        "value": "Tai nghe"
+      },
+      {
+        "key": "Tương thích",
+        "value": "Xiaomi"
+      },
+      {
+        "key": "Chất liệu",
+        "value": "Silicon"
+      }
+    ]
+  },
+  {
+    "id": 46,
+    "name": "Xiaomi Elegant Concrete Hat",
+    "category_id": 1,
+    "category_name": "Điện thoại di động",
+    "brand": "Xiaomi",
+    "price": 45696579,
+    "original_price": 7056307,
+    "thumbnail_url": "https://example.com/images/44ef7a53-d751-407d-84af-24530c301476.jpg",
+    "rating": 3.4353610045086764,
+    "review_count": 549,
+    "specs": [
+      {
+        "key": "Màn hình",
+        "value": "6 inch"
+      },
+      {
+        "key": "RAM",
+        "value": "6 GB"
+      },
+      {
+        "key": "Bộ nhớ trong",
+        "value": "512 GB"
+      },
+      {
+        "key": "Camera",
+        "value": "86 MP"
+      }
+    ]
+  },
+  {
+    "id": 47,
+    "name": "Samsung Unbranded Metal Soap",
+    "category_id": 7,
+    "category_name": "Smartwatch",
+    "brand": "Samsung",
+    "price": 44234356,
+    "original_price": 39417402,
+    "thumbnail_url": "https://example.com/images/35189367-a846-4e4b-a1cc-0c30e82bee22.jpg",
+    "rating": 4.140975428812075,
+    "review_count": 977,
+    "specs": [
+      {
+        "key": "Màn hình",
+        "value": "1.9984954233017234 inch"
+      },
+      {
+        "key": "Thời lượng pin",
+        "value": "11 ngày"
+      },
+      {
+        "key": "Chống nước",
+        "value": "IP68"
+      },
+      {
+        "key": "Tính năng sức khỏe",
+        "value": "Đo SpO2"
+      }
+    ]
+  },
+  {
+    "id": 48,
+    "name": "Apple Sleek Granite Tuna",
+    "category_id": 1,
+    "category_name": "Điện thoại di động",
+    "brand": "Apple",
+    "price": 10110792,
+    "original_price": 25072818,
+    "thumbnail_url": "https://example.com/images/170671e9-8d02-4db8-ad81-c446bf6f49bf.jpg",
+    "rating": 4.640705754562706,
+    "review_count": 335,
+    "specs": [
+      {
+        "key": "Màn hình",
+        "value": "5 inch"
+      },
+      {
+        "key": "RAM",
+        "value": "6 GB"
+      },
+      {
+        "key": "Bộ nhớ trong",
+        "value": "64 GB"
+      },
+      {
+        "key": "Camera",
+        "value": "92 MP"
+      }
+    ]
+  },
+  {
+    "id": 49,
+    "name": "Belkin Tasty Concrete Table",
+    "category_id": 4,
+    "category_name": "Phụ kiện điện thoại",
+    "brand": "Belkin",
+    "price": 15532366,
+    "original_price": 7244814,
+    "thumbnail_url": "https://example.com/images/7ed37cb5-f87b-4fa0-bdf9-7b16873eedfb.jpg",
+    "rating": 3.967260722910005,
+    "review_count": 212,
+    "specs": [
+      {
+        "key": "Loại",
+        "value": "Sạc dự phòng"
+      },
+      {
+        "key": "Tương thích",
+        "value": "Oppo"
+      },
+      {
+        "key": "Chất liệu",
+        "value": "Silicon"
+      }
+    ]
+  },
+  {
+    "id": 50,
+    "name": "Xiaomi Fantastic Rubber Car",
+    "category_id": 10,
+    "category_name": "Thiết bị thông minh",
+    "brand": "Xiaomi",
+    "price": 37348025,
+    "original_price": 26735632,
+    "thumbnail_url": "https://example.com/images/f0b87051-cf2a-48dc-9746-4a33b6965a2c.jpg",
+    "rating": 4.456582252564251,
+    "review_count": 31,
+    "specs": [
+      {
+        "key": "Loại",
+        "value": "Bóng đèn thông minh"
+      },
+      {
+        "key": "Kết nối",
+        "value": "Zigbee"
+      },
+      {
+        "key": "Tương thích",
+        "value": "Tất cả"
+      },
+      {
+        "key": "Điều khiển bằng giọng nói",
+        "value": "Có"
+      }
+    ]
+  },
+  {
+    "id": 51,
+    "name": "Dell Elegant Fresh Gloves",
+    "category_id": 2,
+    "category_name": "Laptop",
+    "brand": "Dell",
+    "price": 31077206,
+    "original_price": 45444959,
+    "thumbnail_url": "https://example.com/images/0c32237f-6b61-46ee-9aba-f2f9056b1d52.jpg",
+    "rating": 3.6708569114184897,
+    "review_count": 818,
+    "specs": [
+      {
+        "key": "CPU",
+        "value": "AMD Ryzen 7"
+      },
+      {
+        "key": "RAM",
+        "value": "64 GB"
+      },
+      {
+        "key": "Ổ cứng",
+        "value": "512 GB SSD"
+      },
+      {
+        "key": "Màn hình",
+        "value": "17 inch"
+      }
+    ]
+  },
+  {
+    "id": 52,
+    "name": "Anker Bespoke Frozen Mouse",
+    "category_id": 4,
+    "category_name": "Phụ kiện điện thoại",
+    "brand": "Anker",
+    "price": 33424329,
+    "original_price": 21821214,
+    "thumbnail_url": "https://example.com/images/71cd93ce-8c9c-465e-bc70-25317c7721ef.jpg",
+    "rating": 4.597787632658651,
+    "review_count": 256,
+    "specs": [
+      {
+        "key": "Loại",
+        "value": "Miếng dán màn hình"
+      },
+      {
+        "key": "Tương thích",
+        "value": "iPhone"
+      },
+      {
+        "key": "Chất liệu",
+        "value": "Kính cường lực"
+      }
+    ]
+  },
+  {
+    "id": 53,
+    "name": "Sennheiser Small Rubber Tuna",
+    "category_id": 6,
+    "category_name": "Thiết bị âm thanh",
+    "brand": "Sennheiser",
+    "price": 45826174,
+    "original_price": 13292811,
+    "thumbnail_url": "https://example.com/images/db5befd9-b72c-4dfc-a146-e03385854193.jpg",
+    "rating": 3.2412846143388165,
+    "review_count": 802,
+    "specs": [
+      {
+        "key": "Loại",
+        "value": "Soundbar"
+      },
+      {
+        "key": "Thời lượng pin",
+        "value": "29 giờ"
+      },
+      {
+        "key": "Chống nước",
+        "value": "Không"
+      }
+    ]
+  },
+  {
+    "id": 54,
+    "name": "Samsung Modern Concrete Computer",
+    "category_id": 1,
+    "category_name": "Điện thoại di động",
+    "brand": "Samsung",
+    "price": 30267657,
+    "original_price": 45703524,
+    "thumbnail_url": "https://example.com/images/5f22df66-c61d-4956-8148-971820b821ae.jpg",
+    "rating": 3.3482393063661897,
+    "review_count": 323,
+    "specs": [
+      {
+        "key": "Màn hình",
+        "value": "6 inch"
+      },
+      {
+        "key": "RAM",
+        "value": "4 GB"
+      },
+      {
+        "key": "Bộ nhớ trong",
+        "value": "512 GB"
+      },
+      {
+        "key": "Camera",
+        "value": "103 MP"
+      }
+    ]
+  },
+  {
+    "id": 55,
+    "name": "Mophie Intelligent Rubber Bacon",
+    "category_id": 4,
+    "category_name": "Phụ kiện điện thoại",
+    "brand": "Mophie",
+    "price": 8131885,
+    "original_price": 48693280,
+    "thumbnail_url": "https://example.com/images/c85eb1a7-ff57-4e5e-b0a6-801159fe685c.jpg",
+    "rating": 4.212413739554808,
+    "review_count": 767,
+    "specs": [
+      {
+        "key": "Loại",
+        "value": "Ốp lưng"
+      },
+      {
+        "key": "Tương thích",
+        "value": "Tất cả"
+      },
+      {
+        "key": "Chất liệu",
+        "value": "Kim loại"
+      }
+    ]
+  },
+  {
+    "id": 56,
+    "name": "Huawei Handmade Fresh Salad",
+    "category_id": 3,
+    "category_name": "Máy tính bảng",
+    "brand": "Huawei",
+    "price": 14637674,
+    "original_price": 19916723,
+    "thumbnail_url": "https://example.com/images/a2ff1acb-a41e-4b8a-b3a1-69f0e5f7c671.jpg",
+    "rating": 3.106466928709729,
+    "review_count": 991,
+    "specs": [
+      {
+        "key": "Màn hình",
+        "value": "7 inch"
+      },
+      {
+        "key": "RAM",
+        "value": "2 GB"
+      },
+      {
+        "key": "Bộ nhớ trong",
+        "value": "128 GB"
+      },
+      {
+        "key": "Camera",
+        "value": "10 MP"
+      }
+    ]
+  },
+  {
+    "id": 57,
+    "name": "Acer Small Rubber Pizza",
+    "category_id": 2,
+    "category_name": "Laptop",
+    "brand": "Acer",
+    "price": 32295170,
+    "original_price": 26395633,
+    "thumbnail_url": "https://example.com/images/bf923ec6-035c-4806-97e4-4d4310263bd6.jpg",
+    "rating": 4.108854013959052,
+    "review_count": 906,
+    "specs": [
+      {
+        "key": "CPU",
+        "value": "Intel Core i5"
+      },
+      {
+        "key": "RAM",
+        "value": "8 GB"
+      },
+      {
+        "key": "Ổ cứng",
+        "value": "1024 GB SSD"
+      },
+      {
+        "key": "Màn hình",
+        "value": "14 inch"
+      }
+    ]
+  },
+  {
+    "id": 58,
+    "name": "Fujifilm Fantastic Concrete Chicken",
+    "category_id": 8,
+    "category_name": "Máy ảnh",
+    "brand": "Fujifilm",
+    "price": 35850101,
+    "original_price": 12325795,
+    "thumbnail_url": "https://example.com/images/34956486-9725-4566-afb6-e1557ad855ed.jpg",
+    "rating": 3.924736137838474,
+    "review_count": 480,
+    "specs": [
+      {
+        "key": "Độ phân giải",
+        "value": "32 MP"
+      },
+      {
+        "key": "Zoom quang học",
+        "value": "29x"
+      },
+      {
+        "key": "Kích thước cảm biến",
+        "value": "APS-C"
+      },
+      {
+        "key": "Quay video",
+        "value": "1080p"
+      }
+    ]
+  },
+  {
+    "id": 59,
+    "name": "JBL Licensed Cotton Keyboard",
+    "category_id": 6,
+    "category_name": "Thiết bị âm thanh",
+    "brand": "JBL",
+    "price": 2807161,
+    "original_price": 38703573,
+    "thumbnail_url": "https://example.com/images/4c2fd3cf-f6ac-4141-a1b4-687a59294149.jpg",
+    "rating": 3.1465748034727383,
+    "review_count": 955,
+    "specs": [
+      {
+        "key": "Loại",
+        "value": "Tai nghe true wireless"
+      },
+      {
+        "key": "Thời lượng pin",
+        "value": "36 giờ"
+      },
+      {
+        "key": "Chống nước",
+        "value": "Có"
+      }
+    ]
+  },
+  {
+    "id": 60,
+    "name": "Razer Oriental Bronze Sausages",
+    "category_id": 5,
+    "category_name": "Phụ kiện máy tính",
+    "brand": "Razer",
+    "price": 33355688,
+    "original_price": 42715434,
+    "thumbnail_url": "https://example.com/images/ad5a34d2-31ca-4cf8-8bc1-c425b4c16662.jpg",
+    "rating": 4.040897977325426,
+    "review_count": 663,
+    "specs": [
+      {
+        "key": "Loại",
+        "value": "Webcam"
+      },
+      {
+        "key": "Kết nối",
+        "value": "Không dây"
+      },
+      {
+        "key": "Tương thích",
+        "value": "Windows"
+      }
+    ]
+  },
+  {
+    "id": 61,
+    "name": "Bose Small Plastic Sausages",
+    "category_id": 6,
+    "category_name": "Thiết bị âm thanh",
+    "brand": "Bose",
+    "price": 15725611,
+    "original_price": 12884247,
+    "thumbnail_url": "https://example.com/images/b7bab272-464d-4972-a7c5-fbdba74175a1.jpg",
+    "rating": 4.101044737903326,
+    "review_count": 312,
+    "specs": [
+      {
+        "key": "Loại",
+        "value": "Soundbar"
+      },
+      {
+        "key": "Thời lượng pin",
+        "value": "30 giờ"
+      },
+      {
+        "key": "Chống nước",
+        "value": "Không"
+      }
+    ]
+  },
+  {
+    "id": 62,
+    "name": "Spigen Practical Rubber Gloves",
+    "category_id": 4,
+    "category_name": "Phụ kiện điện thoại",
+    "brand": "Spigen",
+    "price": 32323878,
+    "original_price": 6637183,
+    "thumbnail_url": "https://example.com/images/8dc8f0ce-6f35-490d-8508-1127fc9257f4.jpg",
+    "rating": 4.196793162247118,
+    "review_count": 386,
+    "specs": [
+      {
+        "key": "Loại",
+        "value": "Tai nghe"
+      },
+      {
+        "key": "Tương thích",
+        "value": "Oppo"
+      },
+      {
+        "key": "Chất liệu",
+        "value": "Kính cường lực"
+      }
+    ]
+  },
+  {
+    "id": 63,
+    "name": "JBL Handmade Bronze Shirt",
+    "category_id": 6,
+    "category_name": "Thiết bị âm thanh",
+    "brand": "JBL",
+    "price": 7628098,
+    "original_price": 32766553,
+    "thumbnail_url": "https://example.com/images/5649434d-0538-4362-86be-b73846d1827b.jpg",
+    "rating": 4.987400116286487,
+    "review_count": 426,
+    "specs": [
+      {
+        "key": "Loại",
+        "value": "Tai nghe over-ear"
+      },
+      {
+        "key": "Thời lượng pin",
+        "value": "34 giờ"
+      },
+      {
+        "key": "Chống nước",
+        "value": "Có"
+      }
+    ]
+  },
+  {
+    "id": 64,
+    "name": "Audio-Technica Unbranded Frozen Chips",
+    "category_id": 6,
+    "category_name": "Thiết bị âm thanh",
+    "brand": "Audio-Technica",
+    "price": 39544678,
+    "original_price": 29331919,
+    "thumbnail_url": "https://example.com/images/376ddc93-dc8b-4106-9f9e-77f61d669af0.jpg",
+    "rating": 4.35593690214091,
+    "review_count": 661,
+    "specs": [
+      {
+        "key": "Loại",
+        "value": "Tai nghe over-ear"
+      },
+      {
+        "key": "Thời lượng pin",
+        "value": "26 giờ"
+      },
+      {
+        "key": "Chống nước",
+        "value": "Có"
+      }
+    ]
+  },
+  {
+    "id": 65,
+    "name": "Apple Small Wooden Keyboard",
+    "category_id": 7,
+    "category_name": "Smartwatch",
+    "brand": "Apple",
+    "price": 15605452,
+    "original_price": 16858660,
+    "thumbnail_url": "https://example.com/images/9683f7c0-d333-4c89-af94-361f8804d2fa.jpg",
+    "rating": 3.6378625339015516,
+    "review_count": 847,
+    "specs": [
+      {
+        "key": "Màn hình",
+        "value": "1.4415823688309344 inch"
+      },
+      {
+        "key": "Thời lượng pin",
+        "value": "12 ngày"
+      },
+      {
+        "key": "Chống nước",
+        "value": "IP68"
+      },
+      {
+        "key": "Tính năng sức khỏe",
+        "value": "Đo nhịp tim"
+      }
+    ]
+  },
+  {
+    "id": 66,
+    "name": "Linksys Bespoke Frozen Shoes",
+    "category_id": 9,
+    "category_name": "Thiết bị mạng",
+    "brand": "Linksys",
+    "price": 15574544,
+    "original_price": 8495922,
+    "thumbnail_url": "https://example.com/images/18b31c81-8fde-4db5-be4a-e8b6511c231b.jpg",
+    "rating": 3.4785114028340627,
+    "review_count": 808,
+    "specs": [
+      {
+        "key": "Loại",
+        "value": "Router"
+      },
+      {
+        "key": "Chuẩn Wi-Fi",
+        "value": "Wi-Fi 6"
+      },
+      {
+        "key": "Tốc độ",
+        "value": "3175 Mbps"
+      },
+      {
+        "key": "Số cổng LAN",
+        "value": 1
+      }
+    ]
+  },
+  {
+    "id": 67,
+    "name": "Sennheiser Handmade Plastic Tuna",
+    "category_id": 6,
+    "category_name": "Thiết bị âm thanh",
+    "brand": "Sennheiser",
+    "price": 18296194,
+    "original_price": 3051360,
+    "thumbnail_url": "https://example.com/images/65662753-7456-497b-b4d3-7af4b989667b.jpg",
+    "rating": 3.5372070670137155,
+    "review_count": 692,
+    "specs": [
+      {
+        "key": "Loại",
+        "value": "Tai nghe over-ear"
+      },
+      {
+        "key": "Thời lượng pin",
+        "value": "29 giờ"
+      },
+      {
+        "key": "Chống nước",
+        "value": "Không"
+      }
+    ]
+  },
+  {
+    "id": 68,
+    "name": "Anker Oriental Metal Keyboard",
+    "category_id": 4,
+    "category_name": "Phụ kiện điện thoại",
+    "brand": "Anker",
+    "price": 7754655,
+    "original_price": 46739772,
+    "thumbnail_url": "https://example.com/images/c17740fa-82bf-40b8-a176-719463734a3f.jpg",
+    "rating": 3.7786606756539847,
+    "review_count": 298,
+    "specs": [
+      {
+        "key": "Loại",
+        "value": "Tai nghe"
+      },
+      {
+        "key": "Tương thích",
+        "value": "Vivo"
+      },
+      {
+        "key": "Chất liệu",
+        "value": "Kính cường lực"
+      }
+    ]
+  },
+  {
+    "id": 69,
+    "name": "Asus Awesome Plastic Salad",
+    "category_id": 9,
+    "category_name": "Thiết bị mạng",
+    "brand": "Asus",
+    "price": 18528159,
+    "original_price": 14449204,
+    "thumbnail_url": "https://example.com/images/07e11d2f-f9af-4fac-b8ec-9a44717ddd93.jpg",
+    "rating": 3.0816506061569475,
+    "review_count": 334,
+    "specs": [
+      {
+        "key": "Loại",
+        "value": "Access Point"
+      },
+      {
+        "key": "Chuẩn Wi-Fi",
+        "value": "Wi-Fi 6"
+      },
+      {
+        "key": "Tốc độ",
+        "value": "4893 Mbps"
+      },
+      {
+        "key": "Số cổng LAN",
+        "value": 1
+      }
+    ]
+  },
+  {
+    "id": 70,
+    "name": "Canon Bespoke Concrete Bike",
+    "category_id": 8,
+    "category_name": "Máy ảnh",
+    "brand": "Canon",
+    "price": 44979491,
+    "original_price": 12078208,
+    "thumbnail_url": "https://example.com/images/cbd4a6a4-394f-41c6-adc7-e37690cd2f30.jpg",
+    "rating": 3.068654375071648,
+    "review_count": 232,
+    "specs": [
+      {
+        "key": "Độ phân giải",
+        "value": "26 MP"
+      },
+      {
+        "key": "Zoom quang học",
+        "value": "11x"
+      },
+      {
+        "key": "Kích thước cảm biến",
+        "value": "Micro 4/3"
+      },
+      {
+        "key": "Quay video",
+        "value": "8K"
+      }
+    ]
+  },
+  {
+    "id": 71,
+    "name": "Garmin Fantastic Metal Tuna",
+    "category_id": 7,
+    "category_name": "Smartwatch",
+    "brand": "Garmin",
+    "price": 6758912,
+    "original_price": 28689137,
+    "thumbnail_url": "https://example.com/images/f9d0f34c-d750-404a-8349-534bcc089821.jpg",
+    "rating": 4.548016558679696,
+    "review_count": 677,
+    "specs": [
+      {
+        "key": "Màn hình",
+        "value": "1.2576241059916888 inch"
+      },
+      {
+        "key": "Thời lượng pin",
+        "value": "13 ngày"
+      },
+      {
+        "key": "Chống nước",
+        "value": "3 ATM"
+      },
+      {
+        "key": "Tính năng sức khỏe",
+        "value": "Đo SpO2"
+      }
+    ]
+  },
+  {
+    "id": 72,
+    "name": "Belkin Tasty Metal Sausages",
+    "category_id": 4,
+    "category_name": "Phụ kiện điện thoại",
+    "brand": "Belkin",
+    "price": 41668409,
+    "original_price": 42677689,
+    "thumbnail_url": "https://example.com/images/a3b61935-d5eb-456b-ac17-cefb73c8e4e1.jpg",
+    "rating": 3.2593759607992294,
+    "review_count": 570,
+    "specs": [
+      {
+        "key": "Loại",
+        "value": "Ốp lưng"
+      },
+      {
+        "key": "Tương thích",
+        "value": "iPhone"
+      },
+      {
+        "key": "Chất liệu",
+        "value": "Kim loại"
+      }
+    ]
+  },
+  {
+    "id": 73,
+    "name": "Nest Sleek Metal Bike",
+    "category_id": 10,
+    "category_name": "Thiết bị thông minh",
+    "brand": "Nest",
+    "price": 11418460,
+    "original_price": 41604688,
+    "thumbnail_url": "https://example.com/images/6f3be9ec-2c55-43a4-9ce1-9a2457ae82ac.jpg",
+    "rating": 4.1671663743957685,
+    "review_count": 20,
+    "specs": [
+      {
+        "key": "Loại",
+        "value": "Bóng đèn thông minh"
+      },
+      {
+        "key": "Kết nối",
+        "value": "Z-Wave"
+      },
+      {
+        "key": "Tương thích",
+        "value": "Tất cả"
+      },
+      {
+        "key": "Điều khiển bằng giọng nói",
+        "value": "Không"
+      }
+    ]
+  },
+  {
+    "id": 74,
+    "name": "Audio-Technica Electronic Frozen Pizza",
+    "category_id": 6,
+    "category_name": "Thiết bị âm thanh",
+    "brand": "Audio-Technica",
+    "price": 18482075,
+    "original_price": 28499438,
+    "thumbnail_url": "https://example.com/images/7dbf0952-8f47-47e5-a783-77eb5cde4d33.jpg",
+    "rating": 4.302441998570688,
+    "review_count": 350,
+    "specs": [
+      {
+        "key": "Loại",
+        "value": "Loa bluetooth"
+      },
+      {
+        "key": "Thời lượng pin",
+        "value": "5 giờ"
+      },
+      {
+        "key": "Chống nước",
+        "value": "Có"
+      }
+    ]
+  },
+  {
+    "id": 75,
+    "name": "Lenovo Tasty Rubber Tuna",
+    "category_id": 3,
+    "category_name": "Máy tính bảng",
+    "brand": "Lenovo",
+    "price": 41740677,
+    "original_price": 28278459,
+    "thumbnail_url": "https://example.com/images/414446d1-0aad-4af8-ae51-92704ee97df3.jpg",
+    "rating": 3.6648053147357045,
+    "review_count": 143,
+    "specs": [
+      {
+        "key": "Màn hình",
+        "value": "10 inch"
+      },
+      {
+        "key": "RAM",
+        "value": "8 GB"
+      },
+      {
+        "key": "Bộ nhớ trong",
+        "value": "64 GB"
+      },
+      {
+        "key": "Camera",
+        "value": "13 MP"
+      }
+    ]
+  },
+  {
+    "id": 76,
+    "name": "Samsung Gorgeous Cotton Shoes",
+    "category_id": 3,
+    "category_name": "Máy tính bảng",
+    "brand": "Samsung",
+    "price": 21786264,
+    "original_price": 4481201,
+    "thumbnail_url": "https://example.com/images/c96ae0af-984c-43bb-ade8-d4ecfbe67031.jpg",
+    "rating": 3.158489803822131,
+    "review_count": 672,
+    "specs": [
+      {
+        "key": "Màn hình",
+        "value": "9 inch"
+      },
+      {
+        "key": "RAM",
+        "value": "4 GB"
+      },
+      {
+        "key": "Bộ nhớ trong",
+        "value": "64 GB"
+      },
+      {
+        "key": "Camera",
+        "value": "5 MP"
+      }
+    ]
+  },
+  {
+    "id": 77,
+    "name": "Vivo Luxurious Cotton Shoes",
+    "category_id": 1,
+    "category_name": "Điện thoại di động",
+    "brand": "Vivo",
+    "price": 38571503,
+    "original_price": 23415616,
+    "thumbnail_url": "https://example.com/images/e6d1c0ee-41bd-4015-a910-a3409645d12d.jpg",
+    "rating": 3.3732477297878343,
+    "review_count": 145,
+    "specs": [
+      {
+        "key": "Màn hình",
+        "value": "7 inch"
+      },
+      {
+        "key": "RAM",
+        "value": "8 GB"
+      },
+      {
+        "key": "Bộ nhớ trong",
+        "value": "128 GB"
+      },
+      {
+        "key": "Camera",
+        "value": "29 MP"
+      }
+    ]
+  },
+  {
+    "id": 78,
+    "name": "Sony Fantastic Metal Keyboard",
+    "category_id": 8,
+    "category_name": "Máy ảnh",
+    "brand": "Sony",
+    "price": 6238095,
+    "original_price": 12492858,
+    "thumbnail_url": "https://example.com/images/c286b9c8-a521-4b1a-bfa2-06dcf257ac0c.jpg",
+    "rating": 3.3201096060326076,
+    "review_count": 804,
+    "specs": [
+      {
+        "key": "Độ phân giải",
+        "value": "16 MP"
+      },
+      {
+        "key": "Zoom quang học",
+        "value": "10x"
+      },
+      {
+        "key": "Kích thước cảm biến",
+        "value": "Micro 4/3"
+      },
+      {
+        "key": "Quay video",
+        "value": "8K"
+      }
+    ]
+  },
+  {
+    "id": 79,
+    "name": "Amazon Electronic Granite Chair",
+    "category_id": 10,
+    "category_name": "Thiết bị thông minh",
+    "brand": "Amazon",
+    "price": 15209990,
+    "original_price": 30218257,
+    "thumbnail_url": "https://example.com/images/d6fb61a2-d10a-431b-a219-be02912dc3f6.jpg",
+    "rating": 3.3661413694901787,
+    "review_count": 667,
+    "specs": [
+      {
+        "key": "Loại",
+        "value": "Ổ cắm thông minh"
+      },
+      {
+        "key": "Kết nối",
+        "value": "Wi-Fi"
+      },
+      {
+        "key": "Tương thích",
+        "value": "Google Home"
+      },
+      {
+        "key": "Điều khiển bằng giọng nói",
+        "value": "Không"
+      }
+    ]
+  },
+  {
+    "id": 80,
+    "name": "Vivo Sleek Plastic Fish",
+    "category_id": 1,
+    "category_name": "Điện thoại di động",
+    "brand": "Vivo",
+    "price": 44335104,
+    "original_price": 20064872,
+    "thumbnail_url": "https://example.com/images/7f6716c7-048b-430d-bc1e-e44ede1a190c.jpg",
+    "rating": 4.358149385162741,
+    "review_count": 127,
+    "specs": [
+      {
+        "key": "Màn hình",
+        "value": "7 inch"
+      },
+      {
+        "key": "RAM",
+        "value": "12 GB"
+      },
+      {
+        "key": "Bộ nhớ trong",
+        "value": "512 GB"
+      },
+      {
+        "key": "Camera",
+        "value": "22 MP"
+      }
+    ]
+  },
+  {
+    "id": 81,
+    "name": "Samsung Licensed Cotton Soap",
+    "category_id": 7,
+    "category_name": "Smartwatch",
+    "brand": "Samsung",
+    "price": 21414755,
+    "original_price": 25827610,
+    "thumbnail_url": "https://example.com/images/c76ba475-65a3-46a7-9e69-93e1eab265e4.jpg",
+    "rating": 3.783080648323218,
+    "review_count": 766,
+    "specs": [
+      {
+        "key": "Màn hình",
+        "value": "1.8607632928857747 inch"
+      },
+      {
+        "key": "Thời lượng pin",
+        "value": "9 ngày"
+      },
+      {
+        "key": "Chống nước",
+        "value": "3 ATM"
+      },
+      {
+        "key": "Tính năng sức khỏe",
+        "value": "Đếm bước chân"
+      }
+    ]
+  },
+  {
+    "id": 82,
+    "name": "Samsung Awesome Cotton Pants",
+    "category_id": 1,
+    "category_name": "Điện thoại di động",
+    "brand": "Samsung",
+    "price": 48757893,
+    "original_price": 12604317,
+    "thumbnail_url": "https://example.com/images/7e1cd351-e36b-4e9b-985e-7dc6db7a121b.jpg",
+    "rating": 4.712137098835896,
+    "review_count": 79,
+    "specs": [
+      {
+        "key": "Màn hình",
+        "value": "5 inch"
+      },
+      {
+        "key": "RAM",
+        "value": "6 GB"
+      },
+      {
+        "key": "Bộ nhớ trong",
+        "value": "128 GB"
+      },
+      {
+        "key": "Camera",
+        "value": "82 MP"
+      }
+    ]
+  },
+  {
+    "id": 83,
+    "name": "Lenovo Awesome Wooden Salad",
+    "category_id": 2,
+    "category_name": "Laptop",
+    "brand": "Lenovo",
+    "price": 6464491,
+    "original_price": 1602719,
+    "thumbnail_url": "https://example.com/images/e79071e6-0610-4697-be37-8ed62ba7b0ea.jpg",
+    "rating": 4.311640310263892,
+    "review_count": 229,
+    "specs": [
+      {
+        "key": "CPU",
+        "value": "Intel Core i5"
+      },
+      {
+        "key": "RAM",
+        "value": "32 GB"
+      },
+      {
+        "key": "Ổ cứng",
+        "value": "512 GB SSD"
+      },
+      {
+        "key": "Màn hình",
+        "value": "17 inch"
+      }
+    ]
+  },
+  {
+    "id": 84,
+    "name": "Corsair Refined Concrete Chair",
+    "category_id": 5,
+    "category_name": "Phụ kiện máy tính",
+    "brand": "Corsair",
+    "price": 18414218,
+    "original_price": 31490850,
+    "thumbnail_url": "https://example.com/images/37b4babf-892e-4b4b-b622-a6a0e7e9fabe.jpg",
+    "rating": 4.951467219306917,
+    "review_count": 99,
+    "specs": [
+      {
+        "key": "Loại",
+        "value": "Webcam"
+      },
+      {
+        "key": "Kết nối",
+        "value": "Có dây"
+      },
+      {
+        "key": "Tương thích",
+        "value": "Tất cả"
+      }
+    ]
+  },
+  {
+    "id": 85,
+    "name": "Asus Incredible Granite Fish",
+    "category_id": 2,
+    "category_name": "Laptop",
+    "brand": "Asus",
+    "price": 18985372,
+    "original_price": 14338966,
+    "thumbnail_url": "https://example.com/images/5b6370bb-0d00-4e35-bc82-ae8559ed060c.jpg",
+    "rating": 3.4217185056824744,
+    "review_count": 90,
+    "specs": [
+      {
+        "key": "CPU",
+        "value": "AMD Ryzen 7"
+      },
+      {
+        "key": "RAM",
+        "value": "16 GB"
+      },
+      {
+        "key": "Ổ cứng",
+        "value": "512 GB SSD"
+      },
+      {
+        "key": "Màn hình",
+        "value": "14 inch"
+      }
+    ]
+  },
+  {
+    "id": 86,
+    "name": "Linksys Unbranded Frozen Car",
+    "category_id": 9,
+    "category_name": "Thiết bị mạng",
+    "brand": "Linksys",
+    "price": 6315689,
+    "original_price": 26025030,
+    "thumbnail_url": "https://example.com/images/f7b707b0-d5c4-458e-a32e-be93593d404d.jpg",
+    "rating": 3.794113983318074,
+    "review_count": 642,
+    "specs": [
+      {
+        "key": "Loại",
+        "value": "Modem"
+      },
+      {
+        "key": "Chuẩn Wi-Fi",
+        "value": "Wi-Fi 5"
+      },
+      {
+        "key": "Tốc độ",
+        "value": "4040 Mbps"
+      },
+      {
+        "key": "Số cổng LAN",
+        "value": 2
+      }
+    ]
+  },
+  {
+    "id": 87,
+    "name": "Apple Tasty Bronze Car",
+    "category_id": 2,
+    "category_name": "Laptop",
+    "brand": "Apple",
+    "price": 43924577,
+    "original_price": 22815871,
+    "thumbnail_url": "https://example.com/images/df58e4bf-0fb2-4b7b-8443-cc8d90c4010e.jpg",
+    "rating": 4.074297368576376,
+    "review_count": 461,
+    "specs": [
+      {
+        "key": "CPU",
+        "value": "Intel Core i7"
+      },
+      {
+        "key": "RAM",
+        "value": "64 GB"
+      },
+      {
+        "key": "Ổ cứng",
+        "value": "256 GB SSD"
+      },
+      {
+        "key": "Màn hình",
+        "value": "14 inch"
+      }
+    ]
+  },
+  {
+    "id": 88,
+    "name": "Apple Small Rubber Shoes",
+    "category_id": 3,
+    "category_name": "Máy tính bảng",
+    "brand": "Apple",
+    "price": 45753836,
+    "original_price": 32945284,
+    "thumbnail_url": "https://example.com/images/00e5e12b-12ff-4cbd-9195-7f0af09db5ca.jpg",
+    "rating": 3.577308602204261,
+    "review_count": 705,
+    "specs": [
+      {
+        "key": "Màn hình",
+        "value": "13 inch"
+      },
+      {
+        "key": "RAM",
+        "value": "2 GB"
+      },
+      {
+        "key": "Bộ nhớ trong",
+        "value": "256 GB"
+      },
+      {
+        "key": "Camera",
+        "value": "20 MP"
+      }
+    ]
+  },
+  {
+    "id": 89,
+    "name": "Lenovo Practical Metal Salad",
+    "category_id": 3,
+    "category_name": "Máy tính bảng",
+    "brand": "Lenovo",
+    "price": 12084038,
+    "original_price": 43922523,
+    "thumbnail_url": "https://example.com/images/9aadaeba-6795-47e2-a5d0-8282a21fc114.jpg",
+    "rating": 3.5190959877304797,
+    "review_count": 638,
+    "specs": [
+      {
+        "key": "Màn hình",
+        "value": "10 inch"
+      },
+      {
+        "key": "RAM",
+        "value": "8 GB"
+      },
+      {
+        "key": "Bộ nhớ trong",
+        "value": "64 GB"
+      },
+      {
+        "key": "Camera",
+        "value": "18 MP"
+      }
+    ]
+  },
+  {
+    "id": 90,
+    "name": "Fujifilm Refined Concrete Pizza",
+    "category_id": 8,
+    "category_name": "Máy ảnh",
+    "brand": "Fujifilm",
+    "price": 13292448,
+    "original_price": 11119260,
+    "thumbnail_url": "https://example.com/images/01a24ac2-f621-480c-bb8e-77dc346be677.jpg",
+    "rating": 3.988881361081593,
+    "review_count": 330,
+    "specs": [
+      {
+        "key": "Độ phân giải",
+        "value": "56 MP"
+      },
+      {
+        "key": "Zoom quang học",
+        "value": "25x"
+      },
+      {
+        "key": "Kích thước cảm biến",
+        "value": "APS-C"
+      },
+      {
+        "key": "Quay video",
+        "value": "4K"
+      }
+    ]
+  },
+  {
+    "id": 91,
+    "name": "HP Electronic Fresh Table",
+    "category_id": 2,
+    "category_name": "Laptop",
+    "brand": "HP",
+    "price": 4043426,
+    "original_price": 8336260,
+    "thumbnail_url": "https://example.com/images/606ad064-04de-4e1b-ab17-e74c390abe27.jpg",
+    "rating": 4.750655786274509,
+    "review_count": 306,
+    "specs": [
+      {
+        "key": "CPU",
+        "value": "Intel Core i5"
+      },
+      {
+        "key": "RAM",
+        "value": "16 GB"
+      },
+      {
+        "key": "Ổ cứng",
+        "value": "256 GB SSD"
+      },
+      {
+        "key": "Màn hình",
+        "value": "13 inch"
+      }
+    ]
+  },
+  {
+    "id": 92,
+    "name": "Asus Handcrafted Metal Table",
+    "category_id": 2,
+    "category_name": "Laptop",
+    "brand": "Asus",
+    "price": 20866569,
+    "original_price": 42026523,
+    "thumbnail_url": "https://example.com/images/ca09d094-1156-4b6e-93b1-0e044c96fce3.jpg",
+    "rating": 3.3285175559524562,
+    "review_count": 855,
+    "specs": [
+      {
+        "key": "CPU",
+        "value": "Intel Core i5"
+      },
+      {
+        "key": "RAM",
+        "value": "8 GB"
+      },
+      {
+        "key": "Ổ cứng",
+        "value": "256 GB SSD"
+      },
+      {
+        "key": "Màn hình",
+        "value": "17 inch"
+      }
+    ]
+  },
+  {
+    "id": 93,
+    "name": "Oppo Elegant Wooden Hat",
+    "category_id": 1,
+    "category_name": "Điện thoại di động",
+    "brand": "Oppo",
+    "price": 11230300,
+    "original_price": 6450331,
+    "thumbnail_url": "https://example.com/images/f8165afc-cdfc-4216-b743-a753d16b4e3b.jpg",
+    "rating": 3.354942574551859,
+    "review_count": 766,
+    "specs": [
+      {
+        "key": "Màn hình",
+        "value": "7 inch"
+      },
+      {
+        "key": "RAM",
+        "value": "8 GB"
+      },
+      {
+        "key": "Bộ nhớ trong",
+        "value": "64 GB"
+      },
+      {
+        "key": "Camera",
+        "value": "23 MP"
+      }
+    ]
+  },
+  {
+    "id": 94,
+    "name": "Belkin Licensed Fresh Sausages",
+    "category_id": 4,
+    "category_name": "Phụ kiện điện thoại",
+    "brand": "Belkin",
+    "price": 31414715,
+    "original_price": 14293173,
+    "thumbnail_url": "https://example.com/images/b04e6b54-ba09-4b60-8b33-9f7650a1e7f6.jpg",
+    "rating": 4.168651873750301,
+    "review_count": 693,
+    "specs": [
+      {
+        "key": "Loại",
+        "value": "Ốp lưng"
+      },
+      {
+        "key": "Tương thích",
+        "value": "iPhone"
+      },
+      {
+        "key": "Chất liệu",
+        "value": "Silicon"
+      }
+    ]
+  },
+  {
+    "id": 95,
+    "name": "HP Intelligent Steel Pizza",
+    "category_id": 2,
+    "category_name": "Laptop",
+    "brand": "HP",
+    "price": 11044959,
+    "original_price": 30396781,
+    "thumbnail_url": "https://example.com/images/ce094638-7e76-471f-9dde-391d4e03fd89.jpg",
+    "rating": 4.284065722662753,
+    "review_count": 309,
+    "specs": [
+      {
+        "key": "CPU",
+        "value": "AMD Ryzen 7"
+      },
+      {
+        "key": "RAM",
+        "value": "16 GB"
+      },
+      {
+        "key": "Ổ cứng",
+        "value": "1024 GB SSD"
+      },
+      {
+        "key": "Màn hình",
+        "value": "14 inch"
+      }
+    ]
+  },
+  {
+    "id": 96,
+    "name": "SteelSeries Bespoke Frozen Soap",
+    "category_id": 5,
+    "category_name": "Phụ kiện máy tính",
+    "brand": "SteelSeries",
+    "price": 24118235,
+    "original_price": 18759655,
+    "thumbnail_url": "https://example.com/images/384ff77e-3dfe-49d7-af50-7ec72854acc5.jpg",
+    "rating": 4.9600980488724655,
+    "review_count": 604,
+    "specs": [
+      {
+        "key": "Loại",
+        "value": "Loa"
+      },
+      {
+        "key": "Kết nối",
+        "value": "Có dây"
+      },
+      {
+        "key": "Tương thích",
+        "value": "Windows"
+      }
+    ]
+  },
+  {
+    "id": 97,
+    "name": "Panasonic Ergonomic Wooden Soap",
+    "category_id": 8,
+    "category_name": "Máy ảnh",
+    "brand": "Panasonic",
+    "price": 32633803,
+    "original_price": 42442297,
+    "thumbnail_url": "https://example.com/images/888e10c5-460c-496e-8e10-30853d23f48f.jpg",
+    "rating": 4.920672830247326,
+    "review_count": 427,
+    "specs": [
+      {
+        "key": "Độ phân giải",
+        "value": "37 MP"
+      },
+      {
+        "key": "Zoom quang học",
+        "value": "5x"
+      },
+      {
+        "key": "Kích thước cảm biến",
+        "value": "Micro 4/3"
+      },
+      {
+        "key": "Quay video",
+        "value": "8K"
+      }
+    ]
+  },
+  {
+    "id": 98,
+    "name": "Canon Generic Plastic Fish",
+    "category_id": 8,
+    "category_name": "Máy ảnh",
+    "brand": "Canon",
+    "price": 19994117,
+    "original_price": 45644034,
+    "thumbnail_url": "https://example.com/images/91acb6b4-d959-4d38-ad49-0a7245ecf004.jpg",
+    "rating": 4.501148991804099,
+    "review_count": 593,
+    "specs": [
+      {
+        "key": "Độ phân giải",
+        "value": "20 MP"
+      },
+      {
+        "key": "Zoom quang học",
+        "value": "28x"
+      },
+      {
+        "key": "Kích thước cảm biến",
+        "value": "1 inch"
+      },
+      {
+        "key": "Quay video",
+        "value": "8K"
+      }
+    ]
+  },
+  {
+    "id": 99,
+    "name": "JBL Rustic Concrete Bacon",
+    "category_id": 6,
+    "category_name": "Thiết bị âm thanh",
+    "brand": "JBL",
+    "price": 16945912,
+    "original_price": 46494949,
+    "thumbnail_url": "https://example.com/images/70d5f097-d341-4cc4-9fd2-4c78260db289.jpg",
+    "rating": 4.715487308092751,
+    "review_count": 832,
+    "specs": [
+      {
+        "key": "Loại",
+        "value": "Tai nghe true wireless"
+      },
+      {
+        "key": "Thời lượng pin",
+        "value": "28 giờ"
+      },
+      {
+        "key": "Chống nước",
+        "value": "Không"
+      }
+    ]
+  },
+  {
+    "id": 100,
+    "name": "Huawei Awesome Granite Pants",
+    "category_id": 7,
+    "category_name": "Smartwatch",
+    "brand": "Huawei",
+    "price": 36461468,
+    "original_price": 19565030,
+    "thumbnail_url": "https://example.com/images/194f9e71-bfaa-4db8-ad07-2e727c536fbc.jpg",
+    "rating": 4.966628030643112,
+    "review_count": 160,
+    "specs": [
+      {
+        "key": "Màn hình",
+        "value": "1.953577841180312 inch"
+      },
+      {
+        "key": "Thời lượng pin",
+        "value": "13 ngày"
+      },
+      {
+        "key": "Chống nước",
+        "value": "5 ATM"
+      },
+      {
+        "key": "Tính năng sức khỏe",
+        "value": "Đo SpO2"
+      }
+    ]
+  }
+]
