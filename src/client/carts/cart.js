@@ -19,7 +19,7 @@ app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, '..', 'public', 'cart')));
 
 // API cho Cart thêm sản phẩm vào giỏ hàng
-app.post('/api/cart/add', authenticateJWT, async (req, res) => {
+router.post('/cart/add', authenticateJWT, async (req, res) => {
     try {
       if(!req.user || !req.user.userId) {
         return res.status(401).json({ message: 'Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng' });
@@ -79,7 +79,7 @@ app.post('/api/cart/add', authenticateJWT, async (req, res) => {
   });
   
   
-  app.get('/api/cart', authenticateJWT, async (req, res) => {
+  router.get('/cart', authenticateJWT, async (req, res) => {
     try {
       const userId = req.user.userId;
       const [cartItems] = await pool.query(

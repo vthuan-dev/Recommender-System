@@ -18,7 +18,7 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, '..', 'public', 'dangnhap-dangky')));
 
-app.post('/api/register', async (req, res) => {
+router.post('/register', async (req, res) => {
     try {
       const { fullname, phonenumber, email, password } = req.body;
       
@@ -58,28 +58,30 @@ app.post('/api/register', async (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'public','dangnhap-dangky', 'dangky.html'));
   });
   
-  app.post('/api/login', async (req, res) => {
-    try {
-      const { email, password } = req.body;
-      const [users] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
-      if (users.length === 0) {
-        return res.status(401).json({ message: 'Email hoặc mật khẩu không đúng' });
-      }
-      const user = users[0];
-      const isValid = await bcrypt.compare(password, user.password);
-      if (!isValid) {
-        return res.status(401).json({ message: 'Email hoặc mật khẩu không đúng' });
-      }
-      const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '1h' });
-      res.json({ token, userId: user.id, fullname: user.fullname });
-    } catch (error) {
-      res.status(500).json({ message: 'Lỗi đăng nhập', error: error.message });
+// Thay đổi từ app sang router
+router.post('/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    const [users] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
+    if (users.length === 0) {
+      return res.status(401).json({ message: 'Email hoặc mật khẩu không đúng' });
     }
-  });
-  
+    const user = users[0];
+    const isValid = await bcrypt.compare(password, user.password);
+    if (!isValid) {
+      return res.status(401).json({ message: 'Email hoặc mật khẩu không đúng' });
+    }
+    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    res.json({ token, userId: user.id, fullname: user.fullname });
+  } catch (error) {
+    res.status(500).json({ message: 'Lỗi đăng nhập', error: error.message });
+  }
+});
+
+// Đảm bảo route được export
 
   
-app.post('/api/login-test', async (req, res) => {
+router.post('/login-test', async (req, res) => {
     try {
       const { email, password } = req.body;
       // Kiểm tra thông tin đăng nhập (đơn giản hóa cho mục đích test)
@@ -95,7 +97,7 @@ app.post('/api/login-test', async (req, res) => {
   });
 
 
-app.get('/api/users/:id', authenticateJWT, async (req, res) => {
+router.get('/users/:id', authenticateJWT, async (req, res) => {
     try {
       const [users] = await pool.query('SELECT id, fullname, email, phonenumber FROM users WHERE id = ?', [req.params.id]);
       if (users.length === 0) {

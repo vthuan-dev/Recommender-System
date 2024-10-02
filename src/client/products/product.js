@@ -27,7 +27,7 @@ app.use(bodyParser.json());
 
 
 //lấy danh sách sản phẩm
-app.get('/products', async (req, res) => {
+router.get('/products', async (req, res) => {
     try {
       const [products] = await pool.query('SELECT * FROM products');
       res.json(products);
@@ -36,7 +36,7 @@ app.get('/products', async (req, res) => {
     }
   });
   
-  app.get('/products/:id', async (req, res) => {
+  router.get('/products/:id', async (req, res) => {
     try {
       const [products] = await pool.query('SELECT * FROM products WHERE id = ?', [req.params.id]);
       if (products.length === 0) {
@@ -49,7 +49,7 @@ app.get('/products', async (req, res) => {
   });
   
   // API cho Categories lấy danh mục sản phẩm
-  app.get('/categories', async (req, res) => {
+  router.get('/categories', async (req, res) => {
     try {
       const [categories] = await pool.query('SELECT * FROM categories');
       res.json(categories);
@@ -59,7 +59,7 @@ app.get('/products', async (req, res) => {
   });
 
   
-  app.get('/api/products/bestsellers', async (req, res) => {
+  router.get('/products/bestsellers', async (req, res) => {
     try {
       const [bestsellers] = await pool.query(
         `SELECT p.*, SUM(pv.sold_count) as total_sold
