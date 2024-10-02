@@ -8,7 +8,7 @@ const dotenv = require('dotenv');
 const bodyParser = require('body-parser');
 const router = express.Router();
 const cors = require('cors');
-
+const { authenticateJWT } = require('../../database/dbconfig');
 dotenv.config();
 
 console.log('DB Config:', {
@@ -162,5 +162,73 @@ router.get('/products', async (req, res) => {
       res.status(500).json({ message: 'Lỗi lọc sản phẩm', error: error.message });
     }
   });
+
+
+//ghi lại lượt xem sản phẩm khi người dùng xem sản phẩm
+router.post('/products/:id/view', authenticateJWT, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.userId;
+
+    await pool.query(
+      `INSERT INTO user_product_views (user_id, product_id) 
+       VALUES (?, ?) 
+       ON DUPLICATE KEY UPDATE 
+       view_count = view_count + 1, 
+       last_viewed_at = CURRENT_TIMESTAMP`,
+      [userId, id]
+    );
+
+    res.status(200).json({ message: 'Lượt xem đã được ghi lại' });
+  } catch (error) {
+    console.error('Lỗi khi ghi lại lượt xem sản phẩm:', error);
+    res.status(500).json({ message: 'Lỗi khi ghi lại lượt xem sản phẩm', error: error.message });
+  }
+});
+
+//gợi ý sản phẩm dựa trên lượt xem trước đó của người dùng 
+router.get('/recommendations', authenticateJWT, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+
+    // Lấy các sản phẩm mà người dùng hiện tại đã xem
+    const [userViews] = await pool.query(
+      'SELECT product_id FROM user_product_views WHERE user_id = ?',
+      [userId]
+    );
+    const userProductIds = userViews.map(view => view.product_id);
+
+    // Tìm những người dùng có hành vi tương tự
+    const [similarUsers] = await pool.query(
+      `SELECT DISTINCT upv.user_id
+       FROM user_product_views upv
+       WHERE upv.product_id IN (?) AND upv.user_id != ?
+       GROUP BY upv.user_id
+       HAVING COUNT(DISTINCT upv.product_id) >= ?`,
+      [userProductIds, userId, Math.ceil(userProductIds.length * 0.5)]
+    );
+
+    if (similarUsers.length === 0) {
+      return res.json([]);
+    }
+
+    // Lấy các sản phẩm được xem bởi những người dùng tương tự
+    const [recommendedProducts] = await pool.query(
+      `SELECT p.*, COUNT(DISTINCT upv.user_id) as view_count
+       FROM products p
+       JOIN user_product_views upv ON p.id = upv.product_id
+       WHERE upv.user_id IN (?) AND p.id NOT IN (?)
+       GROUP BY p.id
+       ORDER BY view_count DESC
+       LIMIT 10`,
+      [similarUsers.map(u => u.user_id), userProductIds]
+    );
+
+    res.json(recommendedProducts);
+  } catch (error) {
+    console.error('Lỗi khi lấy gợi ý sản phẩm:', error);
+    res.status(500).json({ message: 'Lỗi khi lấy gợi ý sản phẩm', error: error.message });
+  }
+});
 
 module.exports = router;
