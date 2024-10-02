@@ -96,6 +96,116 @@ router.post('/cart/add', authenticateJWT, async (req, res) => {
       res.status(500).json({ message: 'Lỗi lấy thông tin giỏ hàng', error: error.message });
     }
   });
+  //cập nhật số lượng sản phẩm trong giỏ hàng
+  router.put('/cart/update', authenticateJWT, async (req, res) => {
+    try {
+      const { cartItemId, quantity } = req.body;
+      const userId = req.user.userId;
+  
+      // Kiểm tra xem cartItem có thuộc về user không
+      const [cartItem] = await pool.query(
+        `SELECT ci.id FROM cartitems ci 
+         JOIN carts c ON ci.cart_id = c.id 
+         WHERE ci.id = ? AND c.user_id = ?`,
+        [cartItemId, userId]
+      );
+  
+      if (cartItem.length === 0) {
+        return res.status(404).json({ message: 'Không tìm thấy sản phẩm trong giỏ hàng' });
+      }
+  
+      await pool.query('UPDATE cartitems SET quantity = ? WHERE id = ?', [quantity, cartItemId]);
+      res.json({ message: 'Đã cập nhật số lượng sản phẩm' });
+    } catch (error) {
+      console.error('Lỗi cập nhật giỏ hàng:', error);
+      res.status(500).json({ message: 'Lỗi cập nhật giỏ hàng', error: error.message });
+    }
+  });
+
+  //xóa sản phẩm trong giỏ hàng
+  router.delete('/cart/remove/:cartItemId', authenticateJWT, async (req, res) => {
+    try {
+      const { cartItemId } = req.params;
+      const userId = req.user.userId;
+  
+      // Kiểm tra xem cartItem có thuộc về user không
+      const [cartItem] = await pool.query(
+        `SELECT ci.id FROM cartitems ci 
+         JOIN carts c ON ci.cart_id = c.id 
+         WHERE ci.id = ? AND c.user_id = ?`,
+        [cartItemId, userId]
+      );
+  
+      if (cartItem.length === 0) {
+        return res.status(404).json({ message: 'Không tìm thấy sản phẩm trong giỏ hàng' });
+      }
+  
+      await pool.query('DELETE FROM cartitems WHERE id = ?', [cartItemId]);
+      res.json({ message: 'Đã xóa sản phẩm khỏi giỏ hàng' });
+    } catch (error) {
+      console.error('Lỗi xóa sản phẩm khỏi giỏ hàng:', error);
+      res.status(500).json({ message: 'Lỗi xóa sản phẩm khỏi giỏ hàng', error: error.message });
+    }
+  });
+//xóa toàn bộ giỏ hàng
+router.delete('/cart/clear', authenticateJWT, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+
+    const [cart] = await pool.query('SELECT id FROM carts WHERE user_id = ?', [userId]);
+    if (cart.length === 0) {
+      return res.status(404).json({ message: 'Không tìm thấy giỏ hàng' });
+    }
+
+    await pool.query('DELETE FROM cartitems WHERE cart_id = ?', [cart[0].id]);
+    res.json({ message: 'Đã xóa toàn bộ giỏ hàng' });
+  } catch (error) {
+    console.error('Lỗi xóa toàn bộ giỏ hàng:', error);
+    res.status(500).json({ message: 'Lỗi xóa toàn bộ giỏ hàng', error: error.message });
+    }
+  });
+
+  // lấy toonhr soos luong san pham trong giỏ hàng
+  router.get('/cart/count', authenticateJWT, async (req, res) => {
+    try {
+      const userId = req.user.userId;
+  
+      const [result] = await pool.query(
+        `SELECT SUM(ci.quantity) as totalItems 
+         FROM carts c 
+         JOIN cartitems ci ON c.id = ci.cart_id 
+         WHERE c.user_id = ?`,
+        [userId]
+      );
+  
+      const totalItems = result[0].totalItems || 0;
+      res.json({ totalItems });
+    } catch (error) {
+      console.error('Lỗi lấy số lượng sản phẩm trong giỏ hàng:', error);
+      res.status(500).json({ message: 'Lỗi lấy số lượng sản phẩm trong giỏ hàng', error: error.message });
+    }
+  });
+//Tính tổng giá trị giỏ hàng
+  router.get('/cart/total', authenticateJWT, async (req, res) => {
+    try {
+      const userId = req.user.userId;
+  
+      const [result] = await pool.query(
+        `SELECT SUM(ci.quantity * pv.price) as totalValue 
+         FROM carts c 
+         JOIN cartitems ci ON c.id = ci.cart_id 
+         JOIN productvariants pv ON ci.variant_id = pv.id 
+         WHERE c.user_id = ?`,
+        [userId]
+      );
+  
+      const totalValue = result[0].totalValue || 0;
+      res.json({ totalValue });
+    } catch (error) {
+      console.error('Lỗi tính tổng giá trị giỏ hàng:', error);
+      res.status(500).json({ message: 'Lỗi tính tổng giá trị giỏ hàng', error: error.message });
+    }
+  });
   
   
  module.exports = router;
