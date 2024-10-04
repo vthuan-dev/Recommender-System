@@ -231,4 +231,30 @@ router.get('/recommendations', authenticateJWT, async (req, res) => {
   }
 });
 
+// ... (giữ nguyên code hiện tại)
+
+// Route để lấy sản phẩm tạo gần đây nhất
+router.get('/products/recent', async (req, res) => {
+  try {
+    const limit = req.query.limit || 10; // Số lượng sản phẩm muốn lấy, mặc định là 10
+    const [recentProducts] = await pool.query(
+      'SELECT * FROM products ORDER BY created_at DESC LIMIT ?',
+      [parseInt(limit)]
+    );
+
+    if (recentProducts.length === 0) {
+      return res.status(404).json({ message: 'Không tìm thấy sản phẩm nào' });
+    }
+
+    console.log(`Đã lấy ${recentProducts.length} sản phẩm gần đây nhất`);
+    res.json(recentProducts);
+  } catch (error) {
+    console.error('Lỗi khi lấy sản phẩm gần đây:', error);
+    res.status(500).json({ message: 'Lỗi khi lấy sản phẩm gần đây', error: error.message });
+  }
+});
+
+// ... (giữ nguyên code còn lại)
+
+
 module.exports = router;

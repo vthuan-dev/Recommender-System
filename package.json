@@ -11,13 +11,17 @@
   "license": "ISC",
   "dependencies": {
     "@faker-js/faker": "^9.0.3",
+    "@firebase/storage": "^0.13.2",
     "bcrypt": "^5.1.1",
     "body-parser": "^1.20.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.21.0",
     "faker": "^6.6.6",
+    "firebase": "^10.14.0",
+    "firebase-admin": "^12.6.0",
     "jsonwebtoken": "^9.0.2",
+    "multer": "^1.4.5-lts.1",
     "mysql": "^2.18.1",
     "mysql2": "^3.11.3"
   }
