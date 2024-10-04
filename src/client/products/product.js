@@ -127,9 +127,37 @@ router.get('/products', async (req, res) => {
   router.get('/products/brand/:brand', async (req, res) => {
     try {
       const { brand } = req.params;
-      const [products] = await pool.query('SELECT * FROM products WHERE brand = ?', [brand]);
-      res.json(products);
+      
+      // Đầu tiên, tìm ID của thương hiệu
+      const [brandResult] = await pool.query('SELECT id FROM brands WHERE name = ?', [brand]);
+      
+      if (brandResult.length === 0) {
+        return res.status(404).json({ message: 'Không tìm thấy thương hiệu' });
+      }
+      
+      const brandId = brandResult[0].id;
+      
+      // Đếm số lượng sản phẩm thuộc thương hiệu này
+      const [countResult] = await pool.query(
+        'SELECT COUNT(*) as productCount FROM products WHERE brand_id = ?', 
+        [brandId]
+      );
+      
+      const productCount = countResult[0].productCount;
+      
+      // Lấy danh sách sản phẩm (có thể giới hạn số lượng nếu cần)
+      const [products] = await pool.query(
+        'SELECT p.*, b.name as brand_name FROM products p JOIN brands b ON p.brand_id = b.id WHERE p.brand_id = ? LIMIT 10', 
+        [brandId]
+      );
+      
+      res.json({
+        brand: brand,
+        productCount: productCount,
+        products: products
+      });
     } catch (error) {
+      console.error('Lỗi khi lấy sản phẩm theo thương hiệu:', error);
       res.status(500).json({ message: 'Lỗi lấy sản phẩm theo thương hiệu', error: error.message });
     }
   });

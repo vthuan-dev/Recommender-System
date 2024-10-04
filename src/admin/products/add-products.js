@@ -68,6 +68,16 @@ router.post('/add-products', upload.single('image'), async (req, res) => {
         return res.status(400).json({ message: 'Danh mục không tồn tại' });
       }
   
+      // Kiểm tra và thêm thương hiệu nếu cần
+      let brandId;
+      const [existingBrand] = await connection.query('SELECT id FROM brands WHERE name = ?', [brand]);
+      if (existingBrand.length === 0) {
+        const [brandResult] = await connection.query('INSERT INTO brands (name) VALUES (?)', [brand]);
+        brandId = brandResult.insertId;
+      } else {
+        brandId = existingBrand[0].id;
+      }
+
       // Bắt đầu transaction
       await connection.beginTransaction();
       console.log('Bắt đầu transaction');
@@ -75,8 +85,8 @@ router.post('/add-products', upload.single('image'), async (req, res) => {
       try {
         console.log('Thêm sản phẩm vào database');
         const [productResult] = await connection.query(
-          'INSERT INTO products (name, description, category_id, brand, image_url) VALUES (?, ?, ?, ?, ?)',
-          [name, description, category_id, brand, image_url]
+          'INSERT INTO products (name, description, category_id, brand_id, image_url) VALUES (?, ?, ?, ?, ?)',
+          [name, description, category_id, brandId, image_url]
         );
         
         const productId = productResult.insertId;
@@ -113,5 +123,60 @@ router.post('/add-products', upload.single('image'), async (req, res) => {
       connection.release(); // Đảm bảo connection được giải phóng
     }
 });
+
+// Thêm route xóa sản phẩm
+router.delete('/delete-product/:id', async (req, res) => {
+    const connection = await pool.getConnection();
+    try {
+        const productId = req.params.id;
+        console.log(`Bắt đầu xóa sản phẩm với ID: ${productId}`);
+
+        // Bắt đầu transaction
+        await connection.beginTransaction();
+
+        try {
+            // Xóa các biến thể của sản phẩm
+            console.log('Xóa các biến thể của sản phẩm');
+            await connection.query('DELETE FROM productvariants WHERE product_id = ?', [productId]);
+
+            // Lấy thông tin sản phẩm để xóa ảnh (nếu cần)
+            const [productInfo] = await connection.query('SELECT image_url FROM products WHERE id = ?', [productId]);
+
+            // Xóa sản phẩm
+            console.log('Xóa sản phẩm');
+            const [result] = await connection.query('DELETE FROM products WHERE id = ?', [productId]);
+
+            if (result.affectedRows === 0) {
+                await connection.rollback();
+                return res.status(404).json({ message: 'Không tìm thấy sản phẩm để xóa' });
+            }
+
+            // Xóa ảnh từ Firebase Storage (nếu có)
+            if (productInfo[0] && productInfo[0].image_url) {
+                const fileName = productInfo[0].image_url.split('/').pop().split('?')[0];
+                const file = storage.bucket().file(`products/${fileName}`);
+                await file.delete().catch(console.error);
+                console.log('Đã xóa ảnh sản phẩm từ storage');
+            }
+
+            // Commit transaction
+            await connection.commit();
+            console.log('Transaction đã được commit');
+
+            res.status(200).json({ message: 'Sản phẩm đã được xóa thành công' });
+        } catch (error) {
+            // Rollback nếu có lỗi
+            await connection.rollback();
+            console.error('Lỗi trong quá trình xóa sản phẩm, đã rollback:', error);
+            throw error;
+        }
+    } catch (error) {
+        console.error('Lỗi xóa sản phẩm:', error);
+        res.status(500).json({ message: 'Lỗi xóa sản phẩm', error: error.message });
+    } finally {
+        connection.release(); // Đảm bảo connection được giải phóng
+    }
+});
+
 
 module.exports = router;
