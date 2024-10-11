@@ -30,3 +30,7 @@ ALTER TABLE `products`
 DROP COLUMN `brand`,
 ADD COLUMN `brand_id` int,
 ADD CONSTRAINT `fk_product_brand` FOREIGN KEY (`brand_id`) REFERENCES `brands` (`id`);
+
+
+
+select * from products;
