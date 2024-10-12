@@ -11,37 +11,41 @@ async function checkAdminRole(req, res, next) {
 }
 
 // Lấy danh sách đơn hàng
-
 router.get('/orders', authenticateJWT, checkAdminRole, async (req, res) => {
-  try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-    const offset = (page - 1) * limit;
-
-    const [orders, [totalCount]] = await Promise.all([
-      pool.query(
-        `SELECT o.*, u.fullname as customer_name 
-         FROM orders o 
-         JOIN users u ON o.user_id = u.id 
-         ORDER BY o.created_at DESC 
-         LIMIT ? OFFSET ?`,
-        [limit, offset]
-      ),
-      pool.query('SELECT COUNT(*) as count FROM orders')
-    ]);
-
-    res.json({
-      orders: orders[0],
-      currentPage: page,
-      totalPages: Math.ceil(totalCount[0].count / limit),
-      totalOrders: totalCount[0].count
-    });
-  } catch (error) {
-    console.error('Lỗi lấy danh sách đơn hàng:', error);
-    res.status(500).json({ message: 'Lỗi lấy danh sách đơn hàng', error: error.message });
-  }
-});
-
+    try {
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 10;
+      const offset = (page - 1) * limit;
+  
+      const [orders, [totalCount]] = await Promise.all([
+        pool.query(
+          `SELECT o.*, u.fullname as customer_name 
+           FROM orders o 
+           JOIN users u ON o.user_id = u.id 
+           ORDER BY o.created_at DESC 
+           LIMIT ? OFFSET ?`,
+          [limit, offset]
+        ),
+        pool.query('SELECT COUNT(*) as count FROM orders')
+      ]);
+  
+      // Chuyển đổi kết quả truy vấn để bao gồm trạng thái đơn hàng
+      const formattedOrders = orders[0].map(order => ({
+        ...order,
+        status: order.status // Đảm bảo rằng trạng thái được bao gồm
+      }));
+  
+      res.json({
+        orders: formattedOrders,
+        currentPage: page,
+        totalPages: Math.ceil(totalCount[0].count / limit),
+        totalOrders: totalCount[0].count
+      });
+    } catch (error) {
+      console.error('Lỗi lấy danh sách đơn hàng:', error);
+      res.status(500).json({ message: 'Lỗi lấy danh sách đơn hàng', error: error.message });
+    }
+  });
 // Lấy chi tiết đơn hàng
 router.get('/orders/:id', authenticateJWT, checkAdminRole, async (req, res) => {
   try {
@@ -182,5 +186,7 @@ router.get('/orders/status/:status', authenticateJWT, checkAdminRole, async (req
       res.status(500).json({ message: 'Lỗi lấy danh sách đơn hàng theo trạng thái', error: error.message });
     }
   });
+
+
 
 module.exports = router;

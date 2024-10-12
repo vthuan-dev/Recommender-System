@@ -3,6 +3,15 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { pool } = require('../../database/dbconfig');
 const router = express.Router();
+const path = require('path');
+
+router.get('/sign-up', (req, res) => {
+    res.sendFile(path.join(__dirname, '../../../public/admin/account/sign-up.html'));
+});
+
+router.get('/sign-in', (req, res) => {
+    res.sendFile(path.join(__dirname, '../../../public/admin/account/sign-in.html'));
+});
 
 router.post('/register-admin', async (req, res) => {
   try {

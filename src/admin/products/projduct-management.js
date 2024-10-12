@@ -137,23 +137,18 @@ router.get('/products', authenticateJWT, checkAdminRole, async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
-    const search = req.query.search || '';
     const offset = (page - 1) * limit;
 
     const [products, [totalCount]] = await Promise.all([
       pool.query(
-        `SELECT p.*, b.name as brand_name, c.name as category_name 
+        `SELECT p.*, c.name as category_name, b.name as brand_name 
          FROM products p 
-         LEFT JOIN brands b ON p.brand_id = b.id 
          LEFT JOIN categories c ON p.category_id = c.id 
-         WHERE p.name LIKE ? OR p.description LIKE ? 
+         LEFT JOIN brands b ON p.brand_id = b.id 
          LIMIT ? OFFSET ?`,
-        [`%${search}%`, `%${search}%`, limit, offset]
+        [limit, offset]
       ),
-      pool.query(
-        'SELECT COUNT(*) as count FROM products WHERE name LIKE ? OR description LIKE ?',
-        [`%${search}%`, `%${search}%`]
-      )
+      pool.query('SELECT COUNT(*) as count FROM products')
     ]);
 
     res.json({
@@ -163,8 +158,8 @@ router.get('/products', authenticateJWT, checkAdminRole, async (req, res) => {
       totalProducts: totalCount[0].count
     });
   } catch (error) {
-    console.error('Lỗi lấy danh sách sản phẩm:', error);
-    res.status(500).json({ message: 'Lỗi lấy danh sách sản phẩm', error: error.message });
+    console.error('Error fetching products:', error);
+    res.status(500).json({ message: 'Error loading products', error: error.message });
   }
 });
 

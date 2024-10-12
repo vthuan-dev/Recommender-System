@@ -24,14 +24,22 @@ const orderManagementRoutes = require('./admin/orders/order-management.js');
 
 const dotenv = require('dotenv');
 
-
 dotenv.config();
 const app = express();
+
+
 
 app.use(cors());
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
+
+app.get('/admin/manage', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin', 'manage.html'));
+});
+app.get('/admin/test', (req, res) => {
+  res.send('Test route working');
+});
 
 app.use('/admin', adminAuthRoutes);
 // Sử dụng các route
@@ -42,6 +50,7 @@ app.use('/', accountRoutesClient);
 app.use('/admin', productManagementRoutes);
 app.use('/admin', userManageRoutes);
 app.use('/admin', orderManagementRoutes);
+app.use('/admin', adminAuthRoutes);
 // Middleware xử lý lỗi
 app.use((err, req, res, next) => {
     console.error(err.stack);
