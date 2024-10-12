@@ -18,19 +18,20 @@ app.use(bodyParser.json());
 // Middleware xác thực JWT
 const authenticateJWT = (req, res, next) => {
   const authHeader = req.headers.authorization;
-  console.log('Auth Header:', authHeader); // Thêm dòng này
+  console.log('Auth Header:', authHeader);
   if (authHeader) {
     const token = authHeader.split(' ')[1];
     jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
       if (err) {
-        console.log('JWT Verify Error:', err); // Thêm dòng này
+        console.log('JWT Verify Error:', err);
         return res.sendStatus(403);
       }
-      console.log('Decoded User:', user); // Thêm dòng này
+      console.log('Decoded User:', user);
       req.user = user;
       next();
     });
   } else {
+    console.log('No Auth Header');
     res.sendStatus(401);
   }
 };

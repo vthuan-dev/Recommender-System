@@ -18,8 +18,17 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, '..', 'public', 'cart')));
 
-// API cho Cart thêm sản phẩm vào giỏ hàng
-router.post('/cart/add', authenticateJWT, async (req, res) => {
+// Thêm middleware kiểm tra vai trò
+const checkCustomerRole = (req, res, next) => {
+  if (req.user && req.user.role === 'customer') {
+    next();
+  } else {
+    res.status(403).json({ message: 'Chỉ khách hàng mới có thể thực hiện thao tác này' });
+  }
+};
+
+// Sử dụng middleware kiểm tra vai trò trong route thêm sản phẩm vào giỏ hàng
+router.post('/cart/add', authenticateJWT, checkCustomerRole, async (req, res) => {
     try {
       if(!req.user || !req.user.userId) {
         return res.status(401).json({ message: 'Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng' });
@@ -79,25 +88,52 @@ router.post('/cart/add', authenticateJWT, async (req, res) => {
   });
   
   
-  router.get('/cart', authenticateJWT, async (req, res) => {
+  router.get('/cart', authenticateJWT, checkCustomerRole, async (req, res) => {
     try {
       const userId = req.user.userId;
+      
+      // Kiểm tra xem người dùng có giỏ hàng hay không
+      const [carts] = await pool.query('SELECT id FROM carts WHERE user_id = ?', [userId]);
+      
+      if (carts.length === 0) {
+        // Nếu không có giỏ hàng, trả về mảng rỗng
+        return res.json([]);
+      }
+      
+      const cartId = carts[0].id;
+      
       const [cartItems] = await pool.query(
-        `SELECT ci.id, ci.quantity, p.name, p.image_url, pv.name as variant_name, pv.price 
-         FROM carts c 
-         JOIN cartitems ci ON c.id = ci.cart_id 
+        `SELECT 
+          ci.id, 
+          ci.quantity, 
+          p.id AS product_id,
+          p.name AS product_name, 
+          p.image_url, 
+          pv.id AS variant_id,
+          pv.name AS variant_name, 
+          pv.price,
+          (ci.quantity * pv.price) AS total_price
+         FROM cartitems ci 
          JOIN products p ON ci.product_id = p.id 
          JOIN productvariants pv ON ci.variant_id = pv.id 
-         WHERE c.user_id = ?`,
-        [userId]
+         WHERE ci.cart_id = ?`,
+        [cartId]
       );
-      res.json(cartItems);
+      
+      // Tính tổng giá trị giỏ hàng
+      const totalCartValue = cartItems.reduce((sum, item) => sum + item.total_price, 0);
+      
+      res.json({
+        items: cartItems,
+        total_value: totalCartValue
+      });
     } catch (error) {
+      console.error('Lỗi lấy thông tin giỏ hàng:', error);
       res.status(500).json({ message: 'Lỗi lấy thông tin giỏ hàng', error: error.message });
     }
   });
   //cập nhật số lượng sản phẩm trong giỏ hàng
-  router.put('/cart/update', authenticateJWT, async (req, res) => {
+  router.put('/cart/update', authenticateJWT, checkCustomerRole, async (req, res) => {
     try {
       const { cartItemId, quantity } = req.body;
       const userId = req.user.userId;
@@ -123,7 +159,7 @@ router.post('/cart/add', authenticateJWT, async (req, res) => {
   });
 
   //xóa sản phẩm trong giỏ hàng
-  router.delete('/cart/remove/:cartItemId', authenticateJWT, async (req, res) => {
+  router.delete('/cart/remove/:cartItemId', authenticateJWT, checkCustomerRole, async (req, res) => {
     try {
       const { cartItemId } = req.params;
       const userId = req.user.userId;
@@ -148,7 +184,7 @@ router.post('/cart/add', authenticateJWT, async (req, res) => {
     }
   });
 //xóa toàn bộ giỏ hàng
-router.delete('/cart/clear', authenticateJWT, async (req, res) => {
+router.delete('/cart/clear', authenticateJWT, checkCustomerRole, async (req, res) => {
   try {
     const userId = req.user.userId;
 
@@ -166,7 +202,7 @@ router.delete('/cart/clear', authenticateJWT, async (req, res) => {
   });
 
   // lấy toonhr soos luong san pham trong giỏ hàng
-  router.get('/cart/count', authenticateJWT, async (req, res) => {
+  router.get('/cart/count', authenticateJWT, checkCustomerRole, async (req, res) => {
     try {
       const userId = req.user.userId;
   
@@ -186,7 +222,7 @@ router.delete('/cart/clear', authenticateJWT, async (req, res) => {
     }
   });
 //Tính tổng giá trị giỏ hàng
-  router.get('/cart/total', authenticateJWT, async (req, res) => {
+  router.get('/cart/total', authenticateJWT, checkCustomerRole, async (req, res) => {
     try {
       const userId = req.user.userId;
   

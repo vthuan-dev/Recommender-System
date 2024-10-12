@@ -18,51 +18,66 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, '..', 'public', 'dangnhap-dangky')));
 
-router.post('/register', async (req, res) => {
-    try {
-      const { fullname, phonenumber, email, password } = req.body;
-      
-      // Kiểm tra dữ liệu đầu vào
-      if (!fullname || !phonenumber || !email || !password) {
-        return res.status(400).json({ message: 'Vui lòng điền đầy đủ thông tin' });
-      }
-      
-      // Kiểm tra xem email đã tồn tại chưa
-      const [existingUsers] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
-      if (existingUsers.length > 0) {
-        return res.status(400).json({ message: 'Email đã được sử dụng' });
-      }
-      
-      // Kiểm tra xem số điện thoại đã tồn tại chưa
-      const [existingPhones] = await pool.query('SELECT * FROM users WHERE phonenumber = ?', [phonenumber]);
-      if (existingPhones.length > 0) {
-        return res.status(400).json({ message: 'Số điện thoại đã được sử dụng' });
-      }
-      
-      // Mã hóa mật khẩu
-      const hashedPassword = await bcrypt.hash(password, 10);
-      
-      // Thêm người dùng mới vào cơ sở dữ liệu
-      const [result] = await pool.query(
-        'INSERT INTO users (fullname, phonenumber, email, password) VALUES (?, ?, ?, ?)',
-        [fullname, phonenumber, email, hashedPassword]
-      );
-      
-      res.status(201).json({ userId: result.insertId, message: 'Đăng ký thành công' });
-    } catch (error) {
-      console.error('Lỗi đăng ký:', error);
-      res.status(500).json({ message: 'Lỗi đăng ký', error: error.message });
+router.post('/register-client', async (req, res) => {
+  try {
+    const { fullname, phonenumber, email, password } = req.body;
+    
+    // Kiểm tra dữ liệu đầu vào
+    if (!fullname || !phonenumber || !email || !password) {
+      return res.status(400).json({ message: 'Vui lòng điền đầy đủ thông tin' });
     }
-  });
-  app.get('/dangky', (req, res) => {
-    res.sendFile(path.join(__dirname, '..', 'public','dangnhap-dangky', 'dangky.html'));
-  });
-  
+    
+    // Kiểm tra xem email đã tồn tại chưa
+    const [existingUsers] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
+    if (existingUsers.length > 0) {
+      return res.status(400).json({ message: 'Email đã được sử dụng' });
+    }
+    
+    // Kiểm tra xem số điện thoại đã tồn tại chưa
+    const [existingPhones] = await pool.query('SELECT * FROM users WHERE phonenumber = ?', [phonenumber]);
+    if (existingPhones.length > 0) {
+      return res.status(400).json({ message: 'Số điện thoại đã được sử dụng' });
+    }
+    
+    // Mã hóa mật khẩu
+    const hashedPassword = await bcrypt.hash(password, 10);
+    
+    // Lấy role_id và role_name cho "customer"
+    const [customerRole] = await pool.query('SELECT id, name FROM roles WHERE name = ?', ['customer']);
+    if (customerRole.length === 0) {
+      return res.status(500).json({ message: 'Lỗi hệ thống: Không tìm thấy vai trò khách hàng' });
+    }
+    const customerRoleId = customerRole[0].id;
+    const customerRoleName = customerRole[0].name;
+    
+    // Thêm người dùng mới vào cơ sở dữ liệu với role "customer"
+    const [result] = await pool.query(
+      'INSERT INTO users (fullname, phonenumber, email, password, role_id) VALUES (?, ?, ?, ?, ?)',
+      [fullname, phonenumber, email, hashedPassword, customerRoleId]
+    );
+    
+    res.status(201).json({ 
+      userId: result.insertId, 
+      fullname: fullname,
+      email: email,
+      role: customerRoleName,
+      message: 'Đăng ký thành công' 
+    });
+  } catch (error) {
+    console.error('Lỗi đăng ký:', error);
+    res.status(500).json({ message: 'Lỗi đăng ký', error: error.message });
+  }
+});
+
+router.get('/dangky', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'public','dangnhap-dangky', 'dangky.html'));
+});
+
 // Thay đổi từ app sang router
-router.post('/login', async (req, res) => {
+router.post('/login-client', async (req, res) => {
   try {
     const { email, password } = req.body;
-    const [users] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
+    const [users] = await pool.query('SELECT u.*, r.name as role_name FROM users u JOIN roles r ON u.role_id = r.id WHERE u.email = ? AND r.name = ?', [email, 'customer']);
     if (users.length === 0) {
       return res.status(401).json({ message: 'Email hoặc mật khẩu không đúng' });
     }
@@ -71,8 +86,9 @@ router.post('/login', async (req, res) => {
     if (!isValid) {
       return res.status(401).json({ message: 'Email hoặc mật khẩu không đúng' });
     }
-    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '1h' });
-    res.json({ token, userId: user.id, fullname: user.fullname });
+    // Tạo token chỉ với thông tin cần thiết cho client
+    const token = jwt.sign({ userId: user.id, role: 'customer' }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    res.json({ token, userId: user.id, fullname: user.fullname, role: user.role_name });
   } catch (error) {
     res.status(500).json({ message: 'Lỗi đăng nhập', error: error.message });
   }
@@ -97,16 +113,5 @@ router.post('/login-test', async (req, res) => {
   });
 
 
-router.get('/users/:id', authenticateJWT, async (req, res) => {
-    try {
-      const [users] = await pool.query('SELECT id, fullname, email, phonenumber FROM users WHERE id = ?', [req.params.id]);
-      if (users.length === 0) {
-        return res.status(404).json({ message: 'Không tìm thấy người dùng' });
-      }
-      res.json(users[0]);
-    } catch (error) {
-      res.status(500).json({ message: 'Lỗi lấy thông tin người dùng', error: error.message });
-    }
-  });
   
   module.exports = router;

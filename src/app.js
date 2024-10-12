@@ -5,12 +5,26 @@ const path = require('path');
 const { pool, authenticateJWT } = require('./database/dbconfig');
 const { testFirebaseConnection } = require('./firebaseConfig');
 
+//client
 const productRoutes = require('./client/products/product.js');
+//client
 const cartRoutes = require('./client/carts/cart.js');
+//client
 const orderRoutes = require('./client/orders/order.js');
-const accountRoutes = require('./client/users/log.js');
-const addProductRoutes = require('./admin/products/projduct-management.js');
+//client
+const accountRoutesClient = require('./client/users/log.js');
+//admin
+const productManagementRoutes = require('./admin/products/projduct-management.js');
+//admin
+const adminAuthRoutes = require('./admin/user/log');
+//admin
+const userManageRoutes = require('./admin/user/user-manage');
+//admin
+const orderManagementRoutes = require('./admin/orders/order-management.js');
+
 const dotenv = require('dotenv');
+
+
 dotenv.config();
 const app = express();
 
@@ -18,12 +32,16 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
+
+app.use('/admin', adminAuthRoutes);
 // Sử dụng các route
 app.use('/', productRoutes);
 app.use('/', cartRoutes);
 app.use('/', orderRoutes);
-app.use('/', accountRoutes);
-app.use('/', addProductRoutes);
+app.use('/', accountRoutesClient);
+app.use('/admin', productManagementRoutes);
+app.use('/admin', userManageRoutes);
+app.use('/admin', orderManagementRoutes);
 // Middleware xử lý lỗi
 app.use((err, req, res, next) => {
     console.error(err.stack);
@@ -33,17 +51,7 @@ app.use((err, req, res, next) => {
 // Route mặc định
 
 // Thêm đoạn code này vào cuối file app.js
-app._router.stack.forEach(function(r){
-    if (r.route && r.route.path){
-      console.log(r.route.path)
-    } else if (r.name === 'router') {
-      r.handle.stack.forEach(function(nestedRoute){
-        if (nestedRoute.route){
-          console.log(r.regexp, nestedRoute.route.path)
-        }
-      })
-    }
-  });
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, async () => {
     console.log(`Server đang chạy trên cổng ${PORT}`);
@@ -54,3 +62,5 @@ app.listen(PORT, async () => {
         console.log('Kết nối Firebase thất bại. Vui lòng kiểm tra cấu hình.');
     }
 });
+
+

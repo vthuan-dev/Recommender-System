@@ -3,11 +3,19 @@ const { pool } = require('../../database/dbconfig');
 const { storage } = require('../../firebaseConfig');
 const multer = require('multer');
 const path = require('path');
-
+const { authenticateJWT } = require('../../database/dbconfig');
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
-router.post('/add-products', upload.single('image'), async (req, res) => {
+async function checkAdminRole(req, res, next) {
+    if (req.user && req.user.role === 'admin') {
+      next();
+    } else {
+      res.status(403).json({ message: 'Chỉ admin mới có quyền truy cập' });
+    }
+  }
+
+router.post('/add-products', authenticateJWT, checkAdminRole, upload.single('image'), async (req, res) => {
     const connection = await pool.getConnection();
     try {
       console.log('Bắt đầu xử lý yêu cầu thêm sản phẩm');
@@ -123,6 +131,141 @@ router.post('/add-products', upload.single('image'), async (req, res) => {
       connection.release(); // Đảm bảo connection được giải phóng
     }
 });
+
+// Lấy danh sách sản phẩm (có phân trang và tìm kiếm)
+router.get('/products', authenticateJWT, checkAdminRole, async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const search = req.query.search || '';
+    const offset = (page - 1) * limit;
+
+    const [products, [totalCount]] = await Promise.all([
+      pool.query(
+        `SELECT p.*, b.name as brand_name, c.name as category_name 
+         FROM products p 
+         LEFT JOIN brands b ON p.brand_id = b.id 
+         LEFT JOIN categories c ON p.category_id = c.id 
+         WHERE p.name LIKE ? OR p.description LIKE ? 
+         LIMIT ? OFFSET ?`,
+        [`%${search}%`, `%${search}%`, limit, offset]
+      ),
+      pool.query(
+        'SELECT COUNT(*) as count FROM products WHERE name LIKE ? OR description LIKE ?',
+        [`%${search}%`, `%${search}%`]
+      )
+    ]);
+
+    res.json({
+      products: products[0],
+      currentPage: page,
+      totalPages: Math.ceil(totalCount[0].count / limit),
+      totalProducts: totalCount[0].count
+    });
+  } catch (error) {
+    console.error('Lỗi lấy danh sách sản phẩm:', error);
+    res.status(500).json({ message: 'Lỗi lấy danh sách sản phẩm', error: error.message });
+  }
+});
+
+// Lấy chi tiết một sản phẩm
+router.get('/products/:id', authenticateJWT, checkAdminRole, async (req, res) => {
+  try {
+    const [product] = await pool.query(
+      `SELECT p.*, b.name as brand_name, c.name as category_name 
+       FROM products p 
+       LEFT JOIN brands b ON p.brand_id = b.id 
+       LEFT JOIN categories c ON p.category_id = c.id 
+       WHERE p.id = ?`,
+      [req.params.id]
+    );
+
+    if (product.length === 0) {
+      return res.status(404).json({ message: 'Sản phẩm không tồn tại' });
+    }
+
+    const [variants] = await pool.query('SELECT * FROM productvariants WHERE product_id = ?', [req.params.id]);
+
+    res.json({ ...product[0], variants });
+  } catch (error) {
+    console.error('Lỗi lấy chi tiết sản phẩm:', error);
+    res.status(500).json({ message: 'Lỗi lấy chi tiết sản phẩm', error: error.message });
+  }
+});
+
+// Cập nhật thông tin sản phẩm
+router.put('/products/:id', authenticateJWT, checkAdminRole, upload.single('image'), async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+
+    const { name, description, category_id, brand, variants } = req.body;
+    let image_url = req.body.image_url;
+
+    // Xử lý upload ảnh mới (nếu có)
+    if (req.file) {
+      // ... (code upload ảnh tương tự như trong hàm thêm sản phẩm)
+    }
+
+    // Cập nhật thông tin sản phẩm
+    await connection.query(
+      'UPDATE products SET name = ?, description = ?, category_id = ?, brand_id = ?, image_url = ? WHERE id = ?',
+      [name, description, category_id, brand, image_url, req.params.id]
+    );
+
+    // Cập nhật biến thể
+    if (variants && variants.length > 0) {
+      await connection.query('DELETE FROM productvariants WHERE product_id = ?', [req.params.id]);
+      for (const variant of variants) {
+        await connection.query(
+          'INSERT INTO productvariants (product_id, name, price) VALUES (?, ?, ?)',
+          [req.params.id, variant.name, variant.price]
+        );
+      }
+    }
+
+    await connection.commit();
+    res.json({ message: 'Cập nhật sản phẩm thành công' });
+  } catch (error) {
+    await connection.rollback();
+    console.error('Lỗi cập nhật sản phẩm:', error);
+    res.status(500).json({ message: 'Lỗi cập nhật sản phẩm', error: error.message });
+  } finally {
+    connection.release();
+  }
+});
+
+// Xóa sản phẩm
+router.delete('/products/:id', authenticateJWT, checkAdminRole, async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+
+    // Xóa biến thể
+    await connection.query('DELETE FROM productvariants WHERE product_id = ?', [req.params.id]);
+
+    // Xóa sản phẩm
+    const [result] = await connection.query('DELETE FROM products WHERE id = ?', [req.params.id]);
+
+    if (result.affectedRows === 0) {
+      await connection.rollback();
+      return res.status(404).json({ message: 'Sản phẩm không tồn tại' });
+    }
+
+    // Xóa ảnh từ Firebase Storage (nếu cần)
+    // ... (code xóa ảnh từ Firebase)
+
+    await connection.commit();
+    res.json({ message: 'Xóa sản phẩm thành công' });
+  } catch (error) {
+    await connection.rollback();
+    console.error('Lỗi xóa sản phẩm:', error);
+    res.status(500).json({ message: 'Lỗi xóa sản phẩm', error: error.message });
+  } finally {
+    connection.release();
+  }
+});
+
 
 
 
