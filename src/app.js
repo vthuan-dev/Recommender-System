@@ -43,7 +43,14 @@ app.use(session({
 }));
 
 
-app.use(cors());
+const corsOptions = {
+  origin: 'http://localhost:3000', // Thay đổi nếu cần
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+};
+
+app.use(cors(corsOptions));
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.static(path.join(__dirname, '../public')));
@@ -96,3 +103,4 @@ app.use((req, res, next) => {
   }
   next();
 });
+

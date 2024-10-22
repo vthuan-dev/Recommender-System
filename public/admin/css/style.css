@@ -21,44 +21,47 @@ body {
 }
 #sidebar h2 {
     margin-bottom: 30px;
-    font-size: 1.5rem;
+    font-size: 1.2rem;
     text-align: center;
-    padding: 10px;
+    padding: 15px;
     border-bottom: 1px solid rgba(255,255,255,0.1);
+    color: #fff;
 }
 #sidebar .nav-link {
-    color: rgba(255,255,255,0.8);
-    padding: 10px 20px;
+    color: #ced4da;
+    padding: 10px 15px;
     border-radius: 5px;
     transition: all 0.3s;
     margin-bottom: 5px;
+    font-weight: 400;
 }
 #sidebar .nav-link:hover, #sidebar .nav-link.active {
     color: #fff;
-    background-color: rgba(255,255,255,0.1);
+    background-color: #007bff;
 }
 #sidebar .nav-link.active {
     font-weight: bold;
-    background-color: #34495e;
+    background-color: #007bff;
 }
 main {
     background-color: #fff;
-    padding: 30px;
+    padding: 20px;
     border-radius: 8px;
-    box-shadow: 0 0 15px rgba(0,0,0,0.1);
+    box-shadow: 0 0 10px rgba(0,0,0,0.05);
     margin: 20px;
+    height: calc(100vh - 40px);
+    overflow-y: auto;
 }
 .card {
     border: none;
     border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     transition: all 0.3s;
     background-color: #fff;
     margin-bottom: 20px;
 }
 .card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
 }
 .card-body {
     padding: 20px;
@@ -73,24 +76,87 @@ main {
 .card-text {
     font-size: 1.8rem;
     font-weight: 700;
-    color: #3498db;
+    color: #007bff;
 }
 .btn-toolbar .btn {
-    margin-left: 5px;
+    margin-left: 8px;
+    border-radius: 20px;
+    padding: 8px 15px;
+    font-weight: 500;
 }
 .table {
     background-color: #fff;
     border-radius: 8px;
     overflow: hidden;
-    box-shadow: 0 0 15px rgba(0,0,0,0.1);
+    box-shadow: 0 0 10px rgba(0,0,0,0.05);
 }
 .table thead th {
+    position: sticky;
+    top: 0;
     background-color: #f8f9fa;
+    z-index: 1;
+    color: #495057;
     border-bottom: 2px solid #dee2e6;
+    padding: 12px;
+    font-weight: 600;
+}
+.table tbody td {
+    padding: 12px;
+    vertical-align: middle;
+    border-bottom: 1px solid #dee2e6;
+}
+.table tbody tr:last-child td {
+    border-bottom: none;
 }
 .pagination {
+    display: flex;
     justify-content: center;
+    align-items: center;
     margin-top: 20px;
+    font-family: Arial, sans-serif;
+}
+.pagination .page-item {
+    margin: 0 4px;
+}
+.pagination .page-link {
+    color: #4285f4;
+    border: none;
+    padding: 8px 12px;
+    font-size: 14px;
+    line-height: 20px;
+    border-radius: 4px;
+    text-decoration: none;
+    transition: background-color 0.3s;
+}
+.pagination .page-item.active .page-link {
+    background-color: #4285f4;
+    color: white;
+}
+.pagination .page-item:not(.active) .page-link:hover {
+    background-color: #f1f3f4;
+}
+.pagination .page-item.disabled .page-link {
+    color: #9aa0a6;
+    pointer-events: none;
+    cursor: default;
+}
+.pagination .page-link[aria-label="Previous"],
+.pagination .page-link[aria-label="Next"] {
+    font-size: 18px;
+    line-height: 16px;
+}
+.btn-primary, .btn-danger {
+    padding: 5px 10px;
+    font-size: 0.875rem;
+    border-radius: 4px;
+}
+.btn-primary {
+    background-color: #007bff;
+    border-color: #007bff;
+}
+.btn-danger {
+    background-color: #dc3545;
+    border-color: #dc3545;
 }
 @media (max-width: 768px) {
     #sidebar {
@@ -98,6 +164,164 @@ main {
         margin-bottom: 20px;
     }
     main {
-        margin: 0;
+        margin: 10px;
+        padding: 15px;
     }
+}
+
+.table-responsive {
+    margin-top: 20px;
+    max-height: calc(100vh - 250px);
+    overflow-y: auto;
+}
+
+#productsContent {
+    margin-top: 20px;
+}
+
+@media (min-width: 768px) {
+    #sidebar {
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        z-index: 100;
+        padding: 48px 0 0;
+        box-shadow: inset -1px 0 0 rgba(0, 0, 0, .1);
+    }
+}
+
+.search-container {
+    margin-bottom: 30px;
+}
+
+.search-wrapper {
+    display: flex;
+    align-items: center;
+    background-color: #fff;
+    border-radius: 30px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    padding: 5px;
+    max-width: 600px;
+    margin: 0 auto;
+    transition: box-shadow 0.3s ease;
+}
+
+.search-wrapper:focus-within {
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.search-icon {
+    color: #5f6368;
+    margin-left: 15px;
+    font-size: 18px;
+}
+
+#searchInput {
+    flex-grow: 1;
+    border: none;
+    background: transparent;
+    padding: 10px 15px;
+    font-size: 16px;
+    color: #3c4043;
+}
+
+#searchInput:focus {
+    outline: none;
+}
+
+#searchButton {
+    background-color: #1a73e8;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 25px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    margin-left: 10px;
+}
+
+#searchButton:hover {
+    background-color: #1765cc;
+}
+
+#searchButton i {
+    font-size: 18px;
+}
+
+.product-table {
+    border-collapse: separate;
+    border-spacing: 0 15px;
+}
+
+.product-table thead th {
+    background-color: #f8f9fa;
+    border: none;
+    padding: 15px;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    color: #495057;
+}
+
+.product-table tbody tr {
+    background-color: #ffffff;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    transition: all 0.3s ease;
+}
+
+.product-table tbody tr:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.product-table td {
+    padding: 20px 15px;
+    vertical-align: middle;
+    border: none;
+}
+
+.product-image {
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 8px;
+}
+
+.product-name {
+    font-weight: 600;
+    color: #3c4043;
+}
+
+.product-description {
+    font-size: 0.9rem;
+    color: #5f6368;
+}
+
+.btn-outline-primary, .btn-outline-danger {
+    padding: 5px 10px;
+    margin: 0 3px;
+}
+
+.btn-outline-primary:hover, .btn-outline-danger:hover {
+    color: #fff;
+}
+
+.btn-outline-primary {
+    color: #1a73e8;
+    border-color: #1a73e8;
+}
+
+.btn-outline-primary:hover {
+    background-color: #1a73e8;
+}
+
+.btn-outline-danger {
+    color: #d93025;
+    border-color: #d93025;
+}
+
+.btn-outline-danger:hover {
+    background-color: #d93025;
 }

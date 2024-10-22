@@ -138,17 +138,28 @@ router.get('/products', authenticateJWT, checkAdminRole, async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const offset = (page - 1) * limit;
+    const search = req.query.search || '';
+
+    let query = `
+      SELECT p.*, c.name as category_name, b.name as brand_name 
+      FROM products p 
+      LEFT JOIN categories c ON p.category_id = c.id 
+      LEFT JOIN brands b ON p.brand_id = b.id 
+      WHERE p.name LIKE ? OR p.description LIKE ? OR c.name LIKE ? OR b.name LIKE ?
+      LIMIT ? OFFSET ?
+    `;
+    let countQuery = `
+      SELECT COUNT(*) as count 
+      FROM products p 
+      LEFT JOIN categories c ON p.category_id = c.id 
+      LEFT JOIN brands b ON p.brand_id = b.id 
+      WHERE p.name LIKE ? OR p.description LIKE ? OR c.name LIKE ? OR b.name LIKE ?
+    `;
+    let searchParam = `%${search}%`;
 
     const [products, [totalCount]] = await Promise.all([
-      pool.query(
-        `SELECT p.*, c.name as category_name, b.name as brand_name 
-         FROM products p 
-         LEFT JOIN categories c ON p.category_id = c.id 
-         LEFT JOIN brands b ON p.brand_id = b.id 
-         LIMIT ? OFFSET ?`,
-        [limit, offset]
-      ),
-      pool.query('SELECT COUNT(*) as count FROM products')
+      pool.query(query, [searchParam, searchParam, searchParam, searchParam, limit, offset]),
+      pool.query(countQuery, [searchParam, searchParam, searchParam, searchParam])
     ]);
 
     res.json({
@@ -188,7 +199,7 @@ router.get('/products/:id', authenticateJWT, checkAdminRole, async (req, res) =>
   }
 });
 
-// Cập nhật thông tin sản phẩm
+// Cập nhật thông tin sản ph���m
 router.put('/products/:id', authenticateJWT, checkAdminRole, upload.single('image'), async (req, res) => {
   const connection = await pool.getConnection();
   try {
@@ -230,6 +241,32 @@ router.put('/products/:id', authenticateJWT, checkAdminRole, upload.single('imag
   }
 });
 
+
+// Lấy danh sách thương hiệu
+// Lấy danh sách danh mục
+router.get('/categories', authenticateJWT, checkAdminRole, async (req, res) => {
+  console.log('Received request for categories');
+  try {
+    const [categories] = await pool.query('SELECT id, name FROM categories');
+    console.log('Categories fetched:', categories);
+    res.json(categories);
+  } catch (error) {
+    console.error('Error fetching categories:', error);
+    res.status(500).json({ message: 'Error loading categories', error: error.message });
+  }
+});
+
+router.get('/brands', authenticateJWT, checkAdminRole, async (req, res) => {
+  console.log('Received request for brands');
+  try {
+    const [brands] = await pool.query('SELECT id, name FROM brands');
+    console.log('Brands fetched:', brands);
+    res.json(brands);
+  } catch (error) {
+    console.error('Error fetching brands:', error);
+    res.status(500).json({ message: 'Error loading brands', error: error.message });
+  }
+});
 // Xóa sản phẩm
 router.delete('/products/:id', authenticateJWT, checkAdminRole, async (req, res) => {
   const connection = await pool.getConnection();
