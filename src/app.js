@@ -4,6 +4,9 @@ const bodyParser = require('body-parser');
 const path = require('path');
 const { pool, authenticateJWT } = require('./database/dbconfig');
 const { testFirebaseConnection } = require('./firebaseConfig');
+const session = require('express-session');
+
+
 
 //client
 const productRoutes = require('./client/products/product.js');
@@ -24,22 +27,35 @@ const orderManagementRoutes = require('./admin/orders/order-management.js');
 
 const dotenv = require('dotenv');
 
-dotenv.config();
-const app = express();
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
+
+
+const app = express();
+app.use(session({
+  secret: process.env.SECRET_KEY,
+  resave: false,
+  saveUninitialized: true,
+  cookie: { 
+    secure: false,
+    maxAge: 1000 * 60 * 60 * 24 // 1 ngày
+   }
+}));
 
 
 app.use(cors());
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, '../public')));
+app.use('/admin', express.static(path.join(__dirname, '../public/admin')));
+
+
 
 
 app.get('/admin/manage', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'admin', 'manage.html'));
+  res.sendFile(path.resolve(__dirname, '../public/admin/manage.html'));
 });
-app.get('/admin/test', (req, res) => {
-  res.send('Test route working');
-});
+
 
 app.use('/admin', adminAuthRoutes);
 // Sử dụng các route
@@ -72,4 +88,11 @@ app.listen(PORT, async () => {
     }
 });
 
+// app.use('/admin', express.static(path.join(__dirname, 'public', 'admin')));
 
+app.use((req, res, next) => {
+  if (req.url.endsWith('.css')) {
+    res.type('text/css');
+  }
+  next();
+});

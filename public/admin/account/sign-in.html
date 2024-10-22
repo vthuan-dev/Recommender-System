@@ -81,7 +81,7 @@
                         // Lưu token vào localStorage
                         localStorage.setItem('adminToken', response.token);
                         // Chuyển hướng đến trang quản trị
-                        window.location.href = '/admin/dashboard';
+                        window.location.href = '/admin/manage';
                     },
                     error: function(xhr, status, error) {
                         var errorMessage = xhr.responseJSON ? xhr.responseJSON.message : 'Đã xảy ra lỗi';

@@ -4,7 +4,7 @@ const serviceAccount = require('./config/ncln-50535-firebase-adminsdk-ce3b3-334f
 function initializeFirebase() {
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
-    storageBucket: process.env.FIREBASE_STORAGE_BUCKET
+    storageBucket: 'ncln-50535.appspot.com'
   });
   return admin.storage();
 }
@@ -20,7 +20,7 @@ async function testFirebaseConnection() {
       action: 'read',
       expires: '03-01-2500'
     });
-   // console.log('Firebase connection successful. Test file URL:', url);
+    //console.log('Firebase connection successful. Test file URL:', url);
     return true;
   } catch (error) {
     console.error('Firebase connection test failed:', error);

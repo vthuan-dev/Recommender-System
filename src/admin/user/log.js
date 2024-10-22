@@ -5,14 +5,13 @@ const { pool } = require('../../database/dbconfig');
 const router = express.Router();
 const path = require('path');
 
-router.get('/sign-up', (req, res) => {
-    res.sendFile(path.join(__dirname, '../../../public/admin/account/sign-up.html'));
+router.get('/admin-sign-up', (req, res) => {
+  res.sendFile(path.resolve(__dirname, '../../../public/admin/account/sign-up.html'));
 });
 
-router.get('/sign-in', (req, res) => {
-    res.sendFile(path.join(__dirname, '../../../public/admin/account/sign-in.html'));
+router.get('/admin-sign-in', (req, res) => {
+  res.sendFile(path.resolve(__dirname, '../../../public/admin/account/sign-in.html'));
 });
-
 router.post('/register-admin', async (req, res) => {
   try {
     const { fullname, phonenumber, email, password } = req.body;
@@ -58,6 +57,12 @@ router.post('/register-admin', async (req, res) => {
       role: adminRoleName,
       message: 'Đăng ký admin thành công' 
     });
+
+    req.session.userId = result.insertId;
+    req.session.fullname = fullname;
+    req.session.email = email;
+    req.session.role = adminRoleName;
+   
   } catch (error) {
     console.error('Lỗi đăng ký admin:', error);
     res.status(500).json({ message: 'Lỗi đăng ký admin', error: error.message });

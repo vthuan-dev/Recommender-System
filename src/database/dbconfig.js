@@ -6,7 +6,7 @@ const bodyParser = require('body-parser');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const path = require('path');
-
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 const fs = require('fs');
 
 dotenv.config();
@@ -41,15 +41,25 @@ const pool = mysql.createPool({
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
-  port: process.env.DB_PORT,
+  port: parseInt(process.env.DB_PORT, 10),
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0
 });
-pool.getConnection().then(() => {
-  console.log('Đã kết nối đến cơ sở dữ liệu');
-}).catch((err) => {
-  console.error('Lỗi kết nối đến cơ sở dữ liệu', err);
-});
+
+// Thêm đoạn code này để kiểm tra kết nối
+pool.query('SELECT 1')
+  .then(() => {
+    console.log('Kết nối đến cơ sở dữ liệu thành công');
+  })
+  .catch((err) => {
+    console.error('Lỗi kết nối đến cơ sở dữ liệu:', err);
+  });
+
+// console.log('DB_HOST:', process.env.DB_HOST);
+// console.log('DB_USER:', process.env.DB_USER);
+// console.log('DB_PASSWORD:', process.env.DB_PASSWORD);
+// console.log('DB_NAME:', process.env.DB_NAME);
+// console.log('DB_PORT:', process.env.DB_PORT);
 
 module.exports = { pool, authenticateJWT };

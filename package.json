@@ -4,7 +4,9 @@
   "description": "��#\u0000 \u0000R\u0000e\u0000c\u0000o\u0000m\u0000m\u0000e\u0000n\u0000d\u0000e\u0000r\u0000-\u0000S\u0000y\u0000s\u0000t\u0000e\u0000m\u0000\r\u0000 \u0000",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "nodemon src/app.js",
+    "dev": "nodemon src/app.js"
   },
   "keywords": [],
   "author": "",
@@ -17,6 +19,7 @@
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.21.0",
+    "express-session": "^1.18.1",
     "faker": "^6.6.6",
     "firebase": "^10.14.0",
     "firebase-admin": "^12.6.0",
