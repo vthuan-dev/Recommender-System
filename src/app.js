@@ -8,6 +8,7 @@ const session = require('express-session');
 
 
 
+
 //client
 const productRoutes = require('./client/products/product.js');
 //client
@@ -32,6 +33,9 @@ dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 
 const app = express();
+
+
+
 app.use(session({
   secret: process.env.SECRET_KEY,
   resave: false,
