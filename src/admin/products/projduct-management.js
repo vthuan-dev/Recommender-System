@@ -199,7 +199,7 @@ router.get('/products/:id', authenticateJWT, checkAdminRole, async (req, res) =>
   }
 });
 
-// Cập nhật thông tin sản ph���m
+// Cập nhật thông tin sản phẩm
 router.put('/products/:id', authenticateJWT, checkAdminRole, upload.single('image'), async (req, res) => {
   const connection = await pool.getConnection();
   try {
@@ -242,13 +242,10 @@ router.put('/products/:id', authenticateJWT, checkAdminRole, upload.single('imag
 });
 
 
-// Lấy danh sách thương hiệu
 // Lấy danh sách danh mục
 router.get('/categories', authenticateJWT, checkAdminRole, async (req, res) => {
-  console.log('Received request for categories');
   try {
     const [categories] = await pool.query('SELECT id, name FROM categories');
-    console.log('Categories fetched:', categories);
     res.json(categories);
   } catch (error) {
     console.error('Error fetching categories:', error);
@@ -256,11 +253,10 @@ router.get('/categories', authenticateJWT, checkAdminRole, async (req, res) => {
   }
 });
 
+// Lấy danh sách thương hiệu
 router.get('/brands', authenticateJWT, checkAdminRole, async (req, res) => {
-  console.log('Received request for brands');
   try {
     const [brands] = await pool.query('SELECT id, name FROM brands');
-    console.log('Brands fetched:', brands);
     res.json(brands);
   } catch (error) {
     console.error('Error fetching brands:', error);
