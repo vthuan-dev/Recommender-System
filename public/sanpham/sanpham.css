@@ -1,0 +1,217 @@
+body {
+    font-family: Arial, sans-serif;
+}
+
+.sanpham {
+    display: flex;
+    width: 80%;
+}
+
+.thongtin, .sanpham-loai, .danhgia, .binhluan {
+    width: 100%;
+    padding: 0px;
+    box-sizing: border-box;
+}
+
+#tensanpham {
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 20px;
+    width: 170%;
+    background-color: #d9d9e8;
+    border-radius: 20px;
+}
+
+.hinhanh img {
+    width: 10%; /* Adjust this value to change the size of the image */
+    border-radius: 10px;
+}
+.in4may, .spdikem, .baohanh, .chinhsach {
+    margin-bottom: 10px;
+}
+
+.gia {
+    display: flex;
+}
+
+.giaban {
+    color: red;
+    font-size: 20px;
+    font-weight: bold;
+}
+
+.giakm {
+    text-decoration: line-through;
+    margin-left: 10px;
+    margin-top:3px;
+    color: #945454;
+}
+.vr{
+    margin: 10px ;
+    background-color: rgb(246, 229, 141) ;
+    display: flex;
+    border: solid 2px black;
+    border-radius: 10px;
+    width: 140px;
+    height: 30px;
+    text-align: center;
+    justify-content: center;
+    padding-top: 10px;
+}
+.vr:hover{
+    background-color: rgb(202, 191, 179);
+
+}
+
+.variants {
+    display: flex;
+    margin-bottom: 20px;
+    transition: background-color 0.3s ease;
+
+}
+
+.variants .variant {
+    padding: 10px;
+    border: 1px solid #ddd;
+    cursor: pointer;
+}
+
+.variants .variant:hover {
+    background-color: #f2f2f2;
+}
+
+.variant1 {
+    color: #ff0000; /* Color for variant 1 */
+    background-color: antiquewhite;
+}
+
+.variants .variant2 {
+    color: #00ff00; /* Color for variant 2 */
+}
+
+.variants .variant3 {
+    color: #0000ff; /* Color for variant 3 */
+}
+
+#muangay button, #themgiohang button {
+    padding: 10px 20px;
+    margin-bottom: 10px;
+    border: none;
+    color: white;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+#muangay button {
+    background-color: rgb(251, 197, 49);
+    border-radius: 20px;
+    width: 300px;
+    height: 48px;
+}
+
+#themgiohang button {
+    background-color: rgb(201, 175, 44);
+    border-radius: 20px;
+    transition: background-color 0.3s ease;
+    width: 100px;
+}
+#muangay button:hover{
+    background-color: rgb(175, 118, 47);
+}
+
+
+#themgiohang button:hover{
+    background-color: rgb(178, 218, 16);
+}
+.thongsomay table {
+    width:100%;
+    border-collapse: collapse;
+}
+
+.thongsomay td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    border-radius: 16px;
+}
+
+.thongsomay tr:nth-child(even) {
+    background-color: #f2f2f2;
+    border-radius: 16px;
+}
+.thongsomay tr:nth-child(odd) {
+    background-color: rgb(215, 220, 211);
+    border-radius: 16px;
+}
+#tt-spham{
+    margin-top: 20px;
+    width:400px;
+    height: auto;
+}
+.sanpham-loai {
+    margin-left: 0;
+    padding-left: 0;
+    position: relative;
+    left: 0;
+}
+.thongtin{
+    width: 1000px;
+}
+
+
+.in4may, .spdikem, .baohanh, .chinhsach {
+    /* ... existing styles ... */
+    display: flex;
+    align-items: center;
+}
+
+.in4may i, .spdikem i, .baohanh i, .chinhsach i {
+    margin-right: 10px;
+    color: #ced71d; /* Change this to the color you want for the icons */
+}
+/* Path: myprojects/FinalProject/sanpham/sanpham.js */
+
+.hinhthuc-mua{
+    display: flex;
+    margin-left: 20px;
+    margin-top: 20px;
+}
+#themgiohang{
+    margin-left: 20px;
+}
+
+/* CSS */
+.modal {
+    display: none; 
+    position: fixed; 
+    z-index: 1; 
+    padding-top: 100px; 
+    left: 0;
+    top: 0;
+    width: 100%; 
+    height: 100%; 
+    overflow: auto; 
+    background-color: rgb(0,0,0); 
+    background-color: rgba(0,0,0,0.4); 
+  }
+  
+  .modal-content {
+    background-color: #fefefe;
+    margin: auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%;
+  }
+  
+  .close {
+    color: #aaaaaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+  }
+  
+  .close:hover,
+  .close:focus {
+    color: #000;
+    text-decoration: none;
+    cursor: pointer;
+  }

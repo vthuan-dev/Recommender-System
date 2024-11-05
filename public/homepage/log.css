@@ -1,0 +1,28 @@
+
+            .dangnhap-dangky {
+                /* Định dạng cho khối chứa liên kết đăng nhập/đăng ký */
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 10px;
+                margin-top: 0px;
+                background-color: rgb(223, 187, 40);
+                border-radius: 5px;
+                box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+            }
+            .dangnhap-dangky a {
+                /* Định dạng cho liên kết đăng nhập/đăng ký */
+                color: #333;
+                text-decoration: none;
+                margin-left: 10px;
+            }
+
+            .dangnhap-dangky a:hover {
+                /* Định dạng khi di chuột qua liên kết đăng nhập/đăng ký */
+                color: #007BFF;
+            }
+
+            .dangnhap-dangky .fas {
+                /* Định dạng cho biểu tượng Font Awesome */
+                margin-right: 5px;
+            }
