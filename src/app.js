@@ -2,8 +2,8 @@ const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const path = require('path');
-const { pool, authenticateJWT } = require('./database/dbconfig');
-const { testFirebaseConnection } = require('./firebaseConfig');
+const { pool, authenticateJWT } = require('./database/dbconfig.js');
+const { testFirebaseConnection } = require('./firebaseConfig.js');
 const session = require('express-session');
 
 
@@ -20,9 +20,9 @@ const accountRoutesClient = require('./client/users/log.js');
 //admin
 const productManagementRoutes = require('./admin/products/projduct-management.js');
 //admin
-const adminAuthRoutes = require('./admin/user/log');
+const adminAuthRoutes = require('./admin/user/log.js');
 //admin
-const userManageRoutes = require('./admin/user/user-manage');
+const userManageRoutes = require('./admin/user/user-manage.js');
 //admin
 const orderManagementRoutes = require('./admin/orders/order-management.js');
 
