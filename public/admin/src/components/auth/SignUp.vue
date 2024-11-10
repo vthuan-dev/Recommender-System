@@ -97,6 +97,8 @@
 </template>
 
 <script>
+import Swal from 'sweetalert2'
+
 export default {
   name: 'SignUp',
   data() {
@@ -109,6 +111,8 @@ export default {
         confirmPassword: ''
       },
       loading: false,
+      showPassword: false,
+      showConfirmPassword: false,
       errors: []
     }
   },
@@ -118,17 +122,22 @@ export default {
       
       // Validate email
       if (!this.formData.email.match(/^[a-zA-Z0-9._%+-]+@gmail\.com$/)) {
-        this.errors.push('Email không đúng định dạng')
+        this.errors.push('Email không đúng định dạng (phải là địa chỉ @gmail.com)')
       }
 
       // Validate phone number
       if (!this.formData.phonenumber.match(/^0[0-9]{9}$/)) {
-        this.errors.push('Số điện thoại không đúng định dạng')
+        this.errors.push('Số điện thoại phải bắt đầu bằng số 0 và có 10 chữ số')
       }
 
       // Validate password match
       if (this.formData.password !== this.formData.confirmPassword) {
-        this.errors.push('Mật khẩu và mật khẩu xác nhận không khớp')
+        this.errors.push('Mật khẩu và xác nhận mật khẩu không khớp')
+      }
+
+      // Validate password length
+      if (this.formData.password.length < 6) {
+        this.errors.push('Mật khẩu phải có ít nhất 6 ký tự')
       }
 
       return this.errors.length === 0
@@ -136,13 +145,25 @@ export default {
 
     async handleRegister() {
       if (!this.validateForm()) {
-        alert(this.errors.join('\n'))
-        return
+        await Swal.fire({
+          icon: 'error',
+          title: 'Lỗi!',
+          html: this.errors.map(err => `<div class="custom-error">${err}</div>`).join(''),
+          customClass: {
+            popup: 'custom-swal-popup',
+            title: 'custom-swal-title',
+            icon: 'custom-swal-icon',
+            content: 'custom-swal-content',
+            confirmButton: 'custom-swal-confirm-button'
+          },
+          buttonsStyling: false
+        });
+        return;
       }
 
       try {
-        this.loading = true
-        const response = await fetch('/admin/register-admin', {
+        this.loading = true;
+        const response = await fetch('/api/admin/register-admin', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -153,20 +174,47 @@ export default {
             email: this.formData.email,
             password: this.formData.password
           })
-        })
+        });
 
-        const data = await response.json()
+        const data = await response.json();
 
         if (response.ok) {
-          alert('Đăng ký thành công: ' + data.message)
-          this.$router.push('/admin/login')
+          await Swal.fire({
+            icon: 'success',
+            title: 'Đăng ký thành công!',
+            text: 'Bạn sẽ được chuyển đến trang đăng nhập',
+            timer: 2000,
+            timerProgressBar: true,
+            showConfirmButton: false,
+            customClass: {
+              popup: 'custom-swal-popup',
+              title: 'custom-swal-title',
+              icon: 'custom-swal-icon',
+              content: 'custom-swal-content'
+            }
+          });
+          
+          this.$router.push({ name: 'SignIn' });
         } else {
-          throw new Error(data.message || 'Đăng ký thất bại')
+          throw new Error(data.message || 'Đăng ký thất bại');
         }
       } catch (error) {
-        alert('Lỗi đăng ký: ' + error.message)
+        console.error('Register error:', error);
+        await Swal.fire({
+          icon: 'error',
+          title: 'Lỗi đăng ký!',
+          text: error.message || 'Không thể kết nối đến server',
+          customClass: {
+            popup: 'custom-swal-popup',
+            title: 'custom-swal-title',
+            icon: 'custom-swal-icon',
+            content: 'custom-swal-content',
+            confirmButton: 'custom-swal-confirm-button'
+          },
+          buttonsStyling: false
+        });
       } finally {
-        this.loading = false
+        this.loading = false;
       }
     }
   }
