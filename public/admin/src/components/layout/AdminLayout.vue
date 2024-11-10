@@ -76,6 +76,8 @@
 </style>
 
 <script>
+import Swal from 'sweetalert2'
+
 export default {
   name: 'AdminLayout',
   data() {
@@ -89,10 +91,93 @@ export default {
     }
   },
   methods: {
-    logout() {
-      localStorage.removeItem('adminToken')
-      localStorage.removeItem('fullname')
-      this.$router.push('/admin/sign-in')
+    async logout() {
+      try {
+        const result = await Swal.fire({
+          title: 'Xác nhận đăng xuất?',
+          text: 'Bạn có chắc chắn muốn đăng xuất khỏi hệ thống?',
+          icon: 'question',
+          showCancelButton: true,
+          confirmButtonText: 'Đăng xuất',
+          cancelButtonText: 'Hủy',
+          customClass: {
+            popup: 'custom-swal-popup',
+            title: 'custom-swal-title',
+            icon: 'custom-swal-icon',
+            content: 'custom-swal-content',
+            confirmButton: 'custom-swal-confirm-button',
+            cancelButton: 'custom-swal-cancel-button',
+            actions: 'custom-swal-actions'
+          },
+          buttonsStyling: false,
+          reverseButtons: true,
+          showClass: {
+            popup: 'swal2-show'
+          },
+          hideClass: {
+            popup: 'swal2-hide'
+          }
+        });
+
+        if (result.isConfirmed) {
+          const response = await fetch('/api/admin/logout', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+            },
+            credentials: 'include'
+          });
+
+          localStorage.removeItem('adminToken');
+          localStorage.removeItem('fullname');
+          localStorage.removeItem('role');
+
+          await Swal.fire({
+            icon: 'success',
+            title: 'Đăng xuất thành công!',
+            text: 'Hẹn gặp lại bạn...',
+            timer: 1500,
+            timerProgressBar: true,
+            showConfirmButton: false,
+            customClass: {
+              popup: 'custom-swal-popup',
+              title: 'custom-swal-title',
+              icon: 'custom-swal-icon',
+              content: 'custom-swal-content'
+            },
+            showClass: {
+              popup: 'animate__animated animate__fadeInDown animate__faster'
+            },
+            hideClass: {
+              popup: 'animate__animated animate__fadeOutUp animate__faster'
+            }
+          });
+
+          await this.$router.replace({ name: 'SignIn' });
+        }
+      } catch (error) {
+        console.error('Logout error:', error);
+        localStorage.removeItem('adminToken');
+        localStorage.removeItem('fullname');
+        localStorage.removeItem('role');
+
+        await Swal.fire({
+          icon: 'info',
+          title: 'Đã có lỗi xảy ra',
+          text: 'Nhưng bạn đã được đăng xuất thành công',
+          timer: 2000,
+          showConfirmButton: false,
+          customClass: {
+            popup: 'custom-swal-popup',
+            title: 'custom-swal-title',
+            icon: 'custom-swal-icon',
+            content: 'custom-swal-content'
+          }
+        });
+        
+        await this.$router.replace({ name: 'SignIn' });
+      }
     }
   }
 }

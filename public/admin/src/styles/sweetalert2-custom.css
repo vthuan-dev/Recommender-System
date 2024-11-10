@@ -1,0 +1,77 @@
+/* Custom SweetAlert2 Styles */
+.custom-swal-popup {
+    background: rgba(255, 255, 255, 0.95) !important;
+    backdrop-filter: blur(10px) !important;
+    border-radius: 20px !important;
+    padding: 2rem !important;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
+  }
+  
+  .custom-swal-title {
+    color: #2d3748 !important;
+    font-size: 1.5rem !important;
+    font-weight: 700 !important;
+    margin-bottom: 0.5rem !important;
+  }
+  
+  .custom-swal-icon {
+    border: none !important;
+    margin: 1.5rem auto !important;
+  }
+  
+  .custom-swal-content {
+    color: #4a5568 !important;
+    font-size: 1rem !important;
+    line-height: 1.5 !important;
+  }
+  
+  .custom-error {
+    color: #e53e3e !important;
+    margin: 0.5rem 0 !important;
+    font-size: 0.875rem !important;
+    text-align: left !important;
+  }
+  
+  .custom-swal-confirm-button {
+    background: linear-gradient(45deg, #667eea, #764ba2) !important;
+    color: white !important;
+    padding: 0.75rem 2rem !important;
+    border-radius: 12px !important;
+    font-weight: 600 !important;
+    transition: all 0.3s ease !important;
+    border: none !important;
+    outline: none !important;
+  }
+  
+  .custom-swal-confirm-button:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 10px 25px -5px rgba(102, 126, 234, 0.4) !important;
+  }
+  
+  .custom-swal-cancel-button {
+    background: #f3f4f6 !important;
+    color: #4b5563 !important;
+    padding: 0.75rem 2rem !important;
+    border-radius: 12px !important;
+    font-weight: 600 !important;
+    border: none !important;
+    margin-left: 0.75rem !important;
+    transition: all 0.3s ease !important;
+  }
+  
+  .custom-swal-cancel-button:hover {
+    background: #e5e7eb !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1) !important;
+  }
+  
+  .swal2-actions {
+    gap: 1rem !important;
+    margin-top: 1.5rem !important;
+  }
+  
+  .custom-swal-confirm-button,
+  .custom-swal-cancel-button {
+    min-width: 120px !important;
+    margin: 0 !important;
+  }

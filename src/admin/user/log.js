@@ -125,4 +125,19 @@ router.post('/login-admin', async (req, res) => {
   }
 });
 
+router.post('/logout', async (req, res) => {
+  try {
+    // Xóa session/cookie nếu có
+    if (req.session) {
+      req.session.destroy();
+    }
+    res.clearCookie('adminToken');
+    
+    res.json({ message: 'Đăng xuất thành công' });
+  } catch (error) {
+    console.error('Logout error:', error);
+    res.status(500).json({ message: 'Lỗi khi đăng xuất' });
+  }
+});
+
 module.exports = router;
