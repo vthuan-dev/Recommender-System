@@ -3,6 +3,7 @@ import SignIn from '../components/auth/SignIn.vue';
 import SignUp from '../components/auth/SignUp.vue';
 import AdminLayout from '../components/layout/AdminLayout.vue';
 import Dashboard from '../views/Dashboard.vue';
+import Settings from '../components/settings/Settings.vue';
 
 const routes = [
   {
@@ -18,18 +19,19 @@ const routes = [
     meta: { requiresUnauth: true }
   },
   {
-    path: '/',
+    path: '/admin',
     component: AdminLayout,
     meta: { requiresAuth: true },
     children: [
       {
-        path: '',
-        redirect: '/dashboard'
-      },
-      {
         path: 'dashboard',
         name: 'Dashboard',
         component: Dashboard
+      },
+      {
+        path: 'settings',
+        name: 'Settings',
+        component: Settings
       }
     ]
   },
@@ -45,22 +47,18 @@ const router = createRouter({
 });
 
 router.beforeEach((to, from, next) => {
-  const isAuthenticated = !!localStorage.getItem('adminToken');
-
-  if (to.matched.some(record => record.meta.requiresAuth)) {
-    if (!isAuthenticated) {
-      next({ name: 'SignIn' });
+  const adminToken = localStorage.getItem('adminToken')
+  
+  // Nếu route bắt đầu bằng /admin và không phải login/register
+  if (to.path.startsWith('/admin') && 
+      !['SignIn', 'SignUp'].includes(to.name)) {
+    if (!adminToken) {
+      next({ name: 'SignIn' })
     } else {
-      next();
-    }
-  } else if (to.matched.some(record => record.meta.requiresUnauth)) {
-    if (isAuthenticated) {
-      next({ path: '/dashboard' });
-    } else {
-      next();
+      next()
     }
   } else {
-    next();
+    next()
   }
 });
 
