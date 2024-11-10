@@ -4,6 +4,20 @@ const jwt = require('jsonwebtoken');
 const { pool } = require('../../database/dbconfig');
 const router = express.Router();
 const path = require('path');
+const cors = require('cors');
+
+// Cấu hình CORS middleware
+router.use(cors({
+  origin: ['http://localhost:5173', 'http://localhost:3000'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Access-Control-Allow-Origin'],
+  exposedHeaders: ['Access-Control-Allow-Origin']
+}));
+router.options('*', cors());
+
+// Đảm bảo middleware này được thêm trước các routes
+router.use(express.json());
 
 router.get('/admin-sign-up', (req, res) => {
   res.sendFile(path.resolve(__dirname, '../../../public/admin/account/sign-up.html'));
@@ -72,28 +86,42 @@ router.post('/register-admin', async (req, res) => {
 router.post('/login-admin', async (req, res) => {
   try {
     const { email, password } = req.body;
-    const [users] = await pool.query('SELECT u.*, r.name as role_name FROM users u JOIN roles r ON u.role_id = r.id WHERE u.email = ? AND r.name = ?', [email, 'admin']);
+    
+    if (!email || !password) {
+      return res.status(400).json({ message: 'Vui lòng nhập đầy đủ thông tin' });
+    }
+
+    const [users] = await pool.query(
+      'SELECT u.*, r.name as role_name FROM users u JOIN roles r ON u.role_id = r.id WHERE u.email = ? AND r.name = ?', 
+      [email, 'admin']
+    );
+
     if (users.length === 0) {
       return res.status(401).json({ message: 'Email hoặc mật khẩu không đúng' });
     }
+
     const user = users[0];
     const isValid = await bcrypt.compare(password, user.password);
+    
     if (!isValid) {
       return res.status(401).json({ message: 'Email hoặc mật khẩu không đúng' });
     }
-    // Tạo token với thông tin admin
+
     const token = jwt.sign(
-      { 
-        userId: user.id, 
-        role: user.role_name  // Đảm bảo rằng đây là 'admin'
-      }, 
-      process.env.JWT_SECRET, 
+      { userId: user.id, role: user.role_name },
+      process.env.JWT_SECRET,
       { expiresIn: '1h' }
     );
-    console.log('Generated token:', token);
-    res.json({ token, userId: user.id, fullname: user.fullname, role: user.role_name });
+
+    res.json({ 
+      token, 
+      userId: user.id, 
+      fullname: user.fullname, 
+      role: user.role_name 
+    });
   } catch (error) {
-    res.status(500).json({ message: 'Lỗi đăng nhập admin', error: error.message });
+    console.error('Login error:', error);
+    res.status(500).json({ message: 'Lỗi đăng nhập admin' });
   }
 });
 
