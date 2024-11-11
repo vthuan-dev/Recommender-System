@@ -343,49 +343,40 @@ router.delete('/products/:id', authenticateJWT, checkAdminRole, async (req, res)
   const connection = await pool.getConnection();
   try {
     await connection.beginTransaction();
+    const productId = req.params.id;
 
-    // 1. Xóa cartitems trước (vì nó tham chiếu đến cả product và variant)
-    await connection.query('DELETE FROM cartitems WHERE product_id = ? OR variant_id IN (SELECT id FROM productvariants WHERE product_id = ?)', 
-      [req.params.id, req.params.id]);
+    // 1. Xóa các giao dịch kho liên quan đến các biến thể của sản phẩm
+    await connection.query(`
+      DELETE it FROM inventory_transactions it
+      INNER JOIN productvariants pv ON it.variant_id = pv.id
+      WHERE pv.product_id = ?
+    `, [productId]);
 
-    // 2. Xóa orderitems (nếu có)
-    await connection.query('DELETE FROM orderitems WHERE product_id = ? OR variant_id IN (SELECT id FROM productvariants WHERE product_id = ?)', 
-      [req.params.id, req.params.id]);
+    // 2. Xóa các orderitems liên quan (nếu có)
+    await connection.query(`
+      DELETE oi FROM orderitems oi
+      INNER JOIN productvariants pv ON oi.variant_id = pv.id
+      WHERE pv.product_id = ?
+    `, [productId]);
 
-    // 3. Xóa reviews
-    await connection.query('DELETE FROM reviews WHERE product_id = ?', [req.params.id]);
+    // 3. Xóa các biến thể của sản phẩm
+    await connection.query('DELETE FROM productvariants WHERE product_id = ?', [productId]);
 
-    // 4. Xóa product_images (nếu có)
-    await connection.query('DELETE FROM product_images WHERE product_id = ?', [req.params.id]);
-
-    // 5. Xóa productvariants
-    await connection.query('DELETE FROM productvariants WHERE product_id = ?', [req.params.id]);
-
-    // 6. Cuối cùng xóa product
-    const [result] = await connection.query('DELETE FROM products WHERE id = ?', [req.params.id]);
-
-    if (result.affectedRows === 0) {
-      await connection.rollback();
-      return res.status(404).json({ 
-        success: false,
-        message: 'Sản phẩm không tồn tại' 
-      });
-    }
+    // 4. Xóa sản phẩm (và ảnh sẽ được xóa cùng với sản phẩm vì nó là một cột trong bảng products)
+    await connection.query('DELETE FROM products WHERE id = ?', [productId]);
 
     await connection.commit();
     res.json({ 
-      success: true,
       message: 'Xóa sản phẩm thành công',
-      deletedId: req.params.id
+      productId 
     });
 
   } catch (error) {
     await connection.rollback();
-    console.error('Lỗi xóa sản phẩm:', error);
-    res.status(500).json({ 
-      success: false,
-      message: 'Lỗi xóa sản phẩm', 
-      error: error.message 
+    console.error('Error deleting product:', error);
+    res.status(500).json({
+      message: 'Lỗi khi xóa sản phẩm',
+      error: error.message
     });
   } finally {
     connection.release();
