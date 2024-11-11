@@ -238,12 +238,18 @@ export default {
 
       try {
         isSubmitting.value = true
-        const response = await productService.createProduct(formData)
+        let response;
+        
+        if (props.isEdit) {
+          response = await productService.updateProduct(props.productData.id, formData);
+        } else {
+          response = await productService.createProduct(formData);
+        }
+        
         emit('saved', response)
         emit('close')
       } catch (error) {
         console.error('Lỗi khi lưu sản phẩm:', error)
-        // Xử lý lỗi từ server
         if (error.response?.data?.errors) {
           errors.value = error.response.data.errors
         }
@@ -280,6 +286,22 @@ export default {
         document.body.classList.remove('modal-open')
       }
     })
+
+    watch(() => props.productData, (newVal) => {
+      if (newVal && props.isEdit) {
+        Object.assign(formData, {
+          name: newVal.name,
+          description: newVal.description,
+          category_id: newVal.category_id,
+          brand_id: newVal.brand_id,
+          image_url: newVal.image_url,
+          variants: newVal.variants || []
+        });
+        if (newVal.image_url) {
+          imagePreview.value = newVal.image_url;
+        }
+      }
+    }, { immediate: true })
 
     onUnmounted(() => {
       document.body.classList.remove('modal-open')

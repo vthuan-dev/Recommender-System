@@ -115,34 +115,70 @@ router.get('/products', authenticateJWT, checkAdminRole, async (req, res) => {
     const limit = parseInt(req.query.limit) || 10;
     const offset = (page - 1) * limit;
     const search = req.query.search || '';
+    const category = req.query.category || '';
+    const brand = req.query.brand || '';
+
+    let whereClause = '1=1';
+    let params = [];
+
+    // Tìm kiếm theo từ khóa
+    if (search) {
+      whereClause += ' AND (p.name LIKE ? OR p.description LIKE ?)';
+      params.push(`%${search}%`, `%${search}%`);
+    }
+
+    // Lọc theo danh mục
+    if (category) {
+      whereClause += ' AND p.category_id = ?';
+      params.push(category);
+    }
+
+    // Lọc theo thương hiệu
+    if (brand) {
+      whereClause += ' AND p.brand_id = ?';
+      params.push(brand);
+    }
 
     let query = `
-      SELECT p.*, c.name as category_name, b.name as brand_name 
+      SELECT 
+        p.*,
+        c.name as category_name,
+        b.name as brand_name,
+        (SELECT COUNT(*) FROM productvariants WHERE product_id = p.id) as variant_count,
+        (SELECT JSON_ARRAYAGG(
+          JSON_OBJECT(
+            'id', pv.id,
+            'name', pv.name,
+            'price', pv.price,
+            'initial_stock', pv.initial_stock
+          )
+        ) FROM productvariants pv WHERE pv.product_id = p.id) as variants
       FROM products p 
       LEFT JOIN categories c ON p.category_id = c.id 
       LEFT JOIN brands b ON p.brand_id = b.id 
-      WHERE p.name LIKE ? OR p.description LIKE ? OR c.name LIKE ? OR b.name LIKE ?
+      WHERE ${whereClause}
+      ORDER BY 
+        CASE 
+          WHEN p.category_id = ? THEN 0 
+          WHEN p.brand_id = ? THEN 1
+          ELSE 2 
+        END,
+        p.name ASC
       LIMIT ? OFFSET ?
     `;
-    let countQuery = `
-      SELECT COUNT(*) as count 
-      FROM products p 
-      LEFT JOIN categories c ON p.category_id = c.id 
-      LEFT JOIN brands b ON p.brand_id = b.id 
-      WHERE p.name LIKE ? OR p.description LIKE ? OR c.name LIKE ? OR b.name LIKE ?
-    `;
-    let searchParam = `%${search}%`;
+
+    params.push(category || 0, brand || 0, limit, offset);
 
     const [products, [totalCount]] = await Promise.all([
-      pool.query(query, [searchParam, searchParam, searchParam, searchParam, limit, offset]),
-      pool.query(countQuery, [searchParam, searchParam, searchParam, searchParam])
+      pool.query(query, params),
+      pool.query(`SELECT COUNT(*) as count FROM products p WHERE ${whereClause}`, params.slice(0, -2))
     ]);
 
     res.json({
       products: products[0],
       currentPage: page,
-      totalPages: Math.ceil(totalCount[0].count / limit),
-      totalProducts: totalCount[0].count
+      totalPages: Math.ceil(totalCount.count / limit),
+      totalProducts: totalCount.count
     });
   } catch (error) {
     console.error('Error fetching products:', error);
@@ -181,37 +217,77 @@ router.put('/products/:id', authenticateJWT, checkAdminRole, upload.single('imag
   try {
     await connection.beginTransaction();
 
-    const { name, description, category_id, brand, variants } = req.body;
+    const { name, description, category_id, brand_id, variants } = req.body;
     let image_url = req.body.image_url;
 
     // Xử lý upload ảnh mới (nếu có)
     if (req.file) {
-      // ... (code upload ảnh tương tự như trong hàm thêm sản phẩm)
+      const dateTime = Date.now();
+      const fileName = `products/${dateTime}_${req.file.originalname}`;
+      const bucket = storage.bucket();
+      const file = bucket.file(fileName);
+      
+      await new Promise((resolve, reject) => {
+        const blobStream = file.createWriteStream({
+          metadata: {
+            contentType: req.file.mimetype
+          }
+        });
+
+        blobStream.on('error', (error) => reject(error));
+        blobStream.on('finish', () => resolve());
+        blobStream.end(req.file.buffer);
+      });
+
+      const [url] = await file.getSignedUrl({
+        action: 'read',
+        expires: '03-01-2500'
+      });
+      image_url = url;
     }
 
     // Cập nhật thông tin sản phẩm
     await connection.query(
       'UPDATE products SET name = ?, description = ?, category_id = ?, brand_id = ?, image_url = ? WHERE id = ?',
-      [name, description, category_id, brand, image_url, req.params.id]
+      [name, description, category_id, brand_id, image_url, req.params.id]
     );
 
     // Cập nhật biến thể
-    if (variants && variants.length > 0) {
+    if (variants) {
+      const parsedVariants = typeof variants === 'string' ? JSON.parse(variants) : variants;
       await connection.query('DELETE FROM productvariants WHERE product_id = ?', [req.params.id]);
-      for (const variant of variants) {
+      
+      for (const variant of parsedVariants) {
         await connection.query(
-          'INSERT INTO productvariants (product_id, name, price) VALUES (?, ?, ?)',
-          [req.params.id, variant.name, variant.price]
+          'INSERT INTO productvariants (product_id, name, price, initial_stock) VALUES (?, ?, ?, ?)',
+          [req.params.id, variant.name, variant.price, variant.initial_stock || 0]
         );
       }
     }
 
     await connection.commit();
-    res.json({ message: 'Cập nhật sản phẩm thành công' });
+    res.json({ 
+      success: true,
+      message: 'Cập nhật sản phẩm thành công',
+      data: {
+        id: req.params.id,
+        name,
+        description,
+        category_id,
+        brand_id,
+        image_url,
+        variants: variants ? (typeof variants === 'string' ? JSON.parse(variants) : variants) : []
+      }
+    });
+
   } catch (error) {
     await connection.rollback();
     console.error('Lỗi cập nhật sản phẩm:', error);
-    res.status(500).json({ message: 'Lỗi cập nhật sản phẩm', error: error.message });
+    res.status(500).json({ 
+      success: false,
+      message: 'Lỗi cập nhật sản phẩm', 
+      error: error.message 
+    });
   } finally {
     connection.release();
   }

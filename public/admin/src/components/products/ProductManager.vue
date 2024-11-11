@@ -19,83 +19,152 @@
       <div class="search-box">
         <input 
           type="text" 
-          v-model="searchQuery" 
-          class="form-control" 
+          v-model="filters.search" 
+          class="form-control search-input" 
           placeholder="Tìm kiếm theo tên, mô tả..."
           @input="handleSearch"
         >
         <i class="fas fa-search search-icon"></i>
+        <button 
+          v-if="filters.search" 
+          class="clear-search" 
+          @click="clearSearch"
+        >
+          <i class="fas fa-times"></i>
+        </button>
       </div>
-      <div class="filters">
-        <select v-model="selectedCategory" class="form-select" @change="handleSearch">
-          <option value="">Tất cả danh mục</option>
-          <option v-for="cat in categories" :key="cat.id" :value="cat.id">
-            {{ cat.name }}
-          </option>
-        </select>
-        <select v-model="selectedBrand" class="form-select" @change="handleSearch">
-          <option value="">Tất cả thương hiệu</option>
-          <option v-for="brand in brands" :key="brand.id" :value="brand.id">
-            {{ brand.name }}
-          </option>
-        </select>
+
+      <div class="filters-wrapper">
+        <div class="filters">
+          <select 
+            v-model="filters.category" 
+            class="form-select" 
+            @change="handleFilters"
+          >
+            <option value="">Tất cả danh mục</option>
+            <option 
+              v-for="cat in categories" 
+              :key="cat.id" 
+              :value="cat.id"
+            >
+              {{ cat.name }}
+            </option>
+          </select>
+
+          <select 
+            v-model="filters.brand" 
+            class="form-select" 
+            @change="handleFilters"
+          >
+            <option value="">Tất cả thương hiệu</option>
+            <option 
+              v-for="brand in brands" 
+              :key="brand.id" 
+              :value="brand.id"
+            >
+              {{ brand.name }}
+            </option>
+          </select>
+        </div>
+
+        <button 
+          v-if="hasActiveFilters"
+          class="btn btn-light clear-filters"
+          @click="clearAllFilters"
+        >
+          <i class="fas fa-times"></i> Xóa bộ lọc
+        </button>
       </div>
     </div>
 
-    <!-- Products Grid -->
-    <div class="products-grid">
-      <div v-if="loading" class="loading-state">
-        <i class="fas fa-spinner fa-spin"></i> Đang tải...
-      </div>
-      
-      <div v-else-if="products.length === 0" class="no-products">
-        <i class="fas fa-box-open"></i>
-        <p>Không có sản phẩm nào</p>
-      </div>
+    <!-- Products Grid with No Results Message -->
+    <div v-if="loading" class="loading-state">
+      <i class="fas fa-spinner fa-spin"></i>
+      <p>Đang tải...</p>
+    </div>
+    
+    <div v-else-if="!products.length" class="no-results">
+      <i class="fas fa-search"></i>
+      <p>Không tìm thấy sản phẩm{{ hasActiveFilters ? ' phù hợp với bộ lọc' : '' }}</p>
+      <button 
+        v-if="hasActiveFilters"
+        class="btn btn-outline-primary mt-3"
+        @click="clearAllFilters"
+      >
+        <i class="fas fa-times"></i> Xóa bộ lọc
+      </button>
+    </div>
 
-      <div v-else v-for="product in products" :key="product.id" class="product-card">
+    <div v-else class="products-grid">
+      <div v-for="product in products" :key="product.id" class="product-card">
         <div class="product-image">
           <img :src="product.image_url || '/placeholder.png'" :alt="product.name">
+          <div class="product-actions">
+            <button class="action-btn edit" @click="editProduct(product)" title="Sửa sản phẩm">
+              <i class="fas fa-edit"></i>
+            </button>
+            <button class="action-btn delete" @click="confirmDelete(product)" title="Xóa sản phẩm">
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
         </div>
+        
         <div class="product-info">
-          <h3>{{ product.name }}</h3>
-          <p class="description">{{ truncateText(product.description, 100) }}</p>
           <div class="tags">
             <span class="category-tag">{{ product.category_name }}</span>
             <span class="brand-tag">{{ product.brand_name }}</span>
           </div>
-          <div class="variants-info">
-            <span>{{ product.variants?.length || 0 }} biến thể</span>
+          
+          <h3 class="product-name">{{ product.name }}</h3>
+          <p class="description">{{ truncateText(product.description, 100) }}</p>
+
+          <div class="variants-section">
+            <div class="variants-header">
+              <span class="variants-title">{{ product.variants?.length || 0 }} Phiên bản</span>
+              <span class="total-stock">Tổng: {{ calculateTotalStock(product.variants) }} sản phẩm</span>
+            </div>
+
+            <div class="variants-list">
+              <div v-for="variant in product.variants?.slice(0, 3)" :key="variant.id" 
+                   class="variant-item" :class="getStockClass(variant.initial_stock)">
+                <div class="variant-info">
+                  <span class="name">{{ variant.name }}</span>
+                  <span class="stock">{{ variant.initial_stock }} sp</span>
+                </div>
+                <span class="price">{{ formatPrice(variant.price) }}</span>
+              </div>
+              
+              <div v-if="product.variants?.length > 3" class="variant-more">
+                + {{ product.variants.length - 3 }} phiên bản khác
+              </div>
+            </div>
           </div>
-        </div>
-        <div class="product-actions">
-          <button class="btn btn-edit" @click="editProduct(product)">
-            <i class="fas fa-edit"></i>
-          </button>
-          <button class="btn btn-delete" @click="confirmDelete(product)">
-            <i class="fas fa-trash"></i>
-          </button>
         </div>
       </div>
     </div>
 
     <!-- Pagination -->
     <div class="pagination-section">
-      <button 
-        :disabled="currentPage === 1" 
-        @click="changePage(currentPage - 1)"
-        class="btn btn-outline-primary"
-      >
-        <i class="fas fa-chevron-left"></i>
-      </button>
-      <span>Trang {{ currentPage }} / {{ totalPages }}</span>
-      <button 
-        :disabled="currentPage === totalPages" 
-        @click="changePage(currentPage + 1)"
-        class="btn btn-outline-primary"
-      >
-        <i class="fas fa-chevron-right"></i>
-      </button>
+      <div class="pagination-info">
+        <span>Hiển thị {{ products.length }} / {{ totalProducts }} sản phẩm</span>
+      </div>
+      <div class="pagination-controls">
+        <button 
+          :disabled="currentPage === 1" 
+          @click="changePage(currentPage - 1)"
+          class="btn btn-outline-primary"
+        >
+          <i class="fas fa-chevron-left"></i>
+        </button>
+        <span>Trang {{ currentPage }} / {{ totalPages }}</span>
+        <button 
+          :disabled="currentPage === totalPages" 
+          @click="changePage(currentPage + 1)"
+          class="btn btn-outline-primary"
+        >
+          <i class="fas fa-chevron-right"></i>
+        </button>
+      </div>
     </div>
 
     <!-- Modals -->
@@ -136,7 +205,18 @@ export default {
       currentPage: 1,
       totalPages: 1,
       limit: 12,
-      loading: false
+      loading: false,
+      filters: {
+        search: '',
+        category: '',
+        brand: ''
+      },
+      debounceTimeout: null
+    }
+  },
+  computed: {
+    hasActiveFilters() {
+      return this.filters.search || this.filters.category || this.filters.brand
     }
   },
   methods: {
@@ -146,9 +226,9 @@ export default {
         const params = {
           page: this.currentPage,
           limit: this.limit,
-          search: this.searchQuery || '',
-          category_id: this.selectedCategory || '',
-          brand_id: this.selectedBrand || ''
+          search: this.filters.search,
+          category: this.filters.category,
+          brand: this.filters.brand
         }
         
         const response = await productService.getProducts(params)
@@ -157,7 +237,7 @@ export default {
         if (response && response.products) {
           this.products = response.products
           this.totalPages = response.totalPages
-          this.currentPage = response.currentPage
+          this.totalProducts = response.totalProducts
         } else {
           console.error('Invalid response format:', response)
           this.products = []
@@ -191,10 +271,33 @@ export default {
       }
     },
 
-    handleSearch: debounce(function() {
+    handleSearch() {
+      if (this.debounceTimeout) {
+        clearTimeout(this.debounceTimeout)
+      }
+      
+      this.debounceTimeout = setTimeout(() => {
+        this.currentPage = 1
+        this.fetchProducts()
+      }, 300)
+    },
+
+    handleFilters() {
       this.currentPage = 1
       this.fetchProducts()
-    }, 300),
+    },
+
+    clearSearch() {
+      this.filters.search = ''
+      this.handleSearch()
+    },
+
+    clearAllFilters() {
+      this.filters.search = ''
+      this.filters.category = ''
+      this.filters.brand = ''
+      this.handleSearch()
+    },
 
     async changePage(page) {
       this.currentPage = page
@@ -225,26 +328,41 @@ export default {
         confirmButtonColor: '#d33',
         cancelButtonColor: '#3085d6',
         confirmButtonText: 'Xóa',
-        cancelButtonText: 'Hủy'
+        cancelButtonText: 'Hủy',
+        showLoaderOnConfirm: true,
+        preConfirm: async () => {
+          try {
+            await productService.deleteProduct(product.id);
+            return true;
+          } catch (error) {
+            Swal.showValidationMessage(
+              `Lỗi: ${error.response?.data?.message || 'Không thể xóa sản phẩm'}`
+            );
+            return false;
+          }
+        },
+        allowOutsideClick: () => !Swal.isLoading()
       }).then(async (result) => {
         if (result.isConfirmed) {
           try {
-            await productService.deleteProduct(product.id)
-            await this.fetchProducts() // Refresh danh sách
-            Swal.fire(
-              'Đã xóa!',
-              'Sản phẩm đã được xóa thành công.',
-              'success'
-            )
+            await this.fetchProducts(); // Refresh danh sách
+            Swal.fire({
+              icon: 'success',
+              title: 'Đã xóa!',
+              text: 'Sản phẩm đã được xóa thành công.',
+              timer: 1500,
+              showConfirmButton: false
+            });
           } catch (error) {
-            Swal.fire(
-              'Lỗi!',
-              error.message || 'Không thể xóa sản phẩm.',
-              'error'
-            )
+            Swal.fire({
+              icon: 'error',
+              title: 'Lỗi!',
+              text: 'Không thể tải lại danh sách sản phẩm.',
+              timer: 1500
+            });
           }
         }
-      })
+      });
     },
 
     closeModal() {
@@ -267,6 +385,27 @@ export default {
     truncateText(text, length) {
       if (!text) return ''
       return text.length > length ? text.substring(0, length) + '...' : text
+    },
+
+    formatPrice(price) {
+      return new Intl.NumberFormat('vi-VN', {
+        style: 'currency',
+        currency: 'VND'
+      }).format(price)
+    },
+
+    calculateTotalStock(variants) {
+      return variants.reduce((total, variant) => total + (variant.initial_stock || 0), 0)
+    },
+
+    getStockClass(stock) {
+      if (stock <= 0) return 'out-of-stock'
+      if (stock < 10) return 'low-stock'
+      return 'in-stock'
+    },
+
+    manageInventory(product) {
+      // Thêm chức năng quản lý kho sau
     }
   },
   async mounted() {
@@ -304,31 +443,80 @@ export default {
 }
 
 .search-filter-section {
-  display: flex;
-  gap: 20px;
-  margin-bottom: 30px;
+  background: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  margin-bottom: 20px;
 }
 
 .search-box {
   position: relative;
-  flex: 1;
+  margin-bottom: 15px;
+}
+
+.search-input {
+  padding-left: 40px;
+  padding-right: 40px;
+  height: 45px;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
 }
 
 .search-icon {
   position: absolute;
+  left: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #666;
+}
+
+.clear-search {
+  position: absolute;
   right: 15px;
   top: 50%;
   transform: translateY(-50%);
-  color: #6c757d;
+  background: none;
+  border: none;
+  color: #666;
+  cursor: pointer;
+  padding: 5px;
+}
+
+.filters-wrapper {
+  display: flex;
+  gap: 15px;
+  align-items: center;
 }
 
 .filters {
   display: flex;
   gap: 15px;
+  flex: 1;
 }
 
-.filters select {
-  min-width: 200px;
+.form-select {
+  flex: 1;
+  height: 45px;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+}
+
+.clear-filters {
+  height: 45px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 20px;
+  border-radius: 8px;
+  background: #f5f5f5;
+  border: 1px solid #e0e0e0;
+  color: #666;
+}
+
+.clear-filters:hover {
+  background: #eeeeee;
+  color: #dc3545;
 }
 
 .products-grid {
@@ -340,18 +528,21 @@ export default {
 
 .product-card {
   background: white;
-  border-radius: 10px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  border-radius: 16px;
   overflow: hidden;
-  transition: transform 0.2s;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+  position: relative;
 }
 
 .product-card:hover {
   transform: translateY(-5px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
 }
 
 .product-image {
-  height: 200px;
+  position: relative;
+  height: 220px;
   overflow: hidden;
 }
 
@@ -359,34 +550,65 @@ export default {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.product-card:hover .product-image img {
+  transform: scale(1.05);
+}
+
+.product-actions {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  display: flex;
+  gap: 8px;
+  opacity: 0;
+  transform: translateX(10px);
+  transition: all 0.3s ease;
+}
+
+.product-card:hover .product-actions {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.action-btn {
+  width: 35px;
+  height: 35px;
+  border-radius: 8px;
+  border: none;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  backdrop-filter: blur(5px);
+}
+
+.action-btn.edit { background: rgba(76, 175, 80, 0.9); }
+.action-btn.delete { background: rgba(244, 67, 54, 0.9); }
+
+.action-btn:hover {
+  transform: scale(1.1);
 }
 
 .product-info {
-  padding: 15px;
-}
-
-.product-info h3 {
-  margin: 0 0 10px 0;
-  font-size: 18px;
-  color: #2c3e50;
-}
-
-.description {
-  color: #666;
-  font-size: 14px;
-  margin-bottom: 10px;
+  padding: 20px;
 }
 
 .tags {
   display: flex;
-  gap: 10px;
-  margin-bottom: 10px;
+  gap: 8px;
+  margin-bottom: 12px;
 }
 
 .category-tag, .brand-tag {
-  padding: 4px 8px;
-  border-radius: 4px;
+  padding: 6px 12px;
+  border-radius: 20px;
   font-size: 12px;
+  font-weight: 500;
 }
 
 .category-tag {
@@ -399,39 +621,204 @@ export default {
   color: #7b1fa2;
 }
 
-.variants-info {
-  font-size: 13px;
-  color: #666;
+.product-name {
+  font-size: 18px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 8px;
 }
 
-.product-actions {
+.description {
+  color: #666;
+  font-size: 14px;
+  line-height: 1.5;
+  margin-bottom: 20px;
+}
+
+.variants-section {
+  background: #f8f9fa;
+  border-radius: 12px;
   padding: 15px;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.variants-header {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 1px dashed #dee2e6;
+}
+
+.variants-title {
+  font-weight: 600;
+  color: #2c3e50;
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+}
+
+.variants-title::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  background: #4CAF50;
+  border-radius: 50%;
+  margin-right: 8px;
+}
+
+.total-stock {
+  background: #e8f5e9;
+  color: #2e7d32;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.variants-list {
+  display: flex;
+  flex-direction: column;
   gap: 10px;
 }
 
-.btn-edit, .btn-delete {
-  padding: 8px;
-  border-radius: 6px;
+.variant-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 15px;
+  background: white;
+  border-radius: 10px;
+  border: 1px solid #eee;
+  transition: all 0.2s ease;
 }
 
-.btn-edit {
-  background: #4caf50;
-  color: white;
+.variant-item:hover {
+  transform: translateX(5px);
+  border-color: #4CAF50;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
 }
 
-.btn-delete {
-  background: #f44336;
-  color: white;
+.variant-info {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.variant-info .name {
+  font-weight: 500;
+  color: #2c3e50;
+}
+
+.variant-info .stock {
+  font-size: 0.85rem;
+  padding: 4px 10px;
+  border-radius: 15px;
+  font-weight: 500;
+}
+
+.variant-item.out-of-stock {
+  border-left: 4px solid #ef5350;
+}
+
+.variant-item.low-stock {
+  border-left: 4px solid #ffa726;
+}
+
+.variant-item.in-stock {
+  border-left: 4px solid #66bb6a;
+}
+
+.variant-item.out-of-stock .stock {
+  background: #ffebee;
+  color: #d32f2f;
+}
+
+.variant-item.low-stock .stock {
+  background: #fff3e0;
+  color: #f57c00;
+}
+
+.variant-item.in-stock .stock {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.price {
+  font-weight: 600;
+  color: #2c3e50;
+  background: #f5f5f5;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 0.95rem;
+}
+
+.variant-more {
+  text-align: center;
+  padding: 12px;
+  background: white;
+  border: 2px dashed #e0e0e0;
+  border-radius: 10px;
+  color: #757575;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.variant-more:hover {
+  background: #f5f5f5;
+  border-color: #9e9e9e;
+  color: #424242;
 }
 
 .pagination-section {
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  margin-top: 30px;
+  background: #f8f9fa;
+  border-radius: 10px;
+}
+
+.pagination-info {
+  color: #6c757d;
+  font-size: 0.9rem;
+}
+
+.pagination-info span {
+  background: #fff;
+  padding: 8px 15px;
+  border-radius: 20px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.pagination-controls {
+  display: flex;
   align-items: center;
   gap: 15px;
-  margin-top: 30px;
+}
+
+.pagination-controls button {
+  width: 35px;
+  height: 35px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+}
+
+.pagination-controls button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pagination-controls span {
+  font-size: 0.9rem;
+  color: #495057;
 }
 
 .loading-state {
@@ -459,8 +846,41 @@ export default {
   color: #4e73df;
 }
 
+.no-results {
+  text-align: center;
+  padding: 50px 20px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  margin: 20px 0;
+}
+
+.no-results i {
+  font-size: 3rem;
+  color: #ccc;
+  margin-bottom: 1rem;
+}
+
+.no-results p {
+  color: #666;
+  font-size: 1.1rem;
+  margin-bottom: 1rem;
+}
+
+.no-results .btn {
+  padding: 8px 20px;
+  font-size: 0.9rem;
+}
+
+.no-results .btn i {
+  font-size: 0.9rem;
+  color: currentColor;
+  margin-right: 5px;
+  margin-bottom: 0;
+}
+
 @media (max-width: 768px) {
-  .search-filter-section {
+  .filters-wrapper {
     flex-direction: column;
   }
   
@@ -470,6 +890,11 @@ export default {
   
   .products-grid {
     grid-template-columns: 1fr;
+  }
+
+  .pagination-section {
+    flex-direction: column;
+    gap: 15px;
   }
 }
 </style>
