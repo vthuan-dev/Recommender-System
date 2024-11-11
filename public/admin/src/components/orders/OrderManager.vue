@@ -177,12 +177,15 @@ export default {
 
     const updateStatus = async (order) => {
       try {
-        const { value: newStatus } = await Swal.fire({
+        let newStatus;
+        
+        // Hiển thị dialog chọn trạng thái
+        const { value: selectedStatus } = await Swal.fire({
           title: 'Cập nhật trạng thái',
           input: 'select',
           inputOptions: {
             'pending': 'Chờ xử lý',
-            'processing': 'Đang xử lý',
+            'processing': 'Đang xử lý', 
             'shipped': 'Đã gửi hàng',
             'delivered': 'Đã giao hàng',
             'cancelled': 'Đã hủy'
@@ -191,18 +194,46 @@ export default {
           showCancelButton: true,
           confirmButtonText: 'Cập nhật',
           cancelButtonText: 'Hủy'
-        })
+        });
 
-        if (newStatus) {
-          await orderService.updateOrderStatus(order.id, newStatus)
-          await fetchOrders() // Refresh danh sách
-          Swal.fire('Thành công', 'Đã cập nhật trạng thái đơn hàng', 'success')
+        if (!selectedStatus) {
+          return; // Người dùng đã hủy
         }
+
+        newStatus = selectedStatus;
+
+        // Hiển thị cảnh báo đặc biệt khi chọn hủy đơn
+        if (newStatus === 'cancelled') {
+          const confirmCancel = await Swal.fire({
+            title: 'Xác nhận hủy đơn',
+            text: 'Đơn hàng sẽ được hủy và số lượng sản phẩm sẽ được hoàn trả về kho. Bạn có chắc chắn?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Đồng ý',
+            cancelButtonText: 'Không'
+          });
+
+          if (!confirmCancel.isConfirmed) {
+            return;
+          }
+        }
+
+        // Gọi API cập nhật trạng thái
+        await orderService.updateOrderStatus(order.id, newStatus);
+        await fetchOrders(); // Refresh danh sách
+        
+        // Hiển thị thông báo thành công
+        const message = newStatus === 'cancelled' 
+          ? 'Đã hủy đơn hàng và hoàn trả số lượng về kho'
+          : 'Đã cập nhật trạng thái đơn hàng';
+          
+        Swal.fire('Thành công', message, 'success');
+
       } catch (error) {
-        console.error('Error updating order status:', error)
-        Swal.fire('Lỗi', 'Không thể cập nhật trạng thái đơn hàng', 'error')
+        console.error('Error updating order status:', error);
+        Swal.fire('Lỗi', error.message || 'Không thể cập nhật trạng thái đơn hàng', 'error');
       }
-    }
+    };
 
     const fetchOrders = async () => {
       try {

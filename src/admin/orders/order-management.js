@@ -285,38 +285,58 @@ router.get('/orders/stats', authenticateJWT, checkAdminRole, async (req, res) =>
 router.put('/orders/:id/status', authenticateJWT, checkAdminRole, async (req, res) => {
   const connection = await pool.getConnection();
   try {
+    await connection.beginTransaction();
     const orderId = req.params.id;
     const { status } = req.body;
 
-    // Kiểm tra trạng thái hợp lệ
-    const validStatuses = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
-    if (!validStatuses.includes(status)) {
-      return res.status(400).json({ message: 'Trạng thái không hợp lệ' });
-    }
-
-    // Kiểm tra đơn hàng tồn tại
-    const [orderExists] = await connection.query(
-      'SELECT id FROM orders WHERE id = ?',
+    // Kiểm tra đơn hàng và trạng thái hiện tại
+    const [orderResult] = await connection.query(
+      'SELECT status FROM orders WHERE id = ? FOR UPDATE',
       [orderId]
     );
 
-    if (orderExists.length === 0) {
+    if (orderResult.length === 0) {
       return res.status(404).json({ message: 'Không tìm thấy đơn hàng' });
     }
 
-    // Cập nhật trạng thái
+    const currentStatus = orderResult[0].status;
+
+    // Nếu đơn hàng được hủy và chưa từng bị hủy trước đó
+    if (status === 'cancelled' && currentStatus !== 'cancelled') {
+      // Hoàn trả số lượng đã bán
+      await connection.query(`
+        UPDATE productvariants pv
+        JOIN orderitems oi ON pv.id = oi.variant_id
+        SET pv.sold_count = GREATEST(COALESCE(pv.sold_count, 0) - oi.quantity, 0)
+        WHERE oi.order_id = ?
+      `, [orderId]);
+
+      // Ghi nhận giao dịch hoàn trả
+      await connection.query(`
+        INSERT INTO inventory_transactions (variant_id, quantity, type, note)
+        SELECT variant_id, quantity, 'import', CONCAT('Admin Cancel Order ID: ', ?)
+        FROM orderitems
+        WHERE order_id = ?
+      `, [orderId, orderId]);
+    }
+
+    // Cập nhật trạng thái đơn hàng
     await connection.query(
       'UPDATE orders SET status = ?, updated_at = NOW() WHERE id = ?',
       [status, orderId]
     );
 
+    await connection.commit();
     res.json({
-      message: 'Cập nhật trạng thái thành công',
+      message: status === 'cancelled' 
+        ? 'Đã hủy đơn hàng và hoàn trả số lượng về kho'
+        : 'Cập nhật trạng thái thành công',
       orderId,
       newStatus: status
     });
 
   } catch (error) {
+    await connection.rollback();
     console.error('Error updating order status:', error);
     res.status(500).json({
       message: 'Lỗi khi cập nhật trạng thái đơn hàng',

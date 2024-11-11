@@ -51,24 +51,32 @@ router.post('/orders', authenticateJWT, async (req, res) => {
       for (const item of items) {
         // Kiểm tra và cập nhật số lượng tồn kho
         const [variantResult] = await connection.query(
-          'SELECT price, stock FROM productvariants WHERE id = ? FOR UPDATE',
+          `SELECT pv.price, 
+            (pv.initial_stock - COALESCE(pv.sold_count, 0)) as available_quantity 
+           FROM productvariants pv 
+           WHERE pv.id = ? 
+           FOR UPDATE`,
           [item.variantId]
         );
-        if (variantResult.length === 0 || variantResult[0].stock < item.quantity) {
-          throw new Error(`Sản phẩm ${item.variantId} không đủ số lượng`);
+        if (variantResult.length === 0 || variantResult[0].available_quantity < item.quantity) {
+          throw new Error(`Sản phẩm ${item.variantId} không đủ số lượng trong kho`);
         }
   
         const price = variantResult[0].price;
         total += price * item.quantity;
   
-        // Cập nhật đơn hàng và số lượng tồn kho
+        // Cập nhật đơn hàng và số lượng đã bán
         await connection.query(
           'INSERT INTO orderitems (order_id, product_id, variant_id, quantity, price) VALUES (?, ?, ?, ?, ?)',
           [orderId, item.productId, item.variantId, item.quantity, price]
         );
         await connection.query(
-          'UPDATE productvariants SET sold_count = sold_count + ?, stock = stock - ? WHERE id = ?',
-          [item.quantity, item.quantity, item.variantId]
+          'UPDATE productvariants SET sold_count = COALESCE(sold_count, 0) + ? WHERE id = ?',
+          [item.quantity, item.variantId]
+        );
+        await connection.query(
+          'INSERT INTO inventory_transactions (variant_id, quantity, type, note) VALUES (?, ?, ?, ?)',
+          [item.variantId, item.quantity, 'export', `Order ID: ${orderId}`]
         );
       }
   
@@ -237,14 +245,21 @@ router.post('/orders', authenticateJWT, async (req, res) => {
   
       await connection.query('UPDATE orders SET status = "cancelled" WHERE id = ?', [orderId]);
   
-      // Hoàn trả số lượng sản phẩm vào kho
+      // Hoàn trả số lượng khi hủy đơn
       await connection.query(`
         UPDATE productvariants pv
         JOIN orderitems oi ON pv.id = oi.variant_id
-        SET pv.stock = pv.stock + oi.quantity,
-            pv.sold_count = pv.sold_count - oi.quantity
+        SET pv.sold_count = GREATEST(COALESCE(pv.sold_count, 0) - oi.quantity, 0)
         WHERE oi.order_id = ?
       `, [orderId]);
+  
+      // Thêm ghi nhận hoàn trả
+      await connection.query(`
+        INSERT INTO inventory_transactions (variant_id, quantity, type, note)
+        SELECT variant_id, quantity, 'import', CONCAT('Cancel Order ID: ', ?)
+        FROM orderitems
+        WHERE order_id = ?
+      `, [orderId, orderId]);
   
       await connection.commit();
       res.json({ message: 'Đơn hàng đã được hủy thành công' });
