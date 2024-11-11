@@ -252,34 +252,21 @@ export default {
 
     const openDetailModal = async (order) => {
       try {
-        console.log('Opening modal for order:', order)
-        loading.value = true
-        selectedOrder.value = null
-        
-        if (!order?.id) {
-          throw new Error('Invalid order data')
-        }
-
+        selectedOrder.value = order
         showDetailModal.value = true
         
+        // Fetch full order details
         const response = await orderService.getOrderDetail(order.id)
-        console.log('Processed order details:', response)
-        
         if (response) {
           selectedOrder.value = response
-        } else {
-          throw new Error('Không nhận được dữ liệu')
         }
       } catch (error) {
-        console.error('Error in openDetailModal:', error)
+        console.error('Error fetching order details:', error)
         Swal.fire({
           icon: 'error',
           title: 'Lỗi',
-          text: 'Không thể lấy chi tiết đơn hàng. Vui lòng thử lại sau.'
+          text: 'Không thể tải chi tiết đơn hàng'
         })
-        showDetailModal.value = false
-      } finally {
-        loading.value = false
       }
     }
 

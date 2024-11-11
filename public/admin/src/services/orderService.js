@@ -36,7 +36,6 @@ export const orderService = {
   async getOrderDetail(orderId) {
     try {
       console.log('Calling API with orderId:', orderId)
-      
       const response = await api.get(`/orders/${orderId}`)
       console.log('Raw API Response:', response)
       
@@ -44,15 +43,7 @@ export const orderService = {
         throw new Error('Không có dữ liệu trả về')
       }
       
-      const orderData = {
-        ...response.data,
-        items: response.data.items || [],
-        customer: response.data.customer || {},
-        address: response.data.address || {}
-      }
-      
-      console.log('Transformed order data:', orderData)
-      return orderData
+      return response.data
     } catch (error) {
       console.error('Error in getOrderDetail:', error)
       throw error

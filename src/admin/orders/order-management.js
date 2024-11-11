@@ -101,101 +101,114 @@ router.get('/orders', authenticateJWT, checkAdminRole, async (req, res) => {
 });
 
 // Lấy chi tiết đơn hàng
-
 router.get('/orders/:id', authenticateJWT, checkAdminRole, async (req, res) => {
+  const connection = await pool.getConnection();
   try {
-    const orderId = req.params.id
-    console.log('Getting details for order:', orderId)
+    const orderId = req.params.id;
     
-    const [orderDetails] = await pool.query(
-      `SELECT o.*, u.fullname as customer_name,
-       (SELECT JSON_ARRAYAGG(
-         JSON_OBJECT(
-           'id', oi.id,
-           'product_name', p.name,
-           'quantity', oi.quantity,
-           'price', oi.price
-         )
-       ) FROM orderitems oi 
-       JOIN products p ON oi.product_id = p.id 
-       WHERE oi.order_id = o.id) as items
-       FROM orders o
-       JOIN users u ON o.user_id = u.id
-       WHERE o.id = ?`,
-      [orderId]
-    )
-    
-    console.log('Order details from DB:', orderDetails[0])
-    
-    if (!orderDetails[0]) {
-      return res.status(404).json({ message: 'Không tìm thấy đơn hàng' })
+    // Lấy thông tin đơn hàng, khách hàng và địa chỉ
+    const [orderDetails] = await connection.query(`
+      SELECT 
+        o.*,
+        u.fullname as customer_name,
+        u.email as customer_email,
+        u.phonenumber as customer_phone,
+        a.address_line1,
+        a.address_line2,
+        a.city,
+        a.state,
+        a.postal_code,
+        a.country,
+        p.status as payment_status,
+        p.method as payment_method,
+        p.payment_date
+      FROM orders o
+      LEFT JOIN users u ON o.user_id = u.id
+      LEFT JOIN addresses a ON o.address_id = a.id
+      LEFT JOIN payments p ON p.order_id = o.id
+      WHERE o.id = ?
+    `, [orderId]);
+
+    if (!orderDetails || orderDetails.length === 0) {
+      return res.status(404).json({ message: 'Không tìm thấy đơn hàng' });
     }
 
-    res.json(orderDetails[0])
+    // Lấy chi tiết các sản phẩm trong đơn hàng
+    const [orderItems] = await connection.query(`
+      SELECT 
+        oi.*,
+        p.name as product_name,
+        p.image_url as product_image,
+        pv.name as variant_name,
+        b.name as brand_name
+      FROM orderitems oi
+      LEFT JOIN products p ON oi.product_id = p.id
+      LEFT JOIN productvariants pv ON oi.variant_id = pv.id
+      LEFT JOIN brands b ON p.brand_id = b.id
+      WHERE oi.order_id = ?
+    `, [orderId]);
+
+    // Format response
+    const formattedOrder = {
+      id: orderDetails[0].id,
+      status: orderDetails[0].status,
+      total: orderDetails[0].total,
+      created_at: orderDetails[0].created_at,
+      updated_at: orderDetails[0].updated_at,
+      
+      // Thông tin khách hàng
+      customer: {
+        id: orderDetails[0].user_id,
+        name: orderDetails[0].customer_name,
+        email: orderDetails[0].customer_email,
+        phone: orderDetails[0].customer_phone
+      },
+
+      // Địa chỉ giao hàng
+      shipping_address: {
+        id: orderDetails[0].address_id,
+        address_line1: orderDetails[0].address_line1,
+        address_line2: orderDetails[0].address_line2,
+        city: orderDetails[0].city,
+        state: orderDetails[0].state,
+        postal_code: orderDetails[0].postal_code,
+        country: orderDetails[0].country
+      },
+
+      // Thông tin thanh toán
+      payment: {
+        status: orderDetails[0].payment_status,
+        method: orderDetails[0].payment_method,
+        date: orderDetails[0].payment_date
+      },
+
+      // Chi tiết sản phẩm
+      items: orderItems.map(item => ({
+        id: item.id,
+        product_name: item.product_name,
+        product_image: item.product_image,
+        variant_name: item.variant_name,
+        brand_name: item.brand_name,
+        quantity: item.quantity,
+        price: item.price,
+        subtotal: item.quantity * item.price
+      }))
+    };
+
+    res.json(formattedOrder);
+
   } catch (error) {
-    console.error('Error getting order details:', error)
+    console.error('Error in getting order details:', error);
     res.status(500).json({ 
-      message: 'Lỗi lấy chi tiết đơn hàng',
+      message: 'Lỗi server khi lấy chi tiết đơn hàng',
       error: error.message 
-    })
-  }
-});
-router.put('/orders/:id/status', authenticateJWT, checkAdminRole, async (req, res) => {
-    const connection = await pool.getConnection();
-    try {
-      await connection.beginTransaction();
-  
-      const { status } = req.body;
-      const orderId = req.params.id;
-  
-      // Kiểm tra trạng thái hợp lệ
-      const validStatuses = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
-      if (!validStatuses.includes(status)) {
-        await connection.rollback();
-        return res.status(400).json({ message: 'Trạng thái đơn hàng không hợp lệ' });
-      }
-  
-      // Kiểm tra trạng thái hiện tại của đơn hàng
-      const [currentOrder] = await connection.query('SELECT status FROM orders WHERE id = ?', [orderId]);
-      if (currentOrder.length === 0) {
-        await connection.rollback();
-        return res.status(404).json({ message: 'Đơn hàng không tồn tại' });
-      }
-  
-      const currentStatus = currentOrder[0].status;
-  
-      // Kiểm tra logic chuyển trạng thái
-      if (currentStatus === 'cancelled' || currentStatus === 'delivered') {
-        await connection.rollback();
-        return res.status(400).json({ message: 'Không thể thay đổi trạng thái của đơn hàng đã hủy hoặc đã giao' });
-      }
-  
-      if (currentStatus === 'shipped' && status !== 'delivered') {
-        await connection.rollback();
-        return res.status(400).json({ message: 'Đơn hàng đã gửi chỉ có thể chuyển sang trạng thái đã giao' });
-      }
-  
-      // Cập nhật trạng thái
-      const [result] = await connection.query(
-        'UPDATE orders SET status = ? WHERE id = ?',
-        [status, orderId]
-      );
-  
-      if (result.affectedRows === 0) {
-        await connection.rollback();
-        return res.status(404).json({ message: 'Đơn hàng không tồn tại' });
-      }
-  
-      await connection.commit();
-      res.json({ message: 'Cập nhật trạng thái đơn hàng thành công', newStatus: status });
-    } catch (error) {
-      await connection.rollback();
-      console.error('Lỗi cập nhật trạng thái đơn hàng:', error);
-      res.status(500).json({ message: 'Lỗi cập nhật trạng thái đơn hàng', error: error.message });
-    } finally {
+    });
+  } finally {
+    if (connection) {
       connection.release();
     }
-  });
+  }
+});
 
 // Lấy danh sách đơn hàng theo trạng thái
 router.get('/orders/status/:status', authenticateJWT, checkAdminRole, async (req, res) => {
