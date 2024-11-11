@@ -256,13 +256,30 @@ router.put('/products/:id', authenticateJWT, checkAdminRole, upload.single('imag
     // Cập nhật biến thể
     if (variants) {
       const parsedVariants = typeof variants === 'string' ? JSON.parse(variants) : variants;
+      
+      // Xóa inventory_transactions trước
+      await connection.query(
+        'DELETE FROM inventory_transactions WHERE variant_id IN (SELECT id FROM productvariants WHERE product_id = ?)',
+        [req.params.id]
+      );
+      
+      // Sau đó mới xóa productvariants
       await connection.query('DELETE FROM productvariants WHERE product_id = ?', [req.params.id]);
       
+      // Thêm các biến thể mới
       for (const variant of parsedVariants) {
-        await connection.query(
+        const [variantResult] = await connection.query(
           'INSERT INTO productvariants (product_id, name, price, initial_stock) VALUES (?, ?, ?, ?)',
           [req.params.id, variant.name, variant.price, variant.initial_stock || 0]
         );
+
+        // Thêm giao dịch nhập kho mới nếu có initial_stock
+        if (variant.initial_stock > 0) {
+          await connection.query(
+            'INSERT INTO inventory_transactions (variant_id, quantity, type, note) VALUES (?, ?, ?, ?)',
+            [variantResult.insertId, variant.initial_stock, 'import', 'Cập nhật số lượng ban đầu']
+          );
+        }
       }
     }
 
