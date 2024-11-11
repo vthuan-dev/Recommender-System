@@ -20,6 +20,39 @@ router.get('/orders', authenticateJWT, checkAdminRole, async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const offset = (page - 1) * limit;
+    const status = req.query.status || '';
+    const dateRange = req.query.dateRange || '';
+    const search = req.query.search || '';
+
+    let whereClause = '1=1';
+    let params = [];
+
+    // Tìm kiếm theo từ khóa
+    if (search) {
+      whereClause += ' AND (u.fullname LIKE ? OR o.id LIKE ?)';
+      params.push(`%${search}%`, `%${search}%`);
+    }
+
+    // Lọc theo trạng thái
+    if (status) {
+      whereClause += ' AND o.status = ?';
+      params.push(status);
+    }
+
+    // Lọc theo thời gian
+    if (dateRange) {
+      switch (dateRange) {
+        case 'today':
+          whereClause += ' AND DATE(o.created_at) = CURDATE()';
+          break;
+        case 'week':
+          whereClause += ' AND YEARWEEK(o.created_at) = YEARWEEK(NOW())';
+          break;
+        case 'month':
+          whereClause += ' AND MONTH(o.created_at) = MONTH(NOW()) AND YEAR(o.created_at) = YEAR(NOW())';
+          break;
+      }
+    }
 
     // Lấy danh sách đơn hàng và tổng số đơn hàng
     const [orders, [totalCount], orderStats] = await Promise.all([
@@ -30,11 +63,12 @@ router.get('/orders', authenticateJWT, checkAdminRole, async (req, res) => {
           WHERE oi.order_id = o.id) as total_price
          FROM orders o
          JOIN users u ON o.user_id = u.id
+         WHERE ${whereClause}
          ORDER BY o.created_at DESC
          LIMIT ? OFFSET ?`,
-        [limit, offset]
+        [...params, limit, offset]
       ),
-      pool.query('SELECT COUNT(*) as count FROM orders'),
+      pool.query(`SELECT COUNT(*) as count FROM orders o JOIN users u ON o.user_id = u.id WHERE ${whereClause}`, params),
       pool.query(`
         SELECT 
           SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
@@ -55,8 +89,8 @@ router.get('/orders', authenticateJWT, checkAdminRole, async (req, res) => {
     res.json({
       orders: formattedOrders,
       currentPage: page,
-      totalPages: Math.ceil(totalCount[0].count / limit),
-      totalOrders: totalCount[0].count,
+      totalPages: Math.ceil(totalCount.count / limit),
+      totalOrders: totalCount.count,
       orderStats: orderStats[0][0]
     });
 
