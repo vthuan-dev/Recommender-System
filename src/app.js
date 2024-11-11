@@ -81,7 +81,7 @@ app.use('/', orderRoutes);
 app.use('/', accountRoutesClient);
 app.use('/admin', productManagementRoutes);
 app.use('/admin', userManageRoutes);
-app.use('/admin', orderManagementRoutes);
+app.use('/api/admin', orderManagementRoutes);
 app.use('/admin', adminAuthRoutes);
 // Middleware xử lý lỗi
 app.use((err, req, res, next) => {

@@ -132,7 +132,7 @@
 
 <script>
 import { ref, onMounted } from 'vue'
-import { orderService } from '../../services/orderService'
+import { orderService } from '@/services/orderService'
 import OrderDetailModal from './OrderDetailModal.vue'
 import Swal from 'sweetalert2'
 import debounce from 'lodash/debounce'
@@ -162,6 +162,46 @@ export default {
       status: '',
       dateRange: 'all'
     })
+
+    const getStatusLabel = (status) => {
+      const statusMap = {
+        'pending': 'Chờ xử lý',
+        'processing': 'Đang xử lý',
+        'shipped': 'Đã gửi hàng',
+        'delivered': 'Đã giao hàng',
+        'cancelled': 'Đã hủy'
+      }
+      return statusMap[status] || status
+    }
+
+    const updateStatus = async (order) => {
+      try {
+        const { value: newStatus } = await Swal.fire({
+          title: 'Cập nhật trạng thái',
+          input: 'select',
+          inputOptions: {
+            'pending': 'Chờ xử lý',
+            'processing': 'Đang xử lý',
+            'shipped': 'Đã gửi hàng',
+            'delivered': 'Đã giao hàng',
+            'cancelled': 'Đã hủy'
+          },
+          inputValue: order.status,
+          showCancelButton: true,
+          confirmButtonText: 'Cập nhật',
+          cancelButtonText: 'Hủy'
+        })
+
+        if (newStatus) {
+          await orderService.updateOrderStatus(order.id, newStatus)
+          await fetchOrders() // Refresh danh sách
+          Swal.fire('Thành công', 'Đã cập nhật trạng thái đơn hàng', 'success')
+        }
+      } catch (error) {
+        console.error('Error updating order status:', error)
+        Swal.fire('Lỗi', 'Không thể cập nhật trạng thái đơn hàng', 'error')
+      }
+    }
 
     const fetchOrders = async () => {
       try {
@@ -240,169 +280,229 @@ export default {
       })
     }
 
-    return {
-      orders,
-      loading,
-      currentPage,
-      totalPages,
-      filters,
-      orderStats,
-      formatPrice,
-      formatDate,
-      fetchOrders,
-      handleSearch,
-      handleFilterChange,
-      changePage,
-      openDetailModal,
-      closeDetailModal
+    // Thêm hàm cập nhật thống kê
+    const updateOrderStats = async () => {
+      try {
+        const response = await orderService.getOrderStats()
+        if (response.orderStats) {
+          orderStats.value = orderStats.value.map(stat => ({
+            ...stat,
+            count: response.orderStats[stat.status] || 0
+          }))
+        }
+      } catch (error) {
+        console.error('Error updating stats:', error)
+      }
     }
+        return {
+        orders,
+        loading,
+        currentPage,
+        totalPages,
+        filters,
+        orderStats,
+        selectedOrder,
+        showDetailModal, // Thêm dòng này
+        formatPrice,
+        formatDate,
+        fetchOrders,
+        handleSearch,
+        handleFilterChange,
+        changePage,
+        openDetailModal,
+        closeDetailModal,
+        getStatusLabel,
+        updateStatus
+        }
   }
 }
 </script>
 
 <style scoped>
 .orders-manager {
-  padding: 20px;
+  padding: 24px;
+  background: #f8f9fa;
+  min-height: 100vh;
 }
 
 /* Header Section */
 .header-section {
-  margin-bottom: 30px;
+  margin-bottom: 32px;
 }
 
 .page-title {
-  font-size: 24px;
-  margin-bottom: 20px;
+  font-size: 28px;
+  font-weight: 600;
+  color: #2d3748;
+  margin-bottom: 24px;
 }
 
 .order-stats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 20px;
-  margin-top: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 24px;
 }
 
 .stat-card {
   background: white;
-  padding: 20px;
+  padding: 24px;
+  border-radius: 16px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  transition: transform 0.2s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-4px);
+}
+
+.stat-icon {
+  width: 48px;
+  height: 48px;
   border-radius: 12px;
   display: flex;
   align-items: center;
-  gap: 15px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  justify-content: center;
+  font-size: 20px;
+}
+
+/* Màu sắc cho các trạng thái */
+.stat-icon.pending { background: #fff3e0; color: #f57c00; }
+.stat-icon.processing { background: #e3f2fd; color: #1976d2; }
+.stat-icon.shipped { background: #e8f5e9; color: #2e7d32; }
+.stat-icon.delivered { background: #e0f2f1; color: #00796b; }
+.stat-icon.cancelled { background: #fbe9e7; color: #d32f2f; }
+
+.stat-info h3 {
+  font-size: 28px;
+  font-weight: 600;
+  margin: 0;
+  color: #2d3748;
+}
+
+.stat-info p {
+  margin: 4px 0 0;
+  color: #718096;
+  font-size: 14px;
 }
 
 /* Filter Section */
 .filter-section {
+  background: white;
+  padding: 20px;
+  border-radius: 16px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  margin-bottom: 24px;
   display: flex;
-  justify-content: space-between;
-  margin-bottom: 20px;
   gap: 20px;
+  align-items: center;
 }
 
 .search-box {
-  position: relative;
   flex: 1;
+  position: relative;
 }
 
 .search-box input {
   width: 100%;
-  padding: 10px 40px 10px 15px;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
+  padding: 12px 48px 12px 20px;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  font-size: 15px;
+  transition: border-color 0.2s ease;
+}
+
+.search-box input:focus {
+  border-color: #4299e1;
+  outline: none;
 }
 
 .search-box i {
   position: absolute;
-  right: 15px;
+  right: 20px;
   top: 50%;
   transform: translateY(-50%);
   color: #718096;
-}
-
-.filter-options {
-  display: flex;
-  gap: 10px;
+  font-size: 16px;
 }
 
 .filter-options select {
-  padding: 8px 15px;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
+  padding: 12px 20px;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
   background: white;
+  font-size: 15px;
+  min-width: 180px;
+  cursor: pointer;
 }
 
 /* Table Styles */
 .orders-table-wrapper {
   background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-  overflow-x: auto;
+  border-radius: 16px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+  overflow: hidden;
 }
 
 .orders-table {
   width: 100%;
-  border-collapse: collapse;
-}
-
-.orders-table th,
-.orders-table td {
-  padding: 15px;
-  text-align: left;
-  border-bottom: 1px solid #e2e8f0;
+  border-collapse: separate;
+  border-spacing: 0;
 }
 
 .orders-table th {
   background: #f8fafc;
+  padding: 16px 24px;
   font-weight: 600;
+  color: #4a5568;
+  font-size: 15px;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.orders-table td {
+  padding: 16px 24px;
+  border-bottom: 1px solid #edf2f7;
+  color: #2d3748;
+}
+
+.orders-table tbody tr:hover {
+  background: #f8fafc;
 }
 
 /* Status Badge */
 .status-badge {
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-size: 0.875rem;
+  padding: 8px 16px;
+  border-radius: 24px;
+  font-size: 14px;
   font-weight: 500;
+  display: inline-block;
 }
 
-.status-badge.pending {
-  background: #fff8e1;
-  color: #f57c00;
-}
-
-.status-badge.processing {
-  background: #e3f2fd;
-  color: #1976d2;
-}
-
-.status-badge.shipped {
-  background: #e8f5e9;
-  color: #388e3c;
-}
-
-.status-badge.delivered {
-  background: #e8f5e9;
-  color: #388e3c;
-}
-
-.status-badge.cancelled {
-  background: #fbe9e7;
-  color: #d32f2f;
-}
+.status-badge.pending { background: #fff3e0; color: #f57c00; }
+.status-badge.processing { background: #e3f2fd; color: #1976d2; }
+.status-badge.shipped { background: #e8f5e9; color: #2e7d32; }
+.status-badge.delivered { background: #e0f2f1; color: #00796b; }
+.status-badge.cancelled { background: #fbe9e7; color: #d32f2f; }
 
 /* Action Buttons */
 .action-buttons {
   display: flex;
-  gap: 8px;
+  gap: 12px;
 }
 
 .btn-view,
 .btn-status {
-  padding: 8px;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border: none;
-  border-radius: 6px;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
 }
 
 .btn-view {
@@ -412,52 +512,57 @@ export default {
 
 .btn-status {
   background: #e8f5e9;
-  color: #388e3c;
+  color: #2e7d32;
 }
 
 .btn-view:hover,
 .btn-status:hover {
   transform: translateY(-2px);
-}
-
-.btn-status:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+  filter: brightness(95%);
 }
 
 /* Loading & Empty States */
 .loading-state,
 .no-orders {
-  padding: 40px;
+  padding: 48px;
   text-align: center;
   color: #718096;
 }
 
 .loading-state i,
 .no-orders i {
-  font-size: 2rem;
-  margin-bottom: 1rem;
+  font-size: 32px;
+  margin-bottom: 16px;
+  color: #4299e1;
 }
 
 /* Pagination */
 .pagination {
+  margin-top: 24px;
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 15px;
-  margin-top: 20px;
+  gap: 16px;
 }
 
 .pagination button {
-  padding: 8px 12px;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
+  padding: 10px 16px;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
   background: white;
+  color: #4a5568;
+  font-weight: 500;
   cursor: pointer;
+  transition: all 0.2s ease;
 }
 
-.pagination button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+.pagination button:hover:not(:disabled) {
+  border-color: #4299e1;
+  color: #4299e1;
+}
+
+.pagination span {
+  color: #4a5568;
+  font-weight: 500;
 }
 </style>

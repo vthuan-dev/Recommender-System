@@ -3,10 +3,14 @@ const router = express.Router();
 const { pool, authenticateJWT } = require('../../database/dbconfig');
 
 async function checkAdminRole(req, res, next) {
-  if (req.user && req.user.role === 'admin') {
-    next();
-  } else {
-    res.status(403).json({ message: 'Chỉ admin mới có quyền truy cập' });
+  try {
+    if (req.user && req.user.role === 'admin') {
+      next();
+    } else {
+      res.status(403).json({ message: 'Chỉ admin mới có quyền truy cập' });
+    }
+  } catch (error) {
+    res.status(500).json({ message: 'Lỗi kiểm tra quyền admin', error: error.message });
   }
 }
 
@@ -16,57 +20,44 @@ router.get('/orders', authenticateJWT, checkAdminRole, async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const offset = (page - 1) * limit;
-    const search = req.query.search || '';
-    const status = req.query.status || '';
 
-    let query = `
-      SELECT 
-        o.id,
-        o.total,
-        o.status,
-        o.created_at,
-        u.fullname as customer_name,
-        a.address_line1,
-        a.city
-      FROM orders o
-      JOIN users u ON o.user_id = u.id
-      LEFT JOIN addresses a ON o.address_id = a.id
-      WHERE 1=1
-    `;
-    
-    const params = [];
-    
-    if (search) {
-      query += ` AND (u.fullname LIKE ? OR o.id LIKE ?)`;
-      params.push(`%${search}%`, `%${search}%`);
-    }
-    
-    if (status) {
-      query += ` AND o.status = ?`;
-      params.push(status);
-    }
-    
-    query += ` ORDER BY o.created_at DESC LIMIT ? OFFSET ?`;
-    params.push(limit, offset);
-
-    const [orders, [countResult]] = await Promise.all([
-      pool.query(query, params),
-      pool.query('SELECT COUNT(*) as total FROM orders')
+    // Lấy danh sách đơn hàng và tổng số đơn hàng
+    const [orders, [totalCount], orderStats] = await Promise.all([
+      pool.query(
+        `SELECT o.*, u.fullname as customer_name 
+         FROM orders o
+         JOIN users u ON o.user_id = u.id
+         ORDER BY o.created_at DESC
+         LIMIT ? OFFSET ?`,
+        [limit, offset]
+      ),
+      pool.query('SELECT COUNT(*) as count FROM orders'),
+      // Sửa lại query thống kê
+      pool.query(`
+        SELECT 
+          SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
+          SUM(CASE WHEN status = 'processing' THEN 1 ELSE 0 END) as processing,
+          SUM(CASE WHEN status = 'shipped' THEN 1 ELSE 0 END) as shipped,
+          SUM(CASE WHEN status = 'delivered' THEN 1 ELSE 0 END) as delivered,
+          SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) as cancelled
+        FROM orders
+      `)
     ]);
+
+    // Lấy kết quả thống kê trực tiếp
+    const statsObject = orderStats[0][0];
 
     res.json({
       orders: orders[0],
       currentPage: page,
-      totalPages: Math.ceil(countResult.total / limit),
-      totalOrders: countResult.total
+      totalPages: Math.ceil(totalCount[0].count / limit),
+      totalOrders: totalCount[0].count,
+      orderStats: statsObject
     });
 
   } catch (error) {
-    console.error('Lỗi khi lấy danh sách đơn hàng:', error);
-    res.status(500).json({ 
-      message: 'Lỗi khi lấy danh sách đơn hàng',
-      error: error.message 
-    });
+    console.error('Error:', error);
+    res.status(500).json({ message: 'Internal server error' });
   }
 });
 
@@ -211,6 +202,26 @@ router.get('/orders/status/:status', authenticateJWT, checkAdminRole, async (req
     }
   });
 
+// Thêm route mới để lấy thống kê
+router.get('/orders/stats', authenticateJWT, checkAdminRole, async (req, res) => {
+  try {
+    const [orderStats] = await pool.query(`
+      SELECT 
+        SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
+        SUM(CASE WHEN status = 'processing' THEN 1 ELSE 0 END) as processing,
+        SUM(CASE WHEN status = 'shipped' THEN 1 ELSE 0 END) as shipped,
+        SUM(CASE WHEN status = 'delivered' THEN 1 ELSE 0 END) as delivered,
+        SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) as cancelled
+      FROM orders
+    `)
 
+    res.json({
+      orderStats: orderStats[0]
+    })
+  } catch (error) {
+    console.error('Error getting order stats:', error)
+    res.status(500).json({ message: 'Internal server error' })
+  }
+})
 
 module.exports = router;
