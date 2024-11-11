@@ -110,6 +110,7 @@ router.post('/add-products', authenticateJWT, checkAdminRole, upload.single('ima
 
 // Lấy danh sách sản phẩm (có phân trang và tìm kiếm)
 router.get('/products', authenticateJWT, checkAdminRole, async (req, res) => {
+  const connection = await pool.getConnection();
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
@@ -121,69 +122,72 @@ router.get('/products', authenticateJWT, checkAdminRole, async (req, res) => {
     let whereClause = '1=1';
     let params = [];
 
-    // Tìm kiếm theo từ khóa
     if (search) {
       whereClause += ' AND (p.name LIKE ? OR p.description LIKE ?)';
       params.push(`%${search}%`, `%${search}%`);
     }
 
-    // Lọc theo danh mục
     if (category) {
       whereClause += ' AND p.category_id = ?';
       params.push(category);
     }
 
-    // Lọc theo thương hiệu
     if (brand) {
       whereClause += ' AND p.brand_id = ?';
       params.push(brand);
     }
 
-    let query = `
-      SELECT 
-        p.*,
+    // Lấy tổng số sản phẩm
+    const [countResult] = await connection.query(
+      `SELECT COUNT(DISTINCT p.id) as total 
+       FROM products p 
+       WHERE ${whereClause}`, 
+      params
+    );
+
+    const totalProducts = countResult[0].total;
+    const totalPages = Math.ceil(totalProducts / limit);
+
+    // Lấy danh sách sản phẩm với thông tin variants
+    const [products] = await connection.query(
+      `SELECT p.*, 
         c.name as category_name,
         b.name as brand_name,
-        (SELECT COUNT(*) FROM productvariants WHERE product_id = p.id) as variant_count,
         (SELECT JSON_ARRAYAGG(
           JSON_OBJECT(
             'id', pv.id,
             'name', pv.name,
             'price', pv.price,
-            'initial_stock', pv.initial_stock
+            'initial_stock', pv.initial_stock,
+            'sold_count', COALESCE(pv.sold_count, 0)
           )
         ) FROM productvariants pv WHERE pv.product_id = p.id) as variants
-      FROM products p 
-      LEFT JOIN categories c ON p.category_id = c.id 
-      LEFT JOIN brands b ON p.brand_id = b.id 
-      WHERE ${whereClause}
-      ORDER BY 
-        CASE 
-          WHEN p.category_id = ? THEN 0 
-          WHEN p.brand_id = ? THEN 1
-          ELSE 2 
-        END,
-        p.created_at DESC,
-        p.name ASC
-      LIMIT ? OFFSET ?
-    `;
-
-    params.push(category || 0, brand || 0, limit, offset);
-
-    const [products, [totalCount]] = await Promise.all([
-      pool.query(query, params),
-      pool.query(`SELECT COUNT(*) as count FROM products p WHERE ${whereClause}`, params.slice(0, -2))
-    ]);
+       FROM products p
+       LEFT JOIN categories c ON p.category_id = c.id
+       LEFT JOIN brands b ON p.brand_id = b.id
+       WHERE ${whereClause}
+       GROUP BY p.id
+       ORDER BY p.created_at DESC
+       LIMIT ? OFFSET ?`,
+      [...params, limit, offset]
+    );
 
     res.json({
-      products: products[0],
+      products,
       currentPage: page,
-      totalPages: Math.ceil(totalCount.count / limit),
-      totalProducts: totalCount.count
+      totalPages,
+      totalProducts,
+      limit
     });
+
   } catch (error) {
     console.error('Error fetching products:', error);
-    res.status(500).json({ message: 'Error loading products', error: error.message });
+    res.status(500).json({ 
+      message: 'Lỗi khi tải danh sách sản phẩm', 
+      error: error.message 
+    });
+  } finally {
+    connection.release();
   }
 });
 

@@ -188,7 +188,7 @@ export default {
             'processing': 'Đang xử lý', 
             'shipped': 'Đã gửi hàng',
             'delivered': 'Đã giao hàng',
-            'cancelled': 'Đã hủy'
+            'cancelled': 'Hủy đơn'
           },
           inputValue: order.status,
           showCancelButton: true,
