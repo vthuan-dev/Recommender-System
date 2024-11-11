@@ -5,6 +5,7 @@ import AdminLayout from '../components/layout/AdminLayout.vue';
 import Dashboard from '../views/Dashboard.vue';
 import Settings from '../components/settings/Settings.vue';
 import ProductManager from '../components/products/ProductManager.vue';
+import Orders from '../views/Orders.vue';
 
 const routes = [
   {
@@ -40,6 +41,14 @@ const routes = [
         component: ProductManager,
         meta: {
           title: 'Quản lý sản phẩm'
+        }
+      },
+      {
+        path: 'orders',
+        name: 'Orders',
+        component: Orders,
+        meta: {
+          title: 'Quản lý đơn hàng'
         }
       }
     ]

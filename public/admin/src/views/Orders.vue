@@ -1,11 +1,16 @@
 <template>
-    <div>
-      <h1>Quản lý đơn hàng</h1>
-    </div>
-  </template>
-  
-  <script>
-  export default {
-    name: 'Orders'
+  <div class="page-container">
+    <OrderManager />
+  </div>
+</template>
+
+<script>
+import OrderManager from '../components/orders/OrderManager.vue'
+
+export default {
+  name: 'OrdersPage',
+  components: {
+    OrderManager
   }
-  </script>
+}
+</script>

@@ -163,6 +163,7 @@ router.get('/products', authenticateJWT, checkAdminRole, async (req, res) => {
           WHEN p.brand_id = ? THEN 1
           ELSE 2 
         END,
+        p.created_at DESC,
         p.name ASC
       LIMIT ? OFFSET ?
     `;

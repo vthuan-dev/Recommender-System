@@ -12,40 +12,64 @@ async function checkAdminRole(req, res, next) {
 
 // Lấy danh sách đơn hàng
 router.get('/orders', authenticateJWT, checkAdminRole, async (req, res) => {
-    try {
-      const page = parseInt(req.query.page) || 1;
-      const limit = parseInt(req.query.limit) || 10;
-      const offset = (page - 1) * limit;
-  
-      const [orders, [totalCount]] = await Promise.all([
-        pool.query(
-          `SELECT o.*, u.fullname as customer_name 
-           FROM orders o 
-           JOIN users u ON o.user_id = u.id 
-           ORDER BY o.created_at DESC 
-           LIMIT ? OFFSET ?`,
-          [limit, offset]
-        ),
-        pool.query('SELECT COUNT(*) as count FROM orders')
-      ]);
-  
-      // Chuyển đổi kết quả truy vấn để bao gồm trạng thái đơn hàng
-      const formattedOrders = orders[0].map(order => ({
-        ...order,
-        status: order.status // Đảm bảo rằng trạng thái được bao gồm
-      }));
-  
-      res.json({
-        orders: formattedOrders,
-        currentPage: page,
-        totalPages: Math.ceil(totalCount[0].count / limit),
-        totalOrders: totalCount[0].count
-      });
-    } catch (error) {
-      console.error('Lỗi lấy danh sách đơn hàng:', error);
-      res.status(500).json({ message: 'Lỗi lấy danh sách đơn hàng', error: error.message });
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const offset = (page - 1) * limit;
+    const search = req.query.search || '';
+    const status = req.query.status || '';
+
+    let query = `
+      SELECT 
+        o.id,
+        o.total,
+        o.status,
+        o.created_at,
+        u.fullname as customer_name,
+        a.address_line1,
+        a.city
+      FROM orders o
+      JOIN users u ON o.user_id = u.id
+      LEFT JOIN addresses a ON o.address_id = a.id
+      WHERE 1=1
+    `;
+    
+    const params = [];
+    
+    if (search) {
+      query += ` AND (u.fullname LIKE ? OR o.id LIKE ?)`;
+      params.push(`%${search}%`, `%${search}%`);
     }
-  });
+    
+    if (status) {
+      query += ` AND o.status = ?`;
+      params.push(status);
+    }
+    
+    query += ` ORDER BY o.created_at DESC LIMIT ? OFFSET ?`;
+    params.push(limit, offset);
+
+    const [orders, [countResult]] = await Promise.all([
+      pool.query(query, params),
+      pool.query('SELECT COUNT(*) as total FROM orders')
+    ]);
+
+    res.json({
+      orders: orders[0],
+      currentPage: page,
+      totalPages: Math.ceil(countResult.total / limit),
+      totalOrders: countResult.total
+    });
+
+  } catch (error) {
+    console.error('Lỗi khi lấy danh sách đơn hàng:', error);
+    res.status(500).json({ 
+      message: 'Lỗi khi lấy danh sách đơn hàng',
+      error: error.message 
+    });
+  }
+});
+
 // Lấy chi tiết đơn hàng
 router.get('/orders/:id', authenticateJWT, checkAdminRole, async (req, res) => {
   try {

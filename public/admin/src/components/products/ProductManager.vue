@@ -406,6 +406,21 @@ export default {
 
     manageInventory(product) {
       // Thêm chức năng quản lý kho sau
+    },
+
+    async handleAddProduct(newProduct) {
+      try {
+        const response = await productService.addProduct(newProduct);
+        if (response.success) {
+          // Thêm sản phẩm mới vào đầu danh sách
+          this.products.unshift(response.data);
+          this.$toast.success('Thêm sản phẩm thành công');
+          this.closeAddModal();
+        }
+      } catch (error) {
+        console.error('Lỗi thêm sản phẩm:', error);
+        this.$toast.error('Lỗi thêm sản phẩm');
+      }
     }
   },
   async mounted() {
