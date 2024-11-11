@@ -20,6 +20,7 @@ export const orderService = {
       const response = await api.put(`/orders/${orderId}/status`, { status })
       return response.data
     } catch (error) {
+      console.error('Error in updateOrderStatus:', error.response || error)
       throw error.response?.data || error.message
     }
   },

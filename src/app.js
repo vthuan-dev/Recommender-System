@@ -75,14 +75,18 @@ app.get('/admin/manage', (req, res) => {
 
 app.use('/admin', adminAuthRoutes);
 // Sử dụng các route
-app.use('/', productRoutes);
-app.use('/', cartRoutes);
-app.use('/', orderRoutes);
-app.use('/', accountRoutesClient);
-app.use('/admin', productManagementRoutes);
-app.use('/admin', userManageRoutes);
-app.use('/api/admin', orderManagementRoutes);
-app.use('/admin', adminAuthRoutes);
+app.use('/api', [
+    productRoutes,
+    cartRoutes,
+    orderRoutes,
+    accountRoutesClient
+]);
+app.use('/api/admin', [
+    productManagementRoutes,
+    userManageRoutes,
+    orderManagementRoutes,
+    adminAuthRoutes
+]);
 // Middleware xử lý lỗi
 app.use((err, req, res, next) => {
     console.error(err.stack);

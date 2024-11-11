@@ -281,4 +281,50 @@ router.get('/orders/stats', authenticateJWT, checkAdminRole, async (req, res) =>
   }
 })
 
+// Thêm route cập nhật trạng thái đơn hàng
+router.put('/orders/:id/status', authenticateJWT, checkAdminRole, async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    const orderId = req.params.id;
+    const { status } = req.body;
+
+    // Kiểm tra trạng thái hợp lệ
+    const validStatuses = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ message: 'Trạng thái không hợp lệ' });
+    }
+
+    // Kiểm tra đơn hàng tồn tại
+    const [orderExists] = await connection.query(
+      'SELECT id FROM orders WHERE id = ?',
+      [orderId]
+    );
+
+    if (orderExists.length === 0) {
+      return res.status(404).json({ message: 'Không tìm thấy đơn hàng' });
+    }
+
+    // Cập nhật trạng thái
+    await connection.query(
+      'UPDATE orders SET status = ?, updated_at = NOW() WHERE id = ?',
+      [status, orderId]
+    );
+
+    res.json({
+      message: 'Cập nhật trạng thái thành công',
+      orderId,
+      newStatus: status
+    });
+
+  } catch (error) {
+    console.error('Error updating order status:', error);
+    res.status(500).json({
+      message: 'Lỗi khi cập nhật trạng thái đơn hàng',
+      error: error.message
+    });
+  } finally {
+    connection.release();
+  }
+});
+
 module.exports = router;
