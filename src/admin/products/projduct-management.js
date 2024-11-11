@@ -199,7 +199,7 @@ router.get('/products/:id', authenticateJWT, checkAdminRole, async (req, res) =>
   }
 });
 
-// Cập nhật thông tin sản phẩm
+// Cập nhật thông tin s��n phẩm
 router.put('/products/:id', authenticateJWT, checkAdminRole, upload.single('image'), async (req, res) => {
   const connection = await pool.getConnection();
   try {
@@ -263,11 +263,18 @@ router.get('/brands', authenticateJWT, checkAdminRole, async (req, res) => {
     res.status(500).json({ message: 'Error loading brands', error: error.message });
   }
 });
+
 // Xóa sản phẩm
 router.delete('/products/:id', authenticateJWT, checkAdminRole, async (req, res) => {
   const connection = await pool.getConnection();
   try {
     await connection.beginTransaction();
+
+    // Lấy thông tin ảnh sản phẩm trước khi xóa
+    const [productImage] = await connection.query(
+      'SELECT image_url FROM products WHERE id = ?',
+      [req.params.id]
+    );
 
     // Xóa biến thể
     await connection.query('DELETE FROM productvariants WHERE product_id = ?', [req.params.id]);
@@ -280,15 +287,36 @@ router.delete('/products/:id', authenticateJWT, checkAdminRole, async (req, res)
       return res.status(404).json({ message: 'Sản phẩm không tồn tại' });
     }
 
-    // Xóa ảnh từ Firebase Storage (nếu cần)
-    // ... (code xóa ảnh từ Firebase)
+    // Xóa ảnh từ Firebase Storage nếu có
+    if (productImage[0]?.image_url) {
+      try {
+        const bucket = storage.bucket();
+        const imageUrl = productImage[0].image_url;
+        const fileName = imageUrl.split('/').pop().split('?')[0];
+        
+        await bucket.file(`products/${fileName}`).delete();
+        console.log('Đã xóa ảnh thành công:', fileName);
+      } catch (deleteError) {
+        console.error('Lỗi khi xóa ảnh:', deleteError);
+        // Không rollback vì xóa ảnh thất bại không ảnh hưởng đến dữ liệu
+      }
+    }
 
     await connection.commit();
-    res.json({ message: 'Xóa sản phẩm thành công' });
+    res.json({ 
+      success: true,
+      message: 'Xóa sản phẩm thành công',
+      deletedId: req.params.id
+    });
+
   } catch (error) {
     await connection.rollback();
     console.error('Lỗi xóa sản phẩm:', error);
-    res.status(500).json({ message: 'Lỗi xóa sản phẩm', error: error.message });
+    res.status(500).json({ 
+      success: false,
+      message: 'Lỗi xóa sản phẩm', 
+      error: error.message 
+    });
   } finally {
     connection.release();
   }

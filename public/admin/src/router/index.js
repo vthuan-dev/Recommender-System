@@ -4,6 +4,7 @@ import SignUp from '../components/auth/SignUp.vue';
 import AdminLayout from '../components/layout/AdminLayout.vue';
 import Dashboard from '../views/Dashboard.vue';
 import Settings from '../components/settings/Settings.vue';
+import ProductManager from '../components/products/ProductManager.vue';
 
 const routes = [
   {
@@ -32,6 +33,14 @@ const routes = [
         path: 'settings',
         name: 'Settings',
         component: Settings
+      },
+      {
+        path: 'products',
+        name: 'ProductManager',
+        component: ProductManager,
+        meta: {
+          title: 'Quản lý sản phẩm'
+        }
       }
     ]
   },
@@ -49,7 +58,6 @@ const router = createRouter({
 router.beforeEach((to, from, next) => {
   const adminToken = localStorage.getItem('adminToken')
   
-  // Nếu route bắt đầu bằng /admin và không phải login/register
   if (to.path.startsWith('/admin') && 
       !['SignIn', 'SignUp'].includes(to.name)) {
     if (!adminToken) {

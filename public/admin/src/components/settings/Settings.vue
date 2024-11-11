@@ -62,7 +62,7 @@ export default {
   name: 'Settings',
   setup() {
     const { currentTheme, setTheme } = useTheme()
-    const { locale } = useI18n()
+    const { locale, t } = useI18n()
     
     // Định nghĩa themes
     const themes = ref([
@@ -141,13 +141,47 @@ export default {
       }
     }
 
+    const changeLanguage = async (lang) => {
+      try {
+        locale.value = lang
+        currentLang.value = lang
+        localStorage.setItem('lang', lang)
+        
+        await Swal.fire({
+          icon: 'success',
+          title: t('settings.language.changed'),
+          timer: 1500,
+          showConfirmButton: false,
+          customClass: {
+            popup: 'custom-swal-popup',
+            title: 'custom-swal-title',
+            icon: 'custom-swal-icon',
+            content: 'custom-swal-content'
+          }
+        })
+      } catch (error) {
+        console.error('Change language error:', error)
+        await Swal.fire({
+          icon: 'error',
+          title: t('settings.language.error'),
+          customClass: {
+            popup: 'custom-swal-popup',
+            title: 'custom-swal-title',
+            icon: 'custom-swal-icon',
+            content: 'custom-swal-content',
+            confirmButton: 'custom-swal-confirm-button'
+          }
+        })
+      }
+    }
+
     return {
       currentTheme,
       themes,
       languages,
       currentLang,
       changeTheme,
-      changeLanguage: locale
+      changeLanguage
     }
   }
 }
