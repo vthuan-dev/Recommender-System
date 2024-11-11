@@ -102,11 +102,12 @@
     <ProductModal 
       v-if="showModal"
       :show="showModal"
-      :product="selectedProduct"
+      :is-edit="!!selectedProduct"
+      :product-data="selectedProduct"
       :categories="categories"
       :brands="brands"
       @close="closeModal"
-      @save="saveProduct"
+      @saved="handleProductSaved"
     />
   </div>
 </template>
@@ -251,9 +252,16 @@ export default {
       this.selectedProduct = null
     },
 
-    async saveProduct() {
+    async handleProductSaved(product) {
       await this.fetchProducts()
       this.closeModal()
+      Swal.fire({
+        icon: 'success',
+        title: 'Thành công!',
+        text: 'Sản phẩm đã được lưu thành công',
+        timer: 1500,
+        showConfirmButton: false
+      })
     },
 
     truncateText(text, length) {
@@ -274,6 +282,7 @@ export default {
 <style scoped>
 .product-manager {
   padding: 20px;
+  position: relative;
 }
 
 .header-section {

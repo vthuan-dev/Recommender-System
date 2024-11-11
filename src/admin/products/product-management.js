@@ -18,117 +18,93 @@ async function checkAdminRole(req, res, next) {
 router.post('/add-products', authenticateJWT, checkAdminRole, upload.single('image'), async (req, res) => {
     const connection = await pool.getConnection();
     try {
-      console.log('Bắt đầu xử lý yêu cầu thêm sản phẩm');
-      const { name, description, category_id, brand, variants } = req.body;
-      console.log('Dữ liệu nhận được:', { name, description, category_id, brand, variants });
+      const { name, description, category_id, brand_id, variants } = req.body;
       let image_url = '';
 
-      // Upload ảnh lên Firebase Storage nếu có file
+      // Upload ảnh lên Firebase nếu có
       if (req.file) {
-        try {
-          console.log('File info:', req.file);
-          const dateTime = Date.now();
-          const fileName = `products/${dateTime}_${req.file.originalname}`;
-          console.log('Attempting to upload file:', fileName);
-          
-          const bucket = storage.bucket();
-          const file = bucket.file(fileName);
-          
-          // Sử dụng Promise để xử lý việc upload file
-          await new Promise((resolve, reject) => {
-            const blobStream = file.createWriteStream({
-              metadata: {
-                contentType: req.file.mimetype
-              }
-            });
-
-            blobStream.on('error', (error) => {
-              console.error('Error uploading:', error);
-              reject(error);
-            });
-
-            blobStream.on('finish', () => {
-              console.log('File uploaded successfully');
-              resolve();
-            });
-
-            blobStream.end(req.file.buffer);
+        const dateTime = Date.now();
+        const fileName = `products/${dateTime}_${req.file.originalname}`;
+        const bucket = storage.bucket();
+        const file = bucket.file(fileName);
+        
+        await new Promise((resolve, reject) => {
+          const blobStream = file.createWriteStream({
+            metadata: {
+              contentType: req.file.mimetype
+            }
           });
 
-          // Lấy URL của file đã upload
-          const [url] = await file.getSignedUrl({
-            action: 'read',
-            expires: '03-01-2500',
-          });
-          image_url = url;
-          console.log('Download URL:', image_url);
-        } catch (uploadError) {
-          console.error('Lỗi upload file:', uploadError);
-          return res.status(500).json({ message: 'Lỗi upload file', error: uploadError.message });
-        }
-      }
-      
-      // Kiểm tra xem category có tồn tại không
-      console.log('Kiểm tra danh mục:', category_id);
-      const [categories] = await connection.query('SELECT * FROM categories WHERE id = ?', [category_id]);
-      if (categories.length === 0) {
-        console.log('Danh mục không tồn tại');
-        return res.status(400).json({ message: 'Danh mục không tồn tại' });
-      }
-  
-      // Kiểm tra và thêm thương hiệu nếu cần
-      let brandId;
-      const [existingBrand] = await connection.query('SELECT id FROM brands WHERE name = ?', [brand]);
-      if (existingBrand.length === 0) {
-        const [brandResult] = await connection.query('INSERT INTO brands (name) VALUES (?)', [brand]);
-        brandId = brandResult.insertId;
-      } else {
-        brandId = existingBrand[0].id;
+          blobStream.on('error', (error) => reject(error));
+          blobStream.on('finish', () => resolve());
+          blobStream.end(req.file.buffer);
+        });
+
+        // Lấy URL của ảnh
+        const [url] = await file.getSignedUrl({
+          action: 'read',
+          expires: '03-01-2500'
+        });
+        image_url = url;
       }
 
       // Bắt đầu transaction
       await connection.beginTransaction();
-      console.log('Bắt đầu transaction');
 
-      try {
-        console.log('Thêm sản phẩm vào database');
-        const [productResult] = await connection.query(
-          'INSERT INTO products (name, description, category_id, brand_id, image_url) VALUES (?, ?, ?, ?, ?)',
-          [name, description, category_id, brandId, image_url]
-        );
-        
-        const productId = productResult.insertId;
-        console.log('Sản phẩm đã được thêm với ID:', productId);
-        
-        // Thêm các biến thể sản phẩm
-        if (variants && variants.length > 0) {
-          console.log('Thêm biến thể sản phẩm');
-          const parsedVariants = typeof variants === 'string' ? JSON.parse(variants) : variants;
-          for (const variant of parsedVariants) {
+      // Thêm sản phẩm
+      const [productResult] = await connection.query(
+        'INSERT INTO products (name, description, category_id, brand_id, image_url) VALUES (?, ?, ?, ?, ?)',
+        [name, description, category_id, brand_id, image_url]
+      );
+
+      const productId = productResult.insertId;
+
+      // Thêm các biến thể và ghi nhận nhập kho
+      if (variants) {
+        const parsedVariants = typeof variants === 'string' ? JSON.parse(variants) : variants;
+        for (const variant of parsedVariants) {
+          // Thêm variant
+          const [variantResult] = await connection.query(
+            'INSERT INTO productvariants (product_id, name, price, initial_stock) VALUES (?, ?, ?, ?)',
+            [productId, variant.name, variant.price, variant.initial_stock || 0]
+          );
+          
+          // Ghi nhận nhập kho
+          if (variant.initial_stock > 0) {
             await connection.query(
-              'INSERT INTO productvariants (product_id, name, price) VALUES (?, ?, ?)',
-              [productId, variant.name, variant.price]
+              'INSERT INTO inventory_transactions (variant_id, quantity, type, note) VALUES (?, ?, ?, ?)',
+              [variantResult.insertId, variant.initial_stock, 'import', 'Nhập kho ban đầu']
             );
           }
-          console.log(`Đã thêm ${parsedVariants.length} biến thể cho sản phẩm`);
         }
-        
-        // Commit transaction
-        await connection.commit();
-        console.log('Transaction đã được commit');
-        
-        res.status(201).json({ productId, image_url, message: 'Sản phẩm đã được thêm' });
-      } catch (error) {
-        // Rollback nếu có lỗi
-        await connection.rollback();
-        console.error('Lỗi trong quá trình thêm sản phẩm, đã rollback:', error);
-        throw error;
       }
+
+      await connection.commit();
+      
+      res.status(201).json({
+        success: true,
+        message: 'Thêm sản phẩm thành công',
+        data: {
+          id: productId,
+          name,
+          description,
+          category_id,
+          brand_id,
+          image_url,
+          variants: JSON.parse(variants)
+        }
+      });
+
     } catch (error) {
+      await connection.rollback();
       console.error('Lỗi thêm sản phẩm:', error);
-      res.status(500).json({ message: 'Lỗi thêm sản phẩm', error: error.message });
+      res.status(500).json({
+        success: false,
+        message: 'Lỗi khi thêm sản phẩm',
+        error: error.message
+      });
     } finally {
-      connection.release(); // Đảm bảo connection được giải phóng
+      connection.release();
     }
 });
 
@@ -199,7 +175,7 @@ router.get('/products/:id', authenticateJWT, checkAdminRole, async (req, res) =>
   }
 });
 
-// Cập nhật thông tin s��n phẩm
+// Cập nhật thông tin sn phẩm
 router.put('/products/:id', authenticateJWT, checkAdminRole, upload.single('image'), async (req, res) => {
   const connection = await pool.getConnection();
   try {
@@ -270,36 +246,32 @@ router.delete('/products/:id', authenticateJWT, checkAdminRole, async (req, res)
   try {
     await connection.beginTransaction();
 
-    // Lấy thông tin ảnh sản phẩm trước khi xóa
-    const [productImage] = await connection.query(
-      'SELECT image_url FROM products WHERE id = ?',
-      [req.params.id]
-    );
+    // 1. Xóa cartitems trước (vì nó tham chiếu đến cả product và variant)
+    await connection.query('DELETE FROM cartitems WHERE product_id = ? OR variant_id IN (SELECT id FROM productvariants WHERE product_id = ?)', 
+      [req.params.id, req.params.id]);
 
-    // Xóa biến thể
+    // 2. Xóa orderitems (nếu có)
+    await connection.query('DELETE FROM orderitems WHERE product_id = ? OR variant_id IN (SELECT id FROM productvariants WHERE product_id = ?)', 
+      [req.params.id, req.params.id]);
+
+    // 3. Xóa reviews
+    await connection.query('DELETE FROM reviews WHERE product_id = ?', [req.params.id]);
+
+    // 4. Xóa product_images (nếu có)
+    await connection.query('DELETE FROM product_images WHERE product_id = ?', [req.params.id]);
+
+    // 5. Xóa productvariants
     await connection.query('DELETE FROM productvariants WHERE product_id = ?', [req.params.id]);
 
-    // Xóa sản phẩm
+    // 6. Cuối cùng xóa product
     const [result] = await connection.query('DELETE FROM products WHERE id = ?', [req.params.id]);
 
     if (result.affectedRows === 0) {
       await connection.rollback();
-      return res.status(404).json({ message: 'Sản phẩm không tồn tại' });
-    }
-
-    // Xóa ảnh từ Firebase Storage nếu có
-    if (productImage[0]?.image_url) {
-      try {
-        const bucket = storage.bucket();
-        const imageUrl = productImage[0].image_url;
-        const fileName = imageUrl.split('/').pop().split('?')[0];
-        
-        await bucket.file(`products/${fileName}`).delete();
-        console.log('Đã xóa ảnh thành công:', fileName);
-      } catch (deleteError) {
-        console.error('Lỗi khi xóa ảnh:', deleteError);
-        // Không rollback vì xóa ảnh thất bại không ảnh hưởng đến dữ liệu
-      }
+      return res.status(404).json({ 
+        success: false,
+        message: 'Sản phẩm không tồn tại' 
+      });
     }
 
     await connection.commit();

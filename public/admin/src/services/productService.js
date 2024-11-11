@@ -30,15 +30,23 @@ export const productService = {
   // Thêm sản phẩm mới
   createProduct: async (productData) => {
     const formData = new FormData()
-    Object.keys(productData).forEach(key => {
-      if (key === 'variants') {
-        formData.append(key, JSON.stringify(productData[key]))
-      } else if (key === 'image' && productData[key]) {
-        formData.append('image', productData[key])
-      } else {
-        formData.append(key, productData[key])
-      }
-    })
+    
+    // Thêm các trường cơ bản
+    formData.append('name', productData.name)
+    formData.append('description', productData.description)
+    formData.append('category_id', productData.category_id)
+    formData.append('brand_id', productData.brand_id)
+    
+    // Thêm ảnh nếu có
+    if (productData.image) {
+      formData.append('image', productData.image)
+    }
+    
+    // Thêm variants dưới dạng JSON string
+    if (productData.variants && productData.variants.length > 0) {
+      formData.append('variants', JSON.stringify(productData.variants))
+    }
+
     const response = await api.post('/add-products', formData, {
       headers: {
         'Content-Type': 'multipart/form-data'

@@ -28,4 +28,15 @@ body {
   color: #fff;
   background: rgba(255,255,255,.1);
 }
+
+/* Add these global styles */
+body.modal-open {
+  overflow: hidden;
+  padding-right: 15px; /* Prevent layout shift */
+}
+
+.modal-open .modal {
+  overflow-x: hidden;
+  overflow-y: auto;
+}
 </style>

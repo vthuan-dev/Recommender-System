@@ -18,7 +18,7 @@ const orderRoutes = require('./client/orders/order.js');
 //client
 const accountRoutesClient = require('./client/users/log.js');
 //admin
-const productManagementRoutes = require('./admin/products/projduct-management.js');
+const productManagementRoutes = require('./admin/products/product-management.js');
 //admin
 const adminAuthRoutes = require('./admin/user/log.js');
 //admin
