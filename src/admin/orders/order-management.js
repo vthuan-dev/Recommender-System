@@ -14,74 +14,156 @@ async function checkAdminRole(req, res, next) {
   }
 }
 
-// Lấy danh sách đơn hàng
+// 1. Route thống kê (đặt trước)
+router.get('/orders/stats', authenticateJWT, checkAdminRole, async (req, res) => {
+  try {
+    const [orderStats] = await pool.query(`
+      SELECT 
+        COUNT(*) as total_orders,
+        SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
+        SUM(CASE WHEN status = 'processing' THEN 1 ELSE 0 END) as processing,
+        SUM(CASE WHEN status = 'shipped' THEN 1 ELSE 0 END) as shipped,
+        SUM(CASE WHEN status = 'delivered' THEN 1 ELSE 0 END) as delivered,
+        SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) as cancelled,
+        SUM(CASE 
+          WHEN status IN ('shipped', 'delivered') THEN 
+            (SELECT COALESCE(SUM(oi.price * oi.quantity), 0)
+             FROM orderitems oi 
+             WHERE oi.order_id = orders.id)
+          ELSE 0 
+        END) as completed_revenue
+      FROM orders
+    `);
+
+    res.json({
+      stats: {
+        total: orderStats[0].total_orders || 0,
+        pending: orderStats[0].pending || 0,
+        processing: orderStats[0].processing || 0,
+        shipped: orderStats[0].shipped || 0,
+        delivered: orderStats[0].delivered || 0,
+        cancelled: orderStats[0].cancelled || 0,
+        revenue: parseFloat(orderStats[0].completed_revenue) || 0
+      }
+    });
+  } catch (error) {
+    console.error('Error getting order stats:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// 2. Route lấy danh sách theo trạng thái (đặt trước)
+router.get('/orders/status/:status', authenticateJWT, checkAdminRole, async (req, res) => {
+    try {
+      const status = req.params.status;
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 10;
+      const offset = (page - 1) * limit;
+  
+      // Kiểm tra trạng thái hợp lệ
+      const validStatuses = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
+      if (!validStatuses.includes(status)) {
+        return res.status(400).json({ message: 'Trạng thái đơn hàng không hợp lệ' });
+      }
+  
+      const [orders, [totalCount]] = await Promise.all([
+        pool.query(
+          `SELECT o.*, u.fullname as customer_name,
+           (SELECT SUM(oi.price * oi.quantity) 
+            FROM orderitems oi 
+            WHERE oi.order_id = o.id) as total_price
+           FROM orders o 
+           JOIN users u ON o.user_id = u.id 
+           WHERE o.status = ?
+           ORDER BY o.created_at DESC 
+           LIMIT ? OFFSET ?`,
+          [status, limit, offset]
+        ),
+        pool.query('SELECT COUNT(*) as count FROM orders WHERE status = ?', [status])
+      ]);
+  
+      // Format total_price to number
+      const formattedOrders = orders[0].map(order => ({
+        ...order,
+        total_price: parseFloat(order.total_price) || 0
+      }));
+  
+      res.json({
+        orders: formattedOrders,
+        currentPage: page,
+        totalPages: Math.ceil(totalCount[0].count / limit),
+        totalOrders: totalCount[0].count,
+        status: status
+      });
+    } catch (error) {
+      console.error('Lỗi lấy danh sách đơn hàng theo trạng thái:', error);
+      res.status(500).json({ message: 'Lỗi lấy danh sách đơn hàng theo trạng thái', error: error.message });
+    }
+  });
+
+// 3. Route lấy danh sách đơn hàng
 router.get('/orders', authenticateJWT, checkAdminRole, async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const offset = (page - 1) * limit;
-    const status = req.query.status || '';
-    const dateRange = req.query.dateRange || '';
-    const search = req.query.search || '';
-
-    let whereClause = '1=1';
-    let params = [];
-
-    // Tìm kiếm theo từ khóa
-    if (search) {
-      whereClause += ' AND (u.fullname LIKE ? OR o.id LIKE ?)';
-      params.push(`%${search}%`, `%${search}%`);
+    const dateRange = req.query.dateRange || 'all';
+    
+    // Xây dựng điều kiện WHERE cho thời gian
+    let dateFilter = '';
+    const now = new Date();
+    
+    switch(dateRange) {
+      case 'today':
+        dateFilter = 'DATE(created_at) = CURDATE()';
+        break;
+      case 'week':
+        dateFilter = 'YEARWEEK(created_at) = YEARWEEK(NOW())';
+        break;
+      case 'month':
+        dateFilter = 'YEAR(created_at) = YEAR(NOW()) AND MONTH(created_at) = MONTH(NOW())';
+        break;
+      default:
+        dateFilter = '1=1'; // Tất cả thời gian
     }
 
-    // Lọc theo trạng thái
-    if (status) {
-      whereClause += ' AND o.status = ?';
-      params.push(status);
-    }
+    // Lấy thống kê với điều kiện thời gian
+    const [orderStats] = await pool.query(`
+      SELECT 
+        COUNT(*) as total_orders,
+        SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
+        SUM(CASE WHEN status = 'processing' THEN 1 ELSE 0 END) as processing,
+        SUM(CASE WHEN status = 'shipped' THEN 1 ELSE 0 END) as shipped,
+        SUM(CASE WHEN status = 'delivered' THEN 1 ELSE 0 END) as delivered,
+        SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) as cancelled
+      FROM orders
+      WHERE ${dateFilter}
+    `);
 
-    // Lọc theo thời gian
-    if (dateRange) {
-      switch (dateRange) {
-        case 'today':
-          whereClause += ' AND DATE(o.created_at) = CURDATE()';
-          break;
-        case 'week':
-          whereClause += ' AND YEARWEEK(o.created_at) = YEARWEEK(NOW())';
-          break;
-        case 'month':
-          whereClause += ' AND MONTH(o.created_at) = MONTH(NOW()) AND YEAR(o.created_at) = YEAR(NOW())';
-          break;
-      }
-    }
+    // Lấy danh sách đơn hàng với điều kiện thời gian
+    const [orders] = await pool.query(`
+      SELECT 
+        o.*,
+        u.fullname as customer_name,
+        (SELECT SUM(oi.price * oi.quantity) 
+         FROM orderitems oi 
+         WHERE oi.order_id = o.id) as total_price
+      FROM orders o
+      LEFT JOIN users u ON o.user_id = u.id
+      WHERE ${dateFilter}
+      ORDER BY o.created_at DESC
+      LIMIT ? OFFSET ?
+    `, [limit, offset]);
 
-    // Lấy danh sách đơn hàng và tổng số đơn hàng
-    const [orders, [totalCount], orderStats] = await Promise.all([
-      pool.query(
-        `SELECT o.*, u.fullname as customer_name,
-         (SELECT SUM(oi.price * oi.quantity) 
-          FROM orderitems oi 
-          WHERE oi.order_id = o.id) as total_price
-         FROM orders o
-         JOIN users u ON o.user_id = u.id
-         WHERE ${whereClause}
-         ORDER BY o.created_at DESC
-         LIMIT ? OFFSET ?`,
-        [...params, limit, offset]
-      ),
-      pool.query(`SELECT COUNT(*) as count FROM orders o JOIN users u ON o.user_id = u.id WHERE ${whereClause}`, params),
-      pool.query(`
-        SELECT 
-          SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
-          SUM(CASE WHEN status = 'processing' THEN 1 ELSE 0 END) as processing,
-          SUM(CASE WHEN status = 'shipped' THEN 1 ELSE 0 END) as shipped,
-          SUM(CASE WHEN status = 'delivered' THEN 1 ELSE 0 END) as delivered,
-          SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) as cancelled
-        FROM orders
-      `)
-    ]);
+    // Đếm tổng số đơn hàng theo điều kiện
+    const [totalCount] = await pool.query(`
+      SELECT COUNT(*) as count 
+      FROM orders 
+      WHERE ${dateFilter}
+    `);
 
-    // Format total_price to number
-    const formattedOrders = orders[0].map(order => ({
+    // Format total_price cho mỗi đơn hàng
+    const formattedOrders = orders.map(order => ({
       ...order,
       total_price: parseFloat(order.total_price) || 0
     }));
@@ -89,18 +171,28 @@ router.get('/orders', authenticateJWT, checkAdminRole, async (req, res) => {
     res.json({
       orders: formattedOrders,
       currentPage: page,
-      totalPages: Math.ceil(totalCount.count / limit),
-      totalOrders: totalCount.count,
-      orderStats: orderStats[0][0]
+      totalPages: Math.ceil(totalCount[0].count / limit),
+      totalOrders: totalCount[0].count,
+      orderStats: {
+        total: orderStats[0].total_orders,
+        pending: orderStats[0].pending,
+        processing: orderStats[0].processing,
+        shipped: orderStats[0].shipped,
+        delivered: orderStats[0].delivered,
+        cancelled: orderStats[0].cancelled
+      }
     });
 
   } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    console.error('Error fetching orders:', error);
+    res.status(500).json({ 
+      message: 'Lỗi khi lấy danh sách đơn hàng',
+      error: error.message 
+    });
   }
 });
 
-// Lấy chi tiết đơn hàng
+// 4. Route lấy chi tiết đơn hàng (đặt sau)
 router.get('/orders/:id', authenticateJWT, checkAdminRole, async (req, res) => {
   const connection = await pool.getConnection();
   try {
@@ -210,78 +302,7 @@ router.get('/orders/:id', authenticateJWT, checkAdminRole, async (req, res) => {
   }
 });
 
-// Lấy danh sách đơn hàng theo trạng thái
-router.get('/orders/status/:status', authenticateJWT, checkAdminRole, async (req, res) => {
-    try {
-      const status = req.params.status;
-      const page = parseInt(req.query.page) || 1;
-      const limit = parseInt(req.query.limit) || 10;
-      const offset = (page - 1) * limit;
-  
-      // Kiểm tra trạng thái hợp lệ
-      const validStatuses = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
-      if (!validStatuses.includes(status)) {
-        return res.status(400).json({ message: 'Trạng thái đơn hàng không hợp lệ' });
-      }
-  
-      const [orders, [totalCount]] = await Promise.all([
-        pool.query(
-          `SELECT o.*, u.fullname as customer_name,
-           (SELECT SUM(oi.price * oi.quantity) 
-            FROM orderitems oi 
-            WHERE oi.order_id = o.id) as total_price
-           FROM orders o 
-           JOIN users u ON o.user_id = u.id 
-           WHERE o.status = ?
-           ORDER BY o.created_at DESC 
-           LIMIT ? OFFSET ?`,
-          [status, limit, offset]
-        ),
-        pool.query('SELECT COUNT(*) as count FROM orders WHERE status = ?', [status])
-      ]);
-  
-      // Format total_price to number
-      const formattedOrders = orders[0].map(order => ({
-        ...order,
-        total_price: parseFloat(order.total_price) || 0
-      }));
-  
-      res.json({
-        orders: formattedOrders,
-        currentPage: page,
-        totalPages: Math.ceil(totalCount[0].count / limit),
-        totalOrders: totalCount[0].count,
-        status: status
-      });
-    } catch (error) {
-      console.error('Lỗi lấy danh sách đơn hàng theo trạng thái:', error);
-      res.status(500).json({ message: 'Lỗi lấy danh sách đơn hàng theo trạng thái', error: error.message });
-    }
-  });
-
-// Thêm route mới để lấy thống kê
-router.get('/orders/stats', authenticateJWT, checkAdminRole, async (req, res) => {
-  try {
-    const [orderStats] = await pool.query(`
-      SELECT 
-        SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
-        SUM(CASE WHEN status = 'processing' THEN 1 ELSE 0 END) as processing,
-        SUM(CASE WHEN status = 'shipped' THEN 1 ELSE 0 END) as shipped,
-        SUM(CASE WHEN status = 'delivered' THEN 1 ELSE 0 END) as delivered,
-        SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) as cancelled
-      FROM orders
-    `)
-
-    res.json({
-      orderStats: orderStats[0]
-    })
-  } catch (error) {
-    console.error('Error getting order stats:', error)
-    res.status(500).json({ message: 'Internal server error' })
-  }
-})
-
-// Thêm route cập nhật trạng thái đơn hàng
+// 5. Route cập nhật trạng thái
 router.put('/orders/:id/status', authenticateJWT, checkAdminRole, async (req, res) => {
   const connection = await pool.getConnection();
   try {

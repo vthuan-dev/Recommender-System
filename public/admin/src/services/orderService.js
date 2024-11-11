@@ -8,7 +8,8 @@ export const orderService = {
         orders: response.data.orders,
         totalPages: response.data.totalPages,
         currentPage: response.data.currentPage,
-        totalOrders: response.data.totalOrders
+        totalOrders: response.data.totalOrders,
+        orderStats: response.data.orderStats
       }
     } catch (error) {
       throw error.response?.data || error.message

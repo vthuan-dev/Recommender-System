@@ -62,16 +62,16 @@
         </thead>
         <tbody>
           <tr v-for="order in orders" :key="order.id">
-            <td>#{{ order.id }}</td>
-            <td>{{ order.customer_name }}</td>
-            <td>{{ formatDate(order.created_at) }}</td>
-            <td>{{ formatPrice(order.total_price) }}</td>
-            <td>
+            <td data-label="Mã đơn">#{{ order.id }}</td>
+            <td data-label="Khách hàng">{{ order.customer_name }}</td>
+            <td data-label="Ngày đặt">{{ formatDate(order.created_at) }}</td>
+            <td data-label="Tổng tiền">{{ formatPrice(order.total_price) }}</td>
+            <td data-label="Trạng thái">
               <span :class="['status-badge', order.status]">
                 {{ getStatusLabel(order.status) }}
               </span>
             </td>
-            <td>
+            <td data-label="Thao tác">
               <div class="action-buttons">
                 <button 
                   class="btn-view"
@@ -235,36 +235,80 @@ export default {
       }
     };
 
+    // Thêm hàm helper để kiểm tra thời gian
+    const isInDateRange = (date, range) => {
+      const orderDate = new Date(date);
+      const now = new Date();
+      const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      
+      switch(range) {
+        case 'today':
+          return orderDate >= startOfDay;
+          
+        case 'week':
+          const startOfWeek = new Date(now);
+          startOfWeek.setDate(now.getDate() - now.getDay()); // Đầu tuần (Chủ nhật)
+          startOfWeek.setHours(0, 0, 0, 0);
+          return orderDate >= startOfWeek;
+          
+        case 'month':
+          const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+          return orderDate >= startOfMonth;
+          
+        default: // 'all'
+          return true;
+      }
+    };
+
+    // Sửa lại hàm fetchOrders
     const fetchOrders = async () => {
       try {
-        loading.value = true
+        loading.value = true;
         const response = await orderService.getOrders({
           page: currentPage.value,
-          ...filters.value
-        })
-        
-        orders.value = response.orders
-        totalPages.value = response.totalPages
+          status: filters.value.status // Chỉ gửi status lên server
+        });
 
-        // Cập nhật số liệu thống kê
-        if (response.orderStats) {
-          orderStats.value = orderStats.value.map(stat => ({
-            ...stat,
-            count: response.orderStats[stat.status] || 0
-          }))
+        // Lọc theo thời gian ở frontend
+        let filteredOrders = response.orders;
+        if (filters.value.dateRange !== 'all') {
+          filteredOrders = response.orders.filter(order => 
+            isInDateRange(order.created_at, filters.value.dateRange)
+          );
         }
 
+        orders.value = filteredOrders;
+        
+        // Cập nhật số liệu thống kê dựa trên dữ liệu đã lọc
+        const stats = {
+          total: filteredOrders.length,
+          pending: filteredOrders.filter(o => o.status === 'pending').length,
+          processing: filteredOrders.filter(o => o.status === 'processing').length,
+          shipped: filteredOrders.filter(o => o.status === 'shipped').length,
+          delivered: filteredOrders.filter(o => o.status === 'delivered').length,
+          cancelled: filteredOrders.filter(o => o.status === 'cancelled').length
+        };
+
+        // Cập nhật orderStats
+        orderStats.value = orderStats.value.map(stat => ({
+          ...stat,
+          count: stats[stat.status] || 0
+        }));
+
+        // Tính lại tổng số trang dựa trên dữ liệu đã lọc
+        totalPages.value = Math.ceil(filteredOrders.length / 10); // 10 là limit mỗi trang
+
       } catch (error) {
-        console.error('Error fetching orders:', error)
+        console.error('Error fetching orders:', error);
         Swal.fire({
           icon: 'error',
           title: 'Lỗi',
-          text: 'Không thể tải danh sách đơn hàng. Vui lòng thử lại sau.'
-        })
+          text: 'Không thể tải danh sách đơn hàng'
+        });
       } finally {
-        loading.value = false
+        loading.value = false;
       }
-    }
+    };
 
     const handleSearch = debounce(() => {
       currentPage.value = 1
@@ -318,13 +362,15 @@ export default {
     }
 
     const formatDate = (date) => {
-      return new Date(date).toLocaleString('vi-VN', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
+      if (!date) return '';
+      const d = new Date(date);
+      return d.toLocaleString('vi-VN', {
         hour: '2-digit',
-        minute: '2-digit'
-      })
+        minute: '2-digit',
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      });
     }
 
     // Thêm hàm cập nhật thống kê
@@ -611,5 +657,152 @@ export default {
 .pagination span {
   color: #4a5568;
   font-weight: 500;
+}
+
+/* Responsive Styles */
+@media (max-width: 1024px) {
+  .order-stats {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+  }
+
+  .stat-card {
+    padding: 16px;
+  }
+
+  .stat-info h3 {
+    font-size: 24px;
+  }
+}
+
+@media (max-width: 768px) {
+  .orders-manager {
+    padding: 16px;
+  }
+
+  .page-title {
+    font-size: 24px;
+    margin-bottom: 16px;
+  }
+
+  .filter-section {
+    flex-direction: column;
+    padding: 16px;
+    gap: 16px;
+  }
+
+  .filter-options {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+  }
+
+  .filter-options select {
+    width: 100%;
+  }
+
+  /* Điều chỉnh bảng cho mobile */
+  .orders-table {
+    display: block;
+    overflow-x: auto;
+  }
+
+  .orders-table thead {
+    display: none; /* Ẩn header của bảng */
+  }
+
+  .orders-table tbody tr {
+    display: block;
+    padding: 16px;
+    border-bottom: 1px solid #edf2f7;
+    position: relative;
+  }
+
+  .orders-table td {
+    display: block;
+    padding: 8px 0;
+    border: none;
+    text-align: left;
+  }
+
+  /* Thêm label cho mỗi cột */
+  .orders-table td:before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: #4a5568;
+    display: block;
+    font-size: 13px;
+    margin-bottom: 4px;
+  }
+
+  /* Điều chỉnh cột trạng thái và thao tác */
+  .orders-table td:nth-last-child(-n+2) {
+    display: inline-block;
+    margin-top: 8px;
+  }
+
+  .action-buttons {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+  }
+
+  .btn-view,
+  .btn-status {
+    width: 36px;
+    height: 36px;
+  }
+
+  /* Điều chỉnh status badge */
+  .status-badge {
+    padding: 6px 12px;
+    font-size: 13px;
+  }
+
+  /* Điều chỉnh phân trang */
+  .pagination {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .pagination button {
+    padding: 8px 12px;
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .order-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .stat-card {
+    padding: 12px;
+  }
+
+  .stat-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 18px;
+  }
+
+  .stat-info h3 {
+    font-size: 20px;
+  }
+
+  .stat-info p {
+    font-size: 13px;
+  }
+
+  .search-box input {
+    padding: 10px 40px 10px 16px;
+    font-size: 14px;
+  }
+
+  .filter-options select {
+    padding: 10px 16px;
+    font-size: 14px;
+  }
 }
 </style>
