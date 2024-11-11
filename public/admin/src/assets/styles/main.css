@@ -1,0 +1,8 @@
+/* Thêm vào file CSS global của bạn */
+body.modal-open {
+  overflow: hidden;
+}
+
+#app {
+  position: relative;
+}

@@ -124,6 +124,7 @@
 
     <OrderDetailModal 
       v-if="showDetailModal"
+      :show="showDetailModal"
       :order="selectedOrder"
       @close="closeDetailModal"
     />
@@ -249,9 +250,37 @@ export default {
       fetchOrders()
     }
 
-    const openDetailModal = (order) => {
-      selectedOrder.value = order
-      showDetailModal.value = true
+    const openDetailModal = async (order) => {
+      try {
+        console.log('Opening modal for order:', order)
+        loading.value = true
+        selectedOrder.value = null
+        
+        if (!order?.id) {
+          throw new Error('Invalid order data')
+        }
+
+        showDetailModal.value = true
+        
+        const response = await orderService.getOrderDetail(order.id)
+        console.log('Processed order details:', response)
+        
+        if (response) {
+          selectedOrder.value = response
+        } else {
+          throw new Error('Không nhận được dữ liệu')
+        }
+      } catch (error) {
+        console.error('Error in openDetailModal:', error)
+        Swal.fire({
+          icon: 'error',
+          title: 'Lỗi',
+          text: 'Không thể lấy chi tiết đơn hàng. Vui lòng thử lại sau.'
+        })
+        showDetailModal.value = false
+      } finally {
+        loading.value = false
+      }
     }
 
     const closeDetailModal = () => {
@@ -302,7 +331,7 @@ export default {
         filters,
         orderStats,
         selectedOrder,
-        showDetailModal, // Thêm dòng này
+        showDetailModal,
         formatPrice,
         formatDate,
         fetchOrders,

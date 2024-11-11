@@ -24,7 +24,10 @@ router.get('/orders', authenticateJWT, checkAdminRole, async (req, res) => {
     // Lấy danh sách đơn hàng và tổng số đơn hàng
     const [orders, [totalCount], orderStats] = await Promise.all([
       pool.query(
-        `SELECT o.*, u.fullname as customer_name 
+        `SELECT o.*, u.fullname as customer_name,
+         (SELECT SUM(oi.price * oi.quantity) 
+          FROM orderitems oi 
+          WHERE oi.order_id = o.id) as total_price
          FROM orders o
          JOIN users u ON o.user_id = u.id
          ORDER BY o.created_at DESC
@@ -32,7 +35,6 @@ router.get('/orders', authenticateJWT, checkAdminRole, async (req, res) => {
         [limit, offset]
       ),
       pool.query('SELECT COUNT(*) as count FROM orders'),
-      // Sửa lại query thống kê
       pool.query(`
         SELECT 
           SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
@@ -44,15 +46,18 @@ router.get('/orders', authenticateJWT, checkAdminRole, async (req, res) => {
       `)
     ]);
 
-    // Lấy kết quả thống kê trực tiếp
-    const statsObject = orderStats[0][0];
+    // Format total_price to number
+    const formattedOrders = orders[0].map(order => ({
+      ...order,
+      total_price: parseFloat(order.total_price) || 0
+    }));
 
     res.json({
-      orders: orders[0],
+      orders: formattedOrders,
       currentPage: page,
       totalPages: Math.ceil(totalCount[0].count / limit),
       totalOrders: totalCount[0].count,
-      orderStats: statsObject
+      orderStats: orderStats[0][0]
     });
 
   } catch (error) {
@@ -62,47 +67,43 @@ router.get('/orders', authenticateJWT, checkAdminRole, async (req, res) => {
 });
 
 // Lấy chi tiết đơn hàng
+
 router.get('/orders/:id', authenticateJWT, checkAdminRole, async (req, res) => {
   try {
-    const [order] = await pool.query(
-      `SELECT o.*, u.fullname as customer_name, a.address_line1, a.address_line2, a.city, a.state, a.postal_code, a.country
-       FROM orders o 
-       JOIN users u ON o.user_id = u.id 
-       LEFT JOIN addresses a ON o.address_id = a.id
+    const orderId = req.params.id
+    console.log('Getting details for order:', orderId)
+    
+    const [orderDetails] = await pool.query(
+      `SELECT o.*, u.fullname as customer_name,
+       (SELECT JSON_ARRAYAGG(
+         JSON_OBJECT(
+           'id', oi.id,
+           'product_name', p.name,
+           'quantity', oi.quantity,
+           'price', oi.price
+         )
+       ) FROM orderitems oi 
+       JOIN products p ON oi.product_id = p.id 
+       WHERE oi.order_id = o.id) as items
+       FROM orders o
+       JOIN users u ON o.user_id = u.id
        WHERE o.id = ?`,
-      [req.params.id]
-    );
-
-    if (order.length === 0) {
-      return res.status(404).json({ message: 'Đơn hàng không tồn tại' });
+      [orderId]
+    )
+    
+    console.log('Order details from DB:', orderDetails[0])
+    
+    if (!orderDetails[0]) {
+      return res.status(404).json({ message: 'Không tìm thấy đơn hàng' })
     }
 
-    const [orderItems] = await pool.query(
-      `SELECT oi.*, p.name as product_name, pv.name as variant_name
-       FROM orderitems oi 
-       JOIN products p ON oi.product_id = p.id 
-       LEFT JOIN productvariants pv ON oi.variant_id = pv.id
-       WHERE oi.order_id = ?`,
-      [req.params.id]
-    );
-
-    const totalPrice = orderItems.reduce((total, item) => total + (item.price * item.quantity), 0);
-    res.json({ 
-      ...order[0], 
-      items: orderItems,
-      totalPrice,
-      address: {
-        address_line1: order[0].address_line1,
-        address_line2: order[0].address_line2,
-        city: order[0].city,
-        state: order[0].state,
-        postal_code: order[0].postal_code,
-        country: order[0].country
-      }
-    });
+    res.json(orderDetails[0])
   } catch (error) {
-    console.error('Lỗi lấy chi tiết đơn hàng:', error);
-    res.status(500).json({ message: 'Lỗi lấy chi tiết đơn hàng', error: error.message });
+    console.error('Error getting order details:', error)
+    res.status(500).json({ 
+      message: 'Lỗi lấy chi tiết đơn hàng',
+      error: error.message 
+    })
   }
 });
 router.put('/orders/:id/status', authenticateJWT, checkAdminRole, async (req, res) => {
@@ -178,7 +179,10 @@ router.get('/orders/status/:status', authenticateJWT, checkAdminRole, async (req
   
       const [orders, [totalCount]] = await Promise.all([
         pool.query(
-          `SELECT o.*, u.fullname as customer_name 
+          `SELECT o.*, u.fullname as customer_name,
+           (SELECT SUM(oi.price * oi.quantity) 
+            FROM orderitems oi 
+            WHERE oi.order_id = o.id) as total_price
            FROM orders o 
            JOIN users u ON o.user_id = u.id 
            WHERE o.status = ?
@@ -189,8 +193,14 @@ router.get('/orders/status/:status', authenticateJWT, checkAdminRole, async (req
         pool.query('SELECT COUNT(*) as count FROM orders WHERE status = ?', [status])
       ]);
   
+      // Format total_price to number
+      const formattedOrders = orders[0].map(order => ({
+        ...order,
+        total_price: parseFloat(order.total_price) || 0
+      }));
+  
       res.json({
-        orders: orders[0],
+        orders: formattedOrders,
         currentPage: page,
         totalPages: Math.ceil(totalCount[0].count / limit),
         totalOrders: totalCount[0].count,

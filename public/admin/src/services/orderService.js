@@ -15,15 +15,6 @@ export const orderService = {
     }
   },
 
-  getOrderDetails: async (orderId) => {
-    try {
-      const response = await api.get(`/orders/${orderId}`)
-      return response.data
-    } catch (error) {
-      throw error.response?.data || error.message
-    }
-  },
-
   updateOrderStatus: async (orderId, status) => {
     try {
       const response = await api.put(`/orders/${orderId}/status`, { status })
@@ -39,6 +30,32 @@ export const orderService = {
       return response.data
     } catch (error) {
       throw error.response?.data || error.message
+    }
+  },
+
+  async getOrderDetail(orderId) {
+    try {
+      console.log('Calling API with orderId:', orderId)
+      
+      const response = await api.get(`/orders/${orderId}`)
+      console.log('Raw API Response:', response)
+      
+      if (!response.data) {
+        throw new Error('Không có dữ liệu trả về')
+      }
+      
+      const orderData = {
+        ...response.data,
+        items: response.data.items || [],
+        customer: response.data.customer || {},
+        address: response.data.address || {}
+      }
+      
+      console.log('Transformed order data:', orderData)
+      return orderData
+    } catch (error) {
+      console.error('Error in getOrderDetail:', error)
+      throw error
     }
   }
 }
