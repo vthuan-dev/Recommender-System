@@ -6,6 +6,7 @@ import Dashboard from '../views/Dashboard.vue';
 import Settings from '../components/settings/Settings.vue';
 import ProductManager from '../components/products/ProductManager.vue';
 import Orders from '../views/Orders.vue';
+import Customers from '../components/users/Customers.vue';
 
 const routes = [
   {
@@ -51,7 +52,13 @@ const routes = [
           title: 'Quản lý đơn hàng'
         }
       }
+     
     ]
+  },
+  {
+    path: '/customers',
+    name: 'Customers',
+    component: Customers
   },
   {
     path: '/:pathMatch(.*)*',

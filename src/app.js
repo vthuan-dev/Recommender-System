@@ -83,10 +83,11 @@ app.use('/api', [
 ]);
 app.use('/api/admin', [
     productManagementRoutes,
-    userManageRoutes,
+
     orderManagementRoutes,
     adminAuthRoutes
 ]);
+app.use('/api/admin', userManageRoutes);
 // Middleware xử lý lỗi
 app.use((err, req, res, next) => {
     console.error(err.stack);

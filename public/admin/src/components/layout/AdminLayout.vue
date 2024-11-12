@@ -50,7 +50,7 @@
           active-class="active"
         >
           <i class="fas fa-cog"></i>
-          <span>{{ $t('menu.settings') }}</span>
+          <span>Cài đặt</span>
         </router-link>
 
         <button @click="logout" class="nav-item logout-btn">
