@@ -43,15 +43,115 @@ router.get('/products/bestsellers', async (req, res) => {
 
 
 router.get('/products', async (req, res) => {
-    try {
-      const [products] = await pool.query('SELECT * FROM products');
-      res.json(products);
-    } catch (error) {
-      res.status(500).json({ message: 'Lỗi lấy danh sách sản phẩm', error: error.message });
+  try {
+    const [products] = await pool.query(`
+      SELECT 
+        p.*,
+        b.name as brand_name,
+        c.name as category_name,
+        MIN(pv.price) as min_price,
+        MAX(pv.price) as max_price,
+        SUM(pv.sold_count) as total_sold,
+        (SELECT AVG(rating) FROM reviews r WHERE r.product_id = p.id) as avg_rating,
+        (SELECT COUNT(*) FROM reviews r WHERE r.product_id = p.id) as review_count
+      FROM products p
+      LEFT JOIN brands b ON p.brand_id = b.id
+      LEFT JOIN categories c ON p.category_id = c.id
+      LEFT JOIN productvariants pv ON p.id = pv.product_id
+      GROUP BY p.id
+    `);
+    
+    res.json(products);
+  } catch (error) {
+    console.error('Lỗi khi lấy danh sách sản phẩm:', error);
+    res.status(500).json({ message: 'Lỗi lấy danh sách sản phẩm', error: error.message });
+  }
+});
+
+// API lọc sản phẩm với phân trang
+router.get('/products/filter', async (req, res) => {
+  try {
+    const { 
+      minPrice, 
+      maxPrice, 
+      category,
+      brand,
+      sortBy = 'created_at',
+      sortOrder = 'DESC',
+      page = 1,
+      limit = 12
+    } = req.query;
+
+    let sql = `
+      SELECT 
+        p.*,
+        b.name as brand_name,
+        MIN(pv.price) as min_price,
+        MAX(pv.price) as max_price,
+        SUM(pv.sold_count) as total_sold
+      FROM products p
+      LEFT JOIN brands b ON p.brand_id = b.id
+      LEFT JOIN productvariants pv ON p.id = pv.product_id
+      WHERE 1=1
+    `;
+    const params = [];
+
+    if (minPrice) {
+      sql += ' AND pv.price >= ?';
+      params.push(minPrice);
     }
-  });
-  
-  router.get('/products/:id', async (req, res) => {
+    if (maxPrice) {
+      sql += ' AND pv.price <= ?';
+      params.push(maxPrice);
+    }
+    if (category) {
+      sql += ' AND p.category_id = ?';
+      params.push(category);
+    }
+    if (brand) {
+      sql += ' AND p.brand_id = ?';
+      params.push(brand);
+    }
+
+    sql += ' GROUP BY p.id';
+
+    // Sắp xếp
+    const allowedSortFields = ['created_at', 'name'];
+    if (allowedSortFields.includes(sortBy)) {
+      sql += ` ORDER BY p.${sortBy} ${sortOrder}`;
+    }
+
+    // Phân trang
+    const offset = (page - 1) * limit;
+    sql += ' LIMIT ? OFFSET ?';
+    params.push(parseInt(limit), offset);
+
+    const [products] = await pool.query(sql, params);
+    
+    // Đếm tổng số sản phẩm
+    const [countResult] = await pool.query(
+      'SELECT COUNT(*) as total FROM products p WHERE 1=1' + 
+      (category ? ' AND p.category_id = ?' : '') +
+      (brand ? ' AND p.brand_id = ?' : ''),
+      [category, brand].filter(Boolean)
+    );
+
+    res.json({
+      products,
+      pagination: {
+        currentPage: parseInt(page),
+        totalPages: Math.ceil(countResult[0].total / limit),
+        totalItems: countResult[0].total,
+        itemsPerPage: parseInt(limit)
+      }
+    });
+  } catch (error) {
+    console.error('Lỗi khi lọc sản phẩm:', error);
+    res.status(500).json({ message: 'Lỗi lọc sản phẩm', error: error.message });
+  }
+});
+
+router.get('/products/:id', async (req, res) => {
     try {
       const [products] = await pool.query('SELECT * FROM products WHERE id = ?', [req.params.id]);
       if (products.length === 0) {
@@ -361,4 +461,51 @@ router.get('/products/category/:categoryId', async (req, res) => {
     });
   }
 });
+
+// Thêm sản phẩm vào danh sách yêu thích
+router.post('/favorites', authenticateJWT, async (req, res) => {
+  try {
+    const { productId } = req.body;
+    const userId = req.user.userId;
+
+    // Kiểm tra sản phẩm đã được yêu thích chưa
+    const [existing] = await pool.query(
+      'SELECT * FROM favorites WHERE user_id = ? AND product_id = ?',
+      [userId, productId]
+    );
+
+    if (existing.length > 0) {
+      return res.status(400).json({ message: 'Sản phẩm đã có trong danh sách yêu thích' });
+    }
+
+    await pool.query(
+      'INSERT INTO favorites (user_id, product_id) VALUES (?, ?)',
+      [userId, productId]
+    );
+
+    res.json({ message: 'Đã thêm vào danh sách yêu thích' });
+  } catch (error) {
+    res.status(500).json({ message: 'Lỗi khi thêm vào yêu thích', error: error.message });
+  }
+});
+
+// Lấy danh sách sản phẩm yêu thích
+router.get('/favorites', authenticateJWT, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const [favorites] = await pool.query(`
+      SELECT p.*, b.name as brand_name
+      FROM favorites f
+      JOIN products p ON f.product_id = p.id
+      LEFT JOIN brands b ON p.brand_id = b.id
+      WHERE f.user_id = ?
+    `, [userId]);
+    
+    res.json(favorites);
+  } catch (error) {
+    res.status(500).json({ message: 'Lỗi khi lấy danh sách yêu thích', error: error.message });
+  }
+});
+
+
 module.exports = router;

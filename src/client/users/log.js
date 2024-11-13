@@ -6,10 +6,33 @@ const path = require('path');
 const fs = require('fs');
 const dotenv = require('dotenv');
 const router = express.Router();
-const bodyParser = require('body-parser');
 const cors = require('cors');
 
 dotenv.config();
+
+// Cấu hình CORS chi tiết
+const corsOptions = {
+  origin: 'http://localhost:8080',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
+  optionsSuccessStatus: 200
+};
+
+// Áp dụng CORS cho tất cả các routes
+router.use(cors(corsOptions));
+
+// Middleware xử lý preflight requests
+router.options('*', cors(corsOptions));
+
+// Middleware xử lý headers cho mọi request
+router.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', 'http://localhost:8080');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  next();
+});
 
 router.get('/dangky', (req, res) => {
     const filePath = path.join(__dirname, '../../../public/dangnhap-dangky/dangky.html');

@@ -240,7 +240,7 @@ router.post('/orders', authenticateJWT, async (req, res) => {
       }
   
       if (orderResult[0].status !== 'pending') {
-        return res.status(400).json({ message: 'Không thể hủy đơn hàng ở trạng thái này' });
+        return res.status(400).json({ message: 'Không thể hủy đơn hàng ở tr��ng thái này' });
       }
   
       await connection.query('UPDATE orders SET status = "cancelled" WHERE id = ?', [orderId]);
@@ -411,6 +411,33 @@ router.post('/orders/:orderId/products/:productId/review', authenticateJWT, asyn
       res.status(500).json({ message: 'Lỗi xóa đánh giá', error: error.message });
     } finally {
       connection.release();
+    }
+  });
+
+  // Lấy trạng thái đơn hàng
+  router.get('/orders/:orderId/status', authenticateJWT, async (req, res) => {
+    try {
+      const { orderId } = req.params;
+      const userId = req.user.userId;
+      
+      const [order] = await pool.query(`
+        SELECT o.id, o.status, o.created_at, o.updated_at,
+          COUNT(oi.id) as total_items,
+          SUM(oi.quantity) as total_quantity
+        FROM orders o
+        JOIN orderitems oi ON o.id = oi.order_id
+        WHERE o.id = ? AND o.user_id = ?
+        GROUP BY o.id`,
+        [orderId, userId]
+      );
+      
+      if (order.length === 0) {
+        return res.status(404).json({ message: 'Không tìm thấy đơn hàng' });
+      }
+      
+      res.json(order[0]);
+    } catch (error) {
+      res.status(500).json({ message: 'Lỗi lấy trạng thái đơn hàng', error: error.message });
     }
   });
 
