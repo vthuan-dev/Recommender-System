@@ -7,6 +7,8 @@ const fs = require('fs');
 const dotenv = require('dotenv');
 const router = express.Router();
 const cors = require('cors');
+const { OAuth2Client } = require('google-auth-library');
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 dotenv.config();
 
@@ -121,6 +123,73 @@ router.post('/login-client', async (req, res) => {
     res.json({ token, userId: user.id, fullname: user.fullname, role: user.role_name });
   } catch (error) {
     res.status(500).json({ message: 'Lỗi đăng nhập', error: error.message });
+  }
+});
+
+router.post('/google-auth', async (req, res) => {
+  try {
+    const { token } = req.body;
+    const ticket = await client.verifyIdToken({
+      idToken: token,
+      audience: process.env.GOOGLE_CLIENT_ID
+    });
+
+    const { sub, email, name, picture } = ticket.getPayload();
+
+    // Kiểm tra user có tồn tại
+    const [users] = await pool.query(
+      'SELECT * FROM users WHERE google_id = ? OR email = ?',
+      [sub, email]
+    );
+
+    let user;
+    if (users.length === 0) {
+      // Tạo user mới với role customer
+      const [customerRole] = await pool.query(
+        'SELECT id FROM roles WHERE name = ?', 
+        ['customer']
+      );
+      
+      const [result] = await pool.query(
+        `INSERT INTO users (fullname, email, google_id, avatar_url, role_id) 
+         VALUES (?, ?, ?, ?, ?)`,
+        [name, email, sub, picture, customerRole[0].id]
+      );
+
+      const [newUser] = await pool.query(
+        'SELECT * FROM users WHERE id = ?', 
+        [result.insertId]
+      );
+      user = newUser[0];
+    } else {
+      user = users[0];
+      // Cập nhật google_id nếu user đăng ký bằng email
+      if (!user.google_id) {
+        await pool.query(
+          'UPDATE users SET google_id = ?, avatar_url = ? WHERE id = ?',
+          [sub, picture, user.id]
+        );
+      }
+    }
+
+    // Tạo JWT token
+    const authToken = jwt.sign(
+      { userId: user.id, role: 'customer' },
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' }
+    );
+
+    res.json({
+      token: authToken,
+      userId: user.id,
+      fullname: user.fullname,
+      email: user.email,
+      avatar: user.avatar_url
+    });
+
+  } catch (error) {
+    console.error('Google auth error:', error);
+    res.status(500).json({ message: 'Lỗi xác thực Google' });
   }
 });
 
