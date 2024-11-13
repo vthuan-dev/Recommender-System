@@ -63,7 +63,7 @@
           <div class="social-login">
             <p>Hoặc đăng nhập với</p>
             <div class="social-buttons">
-              <button type="button" class="google-btn">
+              <button type="button" class="google-btn" @click="handleGoogleLogin">
                 <i class="fab fa-google"></i>
                 Google
               </button>
@@ -90,6 +90,7 @@
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useStore } from 'vuex';
+import Swal from 'sweetalert2'
 
 export default {
   name: 'LoginView',
@@ -129,13 +130,71 @@ export default {
       }
     };
 
+    const handleGoogleLogin = async () => {
+      try {
+        loading.value = true;
+        error.value = '';
+        
+        // Load Google API
+        await loadGoogleAPI();
+        
+        const googleAuth = window.google.accounts.oauth2.initTokenClient({
+          client_id: process.env.VUE_APP_GOOGLE_CLIENT_ID,
+          callback: async (response) => {
+            try {
+              // Gửi token đến server
+              await store.dispatch('googleLogin', response.access_token);
+              router.push('/');
+            } catch (err) {
+              error.value = 'Đăng nhập bằng Google thất bại';
+            } finally {
+              loading.value = false;
+            }
+          },
+          error_callback: (err) => {
+            error.value = 'Đăng nhập bằng Google thất bại';
+            loading.value = false;
+          }
+        });
+
+        googleAuth.requestAccessToken();
+
+      } catch (err) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Lỗi đăng nhập!',
+          text: err.message || 'Không thể kết nối với Google',
+          customClass: {
+            popup: 'custom-swal-popup',
+            title: 'custom-swal-title',
+            icon: 'custom-swal-icon',
+            content: 'custom-swal-content',
+            confirmButton: 'custom-swal-confirm-button'
+          },
+          buttonsStyling: false
+        });
+        loading.value = false;
+      }
+    };
+
+    const loadGoogleAPI = () => {
+      return new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = 'https://accounts.google.com/gsi/client';
+        script.onload = resolve;
+        script.onerror = reject;
+        document.head.appendChild(script);
+      });
+    };
+
     return {
       form,
       loading,
       showPassword,
       rememberMe,
       error,
-      handleLogin
+      handleLogin,
+      handleGoogleLogin
     };
   }
 };

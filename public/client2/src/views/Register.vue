@@ -92,7 +92,7 @@
               <span>Hoặc đăng ký với</span>
             </div>
             <div class="social-buttons">
-              <button type="button" class="social-btn google-btn">
+              <button type="button" class="social-btn google-btn" @click="handleGoogleRegister">
                 <i class="fab fa-google"></i>
                 Google
               </button>
@@ -118,7 +118,7 @@
 import { ref } from 'vue'
 import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
-import axiosInstance from '@/utils/axios';
+import Swal from 'sweetalert2'
 
 export default {
   name: 'RegisterView',
@@ -133,44 +133,151 @@ export default {
       confirmPassword: ''
     });
     
-    const error = ref('');
     const loading = ref(false);
     const showPassword = ref(false);
     const showConfirmPassword = ref(false);
 
-    const handleRegister = async () => {
-      try {
-        if (form.value.password !== form.value.confirmPassword) {
-          error.value = 'Mật khẩu xác nhận không khớp';
-          return;
-        }
-        
-        loading.value = true;
-        error.value = '';
+    // Hàm validate form
+    const validateForm = () => {
+      const errors = [];
+      
+      if (form.value.fullname.length < 2) {
+        errors.push('Họ tên phải có ít nhất 2 ký tự');
+      }
 
-        const response = await axiosInstance.post('/register-client', {
-          fullname: form.value.fullname,
-          phonenumber: form.value.phonenumber,
+      if (!form.value.email.match(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/)) {
+        errors.push('Email không đúng định dạng');
+      }
+
+      if (!form.value.phonenumber.match(/^0[0-9]{9}$/)) {
+        errors.push('Số điện thoại phải bắt đầu bằng số 0 và có 10 chữ số');
+      }
+
+      if (form.value.password.length < 6) {
+        errors.push('Mật khẩu phải có ít nhất 6 ký tự');
+      }
+
+      if (form.value.password !== form.value.confirmPassword) {
+        errors.push('Mật khẩu và xác nhận mật khẩu không khớp');
+      }
+
+      if (errors.length > 0) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Lỗi!',
+          html: errors.map(err => `<div class="custom-error">${err}</div>`).join(''),
+          customClass: {
+            popup: 'custom-swal-popup',
+            title: 'custom-swal-title',
+            icon: 'custom-swal-icon',
+            content: 'custom-swal-content',
+            confirmButton: 'custom-swal-confirm-button'
+          },
+          buttonsStyling: false
+        });
+        return false;
+      }
+      return true;
+    };
+
+    const handleRegister = async () => {
+      if (!validateForm()) return;
+
+      try {
+        loading.value = true;
+        
+        const response = await fetch('http://localhost:3000/api/register-client', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            fullname: form.value.fullname,
+            email: form.value.email,
+            phonenumber: form.value.phonenumber,
+            password: form.value.password
+          })
+        });
+
+        const data = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(data.message || 'Đăng ký thất bại');
+        }
+
+        await Swal.fire({
+          icon: 'success',
+          title: 'Đăng ký thành công!',
+          text: 'Chào mừng bạn đến với hệ thống của chúng tôi',
+          timer: 2000,
+          timerProgressBar: true,
+          showConfirmButton: false,
+          customClass: {
+            popup: 'custom-swal-popup',
+            title: 'custom-swal-title',
+            icon: 'custom-swal-icon',
+            content: 'custom-swal-content'
+          }
+        });
+
+        await store.dispatch('login', {
           email: form.value.email,
           password: form.value.password
         });
 
-        store.commit('setRegistrationSuccess', response.data);
-        router.push('/login');
-      } catch (err) {
-        error.value = err.response?.data?.message || 'Có lỗi xảy ra khi đăng ký';
+        router.push('/');
+      } catch (error) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Lỗi đăng ký!',
+          text: error.message || 'Không thể kết nối đến server',
+          customClass: {
+            popup: 'custom-swal-popup',
+            title: 'custom-swal-title',
+            icon: 'custom-swal-icon',
+            content: 'custom-swal-content',
+            confirmButton: 'custom-swal-confirm-button'
+          },
+          buttonsStyling: false
+        });
       } finally {
         loading.value = false;
       }
     };
 
+    const handleGoogleRegister = async () => {
+      try {
+        const response = await store.dispatch('googleLogin');
+        if (response.success) {
+          Swal.fire({
+            icon: 'success',
+            title: 'Đăng nhập thành công!',
+            text: 'Đăng nhập bằng Google thành công',
+            confirmButtonText: 'Đồng ý',
+            confirmButtonColor: '#667eea'
+          });
+          router.push('/');
+        }
+      } catch (err) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Lỗi!',
+          text: 'Đăng nhập bằng Google thất bại',
+          confirmButtonText: 'Đóng',
+          confirmButtonColor: '#667eea'
+        });
+      }
+    };
+
     return {
       form,
-      error,
       loading,
       showPassword,
       showConfirmPassword,
-      handleRegister
+      handleRegister,
+      handleGoogleRegister
     };
   }
 }
@@ -425,5 +532,39 @@ export default {
 
 .error-message i {
   font-size: 16px;
+}
+
+/* Add these styles for SweetAlert customization */
+.custom-swal-popup {
+  font-family: 'Roboto', sans-serif;
+  border-radius: 15px;
+}
+
+.custom-swal-title {
+  color: #2d3748;
+  font-weight: 600;
+}
+
+.custom-swal-icon {
+  border-color: #667eea !important;
+}
+
+.custom-swal-content {
+  color: #4a5568;
+}
+
+.custom-error {
+  color: #e53e3e;
+  margin: 8px 0;
+  text-align: left;
+  padding-left: 20px;
+}
+
+.custom-swal-confirm-button {
+  background-color: #667eea !important;
+  color: white;
+  border-radius: 8px;
+  padding: 10px 24px;
+  font-weight: 500;
 }
 </style>

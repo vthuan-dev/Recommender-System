@@ -59,50 +59,109 @@ router.post('/register-client', async (req, res) => {
   try {
     const { fullname, phonenumber, email, password } = req.body;
     
-    // Kiểm tra dữ liệu đầu vào
-    if (!fullname || !phonenumber || !email || !password) {
-      return res.status(400).json({ message: 'Vui lòng điền đầy đủ thông tin' });
+    // Validate dữ liệu đầu vào
+    if (!fullname || !email || !password || !phonenumber) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'Vui lòng điền đầy đủ thông tin' 
+      });
+    }
+
+    // Validate email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'Email không đúng định dạng' 
+      });
+    }
+
+    // Validate số điện thoại
+    if (!/^[0-9]{10}$/.test(phonenumber)) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'Số điện thoại phải có 10 chữ số' 
+      });
     }
     
-    // Kiểm tra xem email đã tồn tại chưa
-    const [existingUsers] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
+    // Kiểm tra email tồn tại
+    const [existingUsers] = await pool.query(
+      'SELECT id FROM users WHERE email = ?', 
+      [email]
+    );
+    
     if (existingUsers.length > 0) {
-      return res.status(400).json({ message: 'Email đã được sử dụng' });
+      return res.status(400).json({ 
+        success: false,
+        message: 'Email này đã được sử dụng' 
+      });
     }
     
-    // Kiểm tra xem số điện thoại đã tồn tại chưa
-    const [existingPhones] = await pool.query('SELECT * FROM users WHERE phonenumber = ?', [phonenumber]);
+    // Kiểm tra số điện thoại
+    const [existingPhones] = await pool.query(
+      'SELECT id FROM users WHERE phonenumber = ?', 
+      [phonenumber]
+    );
+    
     if (existingPhones.length > 0) {
-      return res.status(400).json({ message: 'Số điện thoại đã được sử dụng' });
+      return res.status(400).json({ 
+        success: false,
+        message: 'Số điện thoại này đã được sử dụng' 
+      });
     }
     
     // Mã hóa mật khẩu
     const hashedPassword = await bcrypt.hash(password, 10);
     
-    // Lấy role_id và role_name cho "customer"
-    const [customerRole] = await pool.query('SELECT id, name FROM roles WHERE name = ?', ['customer']);
-    if (customerRole.length === 0) {
-      return res.status(500).json({ message: 'Lỗi hệ thống: Không tìm thấy vai trò khách hàng' });
-    }
-    const customerRoleId = customerRole[0].id;
-    const customerRoleName = customerRole[0].name;
+    // Lấy role_id cho customer
+    const [roles] = await pool.query(
+      'SELECT id FROM roles WHERE name = ?',
+      ['customer']
+    );
     
-    // Thêm người dùng mới vào cơ sở dữ liệu với role "customer"
+    if (roles.length === 0) {
+      return res.status(500).json({ 
+        success: false,
+        message: 'Lỗi hệ thống: Không tìm thấy role customer' 
+      });
+    }
+    
+    const customerRoleId = roles[0].id;
+    
+    // Thêm user mới
     const [result] = await pool.query(
-      'INSERT INTO users (fullname, phonenumber, email, password, role_id) VALUES (?, ?, ?, ?, ?)',
-      [fullname, phonenumber, email, hashedPassword, customerRoleId]
+      `INSERT INTO users (fullname, phonenumber, email, password, role_id) 
+       VALUES (?, ?, ?, ?, ?)`,
+      [fullname, phonenumber || null, email, hashedPassword, customerRoleId]
+    );
+    
+    // Log kết quả để debug
+    console.log('Registration successful:', result);
+
+    // Tạo token cho user mới
+    const token = jwt.sign(
+      { userId: result.insertId, role: 'customer' },
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' }
     );
     
     res.status(201).json({ 
-      userId: result.insertId, 
+      success: true,
+      token,
+      userId: result.insertId,
       fullname: fullname,
       email: email,
-      role: customerRoleName,
-      message: 'Đăng ký thành công' 
+      role: 'customer',
+      message: 'Đăng ký thành công'
     });
+
   } catch (error) {
-    console.error('Lỗi đăng ký:', error);
-    res.status(500).json({ message: 'Lỗi đăng ký', error: error.message });
+    console.error('Registration error:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Đã có lỗi xảy ra trong quá trình đăng ký', 
+      error: error.message 
+    });
   }
 });
 
