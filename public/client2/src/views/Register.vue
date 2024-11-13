@@ -1,113 +1,90 @@
 <template>
-  <div class="register-wrapper">
-    <div class="register-container">
-      <div class="register-card">
-        <!-- Logo và Header -->
-        <div class="register-header">
+  <div class="auth-wrapper">
+    <div class="auth-container">
+      <div class="auth-card">
+        <div class="auth-header">
           <div class="logo">
             <i class="fas fa-shopping-bag"></i>
           </div>
-          <h2>Tạo tài khoản mới</h2>
-          <p>Đăng ký để trải nghiệm mua sắm tốt nhất</p>
+          <h2>Tạo tài khoản</h2>
         </div>
 
-        <!-- Form đăng ký -->
-        <form @submit.prevent="handleRegister" class="register-form">
+        <form @submit.prevent="handleRegister" class="auth-form">
           <div class="form-group">
-            <label>
-              <i class="fas fa-user"></i>
-              <input
-                type="text"
-                v-model="form.fullname"
-                placeholder="Họ và tên"
-                required
-              />
-            </label>
+            <input
+              type="text"
+              v-model="form.fullname"
+              placeholder="Họ và tên"
+              required
+            />
+            <i class="fas fa-user"></i>
           </div>
 
           <div class="form-group">
-            <label>
-              <i class="fas fa-envelope"></i>
-              <input
-                type="email"
-                v-model="form.email"
-                placeholder="Email của bạn"
-                required
-              />
-            </label>
+            <input
+              type="email"
+              v-model="form.email"
+              placeholder="Email"
+              required
+            />
+            <i class="fas fa-envelope"></i>
           </div>
 
           <div class="form-group">
-            <label>
-              <i class="fas fa-phone"></i>
-              <input
-                type="tel"
-                v-model="form.phonenumber"
-                placeholder="Số điện thoại"
-                required
-                pattern="[0-9]{10}"
-              />
-            </label>
+            <input
+              type="tel"
+              v-model="form.phonenumber"
+              placeholder="Số điện thoại"
+              required
+              pattern="[0-9]{10}"
+            />
+            <i class="fas fa-phone"></i>
           </div>
 
           <div class="form-group">
-            <label>
-              <i class="fas fa-lock"></i>
-              <input
-                :type="showPassword ? 'text' : 'password'"
-                v-model="form.password"
-                placeholder="Mật khẩu"
-                required
-              />
-              <i 
-                :class="['fas', showPassword ? 'fa-eye-slash' : 'fa-eye', 'password-toggle']"
-                @click="showPassword = !showPassword"
-              ></i>
-            </label>
+            <input
+              :type="showPassword ? 'text' : 'password'"
+              v-model="form.password"
+              placeholder="Mật khẩu"
+              required
+            />
+            <i class="fas fa-lock"></i>
+            <i 
+              :class="['fas', showPassword ? 'fa-eye-slash' : 'fa-eye', 'toggle-password']"
+              @click="showPassword = !showPassword"
+            ></i>
           </div>
 
           <div class="form-group">
-            <label>
-              <i class="fas fa-lock"></i>
-              <input
-                :type="showConfirmPassword ? 'text' : 'password'"
-                v-model="form.confirmPassword"
-                placeholder="Xác nhận mật khẩu"
-                required
-              />
-              <i 
-                :class="['fas', showConfirmPassword ? 'fa-eye-slash' : 'fa-eye', 'password-toggle']"
-                @click="showConfirmPassword = !showConfirmPassword"
-              ></i>
-            </label>
+            <input
+              :type="showConfirmPassword ? 'text' : 'password'"
+              v-model="form.confirmPassword"
+              placeholder="Xác nhận mật khẩu"
+              required
+            />
+            <i class="fas fa-lock"></i>
+            <i 
+              :class="['fas', showConfirmPassword ? 'fa-eye-slash' : 'fa-eye', 'toggle-password']"
+              @click="showConfirmPassword = !showConfirmPassword"
+            ></i>
           </div>
 
-          <button type="submit" :disabled="loading" class="register-button">
+          <button type="submit" :disabled="loading" class="auth-button">
             <span v-if="!loading">Đăng ký</span>
             <div v-else class="spinner"></div>
           </button>
 
-          <div class="social-register">
-            <div class="divider">
-              <span>Hoặc đăng ký với</span>
-            </div>
-            <div class="social-buttons">
-              <button type="button" class="social-btn google-btn" @click="handleGoogleRegister">
-                <i class="fab fa-google"></i>
-                Google
-              </button>
-              <button type="button" class="social-btn facebook-btn">
-                <i class="fab fa-facebook-f"></i>
-                Facebook
-              </button>
-            </div>
+          <div class="social-auth">
+            <div class="divider">hoặc</div>
+            <button type="button" class="google-btn" @click="handleGoogleRegister">
+              <i class="fab fa-google"></i>
+              Tiếp tục với Google
+            </button>
           </div>
         </form>
 
-        <div class="register-footer">
-          <p>Đã có tài khoản? 
-            <router-link to="/login">Đăng nhập ngay</router-link>
-          </p>
+        <div class="auth-footer">
+          <p>Đã có tài khoản? <router-link to="/login">Đăng nhập</router-link></p>
         </div>
       </div>
     </div>
@@ -118,7 +95,7 @@
 import { ref } from 'vue'
 import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
-import Swal from 'sweetalert2'
+import CustomSweetAlert from '@/components/Common/CustomSweetAlert'
 
 export default {
   name: 'RegisterView',
@@ -138,7 +115,7 @@ export default {
     const showConfirmPassword = ref(false);
 
     // Hàm validate form
-    const validateForm = () => {
+    const validateForm = async () => {
       const errors = [];
       
       if (form.value.fullname.length < 2) {
@@ -162,19 +139,7 @@ export default {
       }
 
       if (errors.length > 0) {
-        Swal.fire({
-          icon: 'error',
-          title: 'Lỗi!',
-          html: errors.map(err => `<div class="custom-error">${err}</div>`).join(''),
-          customClass: {
-            popup: 'custom-swal-popup',
-            title: 'custom-swal-title',
-            icon: 'custom-swal-icon',
-            content: 'custom-swal-content',
-            confirmButton: 'custom-swal-confirm-button'
-          },
-          buttonsStyling: false
-        });
+        await CustomSweetAlert.validation(errors);
         return false;
       }
       return true;
@@ -207,20 +172,10 @@ export default {
           throw new Error(data.message || 'Đăng ký thất bại');
         }
 
-        await Swal.fire({
-          icon: 'success',
-          title: 'Đăng ký thành công!',
-          text: 'Chào mừng bạn đến với hệ thống của chúng tôi',
-          timer: 2000,
-          timerProgressBar: true,
-          showConfirmButton: false,
-          customClass: {
-            popup: 'custom-swal-popup',
-            title: 'custom-swal-title',
-            icon: 'custom-swal-icon',
-            content: 'custom-swal-content'
-          }
-        });
+        await CustomSweetAlert.success(
+          'Đăng ký thành công!',
+          'Chào mừng bạn đến với hệ thống của chúng tôi'
+        );
 
         await store.dispatch('login', {
           email: form.value.email,
@@ -229,46 +184,18 @@ export default {
 
         router.push('/');
       } catch (error) {
-        Swal.fire({
-          icon: 'error',
-          title: 'Lỗi đăng ký!',
-          text: error.message || 'Không thể kết nối đến server',
-          customClass: {
-            popup: 'custom-swal-popup',
-            title: 'custom-swal-title',
-            icon: 'custom-swal-icon',
-            content: 'custom-swal-content',
-            confirmButton: 'custom-swal-confirm-button'
-          },
-          buttonsStyling: false
-        });
+        CustomSweetAlert.error(
+          'Lỗi đăng ký!',
+          error.message || 'Không thể kết nối đến server'
+        );
       } finally {
         loading.value = false;
       }
     };
 
-    const handleGoogleRegister = async () => {
-      try {
-        const response = await store.dispatch('googleLogin');
-        if (response.success) {
-          Swal.fire({
-            icon: 'success',
-            title: 'Đăng nhập thành công!',
-            text: 'Đăng nhập bằng Google thành công',
-            confirmButtonText: 'Đồng ý',
-            confirmButtonColor: '#667eea'
-          });
-          router.push('/');
-        }
-      } catch (err) {
-        Swal.fire({
-          icon: 'error',
-          title: 'Lỗi!',
-          text: 'Đăng nhập bằng Google thất bại',
-          confirmButtonText: 'Đóng',
-          confirmButtonColor: '#667eea'
-        });
-      }
+    const handleGoogleRegister = () => {
+      loading.value = true;
+      window.location.href = 'http://localhost:3000/api/auth/google';
     };
 
     return {
@@ -284,287 +211,179 @@ export default {
 </script>
 
 <style scoped>
-.register-wrapper {
+.auth-wrapper {
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #f7fafc;
   padding: 20px;
 }
 
-.register-container {
+.auth-container {
   width: 100%;
-  max-width: 480px;
+  max-width: 400px;
 }
 
-.register-card {
+.auth-card {
   background: white;
-  padding: 40px;
-  border-radius: 20px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  border-radius: 16px;
+  padding: 32px;
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
 }
 
-.register-header {
+.auth-header {
   text-align: center;
-  margin-bottom: 30px;
+  margin-bottom: 32px;
 }
 
 .logo {
-  width: 70px;
-  height: 70px;
+  width: 60px;
+  height: 60px;
+  margin: 0 auto 16px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 50%;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto 20px;
 }
 
 .logo i {
-  font-size: 30px;
+  font-size: 28px;
   color: white;
 }
 
-.register-header h2 {
+.auth-header h2 {
   font-size: 24px;
-  color: #2d3748;
-  margin-bottom: 8px;
-}
-
-.register-header p {
-  color: #718096;
-  font-size: 16px;
+  color: #1a202c;
+  margin: 0;
 }
 
 .form-group {
   position: relative;
-  margin-bottom: 20px;
-}
-
-.form-group label {
-  display: flex;
-  align-items: center;
-  background: #f8fafc;
-  border-radius: 10px;
-  padding: 5px 15px;
-  transition: all 0.3s ease;
-}
-
-.form-group label:focus-within {
-  background: white;
-  box-shadow: 0 0 0 2px #667eea;
-}
-
-.form-group i:not(.password-toggle) {
-  color: #a0aec0;
-  font-size: 18px;
-  width: 24px;
+  margin-bottom: 16px;
 }
 
 .form-group input {
-  border: none;
-  background: transparent;
-  padding: 12px;
   width: 100%;
+  padding: 12px 40px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: all 0.3s;
+}
+
+.form-group input:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102,126,234,0.1);
   outline: none;
-  font-size: 16px;
 }
 
-.password-toggle {
-  cursor: pointer;
-  color: #a0aec0;
-  transition: color 0.3s ease;
+.form-group i:not(.toggle-password) {
   position: absolute;
-  right: 15px;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #a0aec0;
 }
 
-.password-toggle:hover {
-  color: #667eea;
-}
-
-.register-button {
-  width: 100%;
-  padding: 14px;
-  border: none;
-  border-radius: 10px;
-  background: linear-gradient(to right, #667eea, #764ba2);
-  color: white;
-  font-weight: 600;
-  font-size: 16px;
+.toggle-password {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #a0aec0;
   cursor: pointer;
-  transition: all 0.3s ease;
-  margin-bottom: 25px;
 }
 
-.register-button:hover {
+.auth-button {
+  width: 100%;
+  padding: 12px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.auth-button:hover {
+  opacity: 0.95;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 }
 
-.register-button:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-  transform: none;
+.social-auth {
+  margin-top: 24px;
 }
 
 .divider {
   text-align: center;
   position: relative;
-  margin: 25px 0;
+  margin: 20px 0;
+  color: #a0aec0;
+  font-size: 14px;
 }
 
 .divider::before,
 .divider::after {
-  content: "";
+  content: '';
   position: absolute;
   top: 50%;
-  width: calc(50% - 60px);
+  width: 45%;
   height: 1px;
   background: #e2e8f0;
 }
 
-.divider::before {
-  left: 0;
-}
+.divider::before { left: 0; }
+.divider::after { right: 0; }
 
-.divider::after {
-  right: 0;
-}
-
-.divider span {
-  background: white;
-  padding: 0 15px;
-  color: #718096;
-  font-size: 14px;
-}
-
-.social-buttons {
-  display: flex;
-  gap: 15px;
-}
-
-.social-btn {
-  flex: 1;
+.google-btn {
+  width: 100%;
   padding: 12px;
-  border: 2px solid #e2e8f0;
-  border-radius: 10px;
   background: white;
-  color: #4a5568;
-  font-weight: 500;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.3s;
+  font-size: 14px;
 }
 
-.social-btn:hover {
+.google-btn:hover {
   background: #f7fafc;
-  border-color: #cbd5e0;
-}
-
-.social-btn i {
-  font-size: 18px;
 }
 
 .google-btn i {
   color: #ea4335;
 }
 
-.facebook-btn i {
-  color: #1877f2;
-}
-
-.register-footer {
+.auth-footer {
   text-align: center;
-  margin-top: 30px;
+  margin-top: 24px;
+  font-size: 14px;
   color: #718096;
 }
 
-.register-footer a {
+.auth-footer a {
   color: #667eea;
   text-decoration: none;
-  font-weight: 600;
-}
-
-.register-footer a:hover {
-  text-decoration: underline;
+  font-weight: 500;
 }
 
 .spinner {
   width: 20px;
   height: 20px;
-  border: 2px solid #ffffff;
+  border: 2px solid white;
   border-top: 2px solid transparent;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
-  margin: 0 auto;
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-@media (max-width: 480px) {
-  .register-card {
-    padding: 30px 20px;
-  }
-
-  .social-buttons {
-    flex-direction: column;
-  }
-}
-
-.error-message {
-  background-color: #fff5f5;
-  color: #c53030;
-  padding: 12px;
-  border-radius: 8px;
-  margin-bottom: 15px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-}
-
-.error-message i {
-  font-size: 16px;
-}
-
-/* Add these styles for SweetAlert customization */
-.custom-swal-popup {
-  font-family: 'Roboto', sans-serif;
-  border-radius: 15px;
-}
-
-.custom-swal-title {
-  color: #2d3748;
-  font-weight: 600;
-}
-
-.custom-swal-icon {
-  border-color: #667eea !important;
-}
-
-.custom-swal-content {
-  color: #4a5568;
-}
-
-.custom-error {
-  color: #e53e3e;
-  margin: 8px 0;
-  text-align: left;
-  padding-left: 20px;
-}
-
-.custom-swal-confirm-button {
-  background-color: #667eea !important;
-  color: white;
-  border-radius: 8px;
-  padding: 10px 24px;
-  font-weight: 500;
+  to { transform: rotate(360deg); }
 }
 </style>

@@ -1,28 +1,123 @@
 <template>
-  <header class="header-wrapper">
-    <!-- Top bar -->
+  <header>
+    <!-- Mobile Menu Button -->
+    <button class="mobile-menu-btn" @click="toggleMobileMenu">
+      <i class="fas fa-bars"></i>
+    </button>
+
+    <!-- Mobile Menu Overlay -->
+    <div class="mobile-overlay" :class="{ 'show': showMobileMenu }" @click="toggleMobileMenu"></div>
+
+    <!-- Mobile Menu -->
+    <div class="mobile-menu" :class="{ 'show': showMobileMenu }">
+      <div class="mobile-menu-header">
+        <div class="logo">
+          <i class="fas fa-microchip"></i>
+          <span>T-Store</span>
+        </div>
+        <button class="close-btn" @click="toggleMobileMenu">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <!-- Mobile User Info -->
+      <div class="mobile-user-info" v-if="isLoggedIn">
+        <div class="user-avatar">
+          <i class="fas fa-user-circle"></i>
+        </div>
+        <div class="user-details">
+          <span class="username">{{ username }}</span>
+          <small>Thành viên</small>
+        </div>
+      </div>
+      
+      <div class="mobile-search">
+        <div class="search-input">
+          <div class="search-box">
+            <!-- <i class="fas fa-search search-icon"></i> -->
+            <input 
+              type="text"
+              v-model="searchQuery"
+              placeholder="Tìm kiếm sản phẩm..."
+              @keyup.enter="handleSearch"
+            >
+            <button class="clear-btn" @click="clearSearch" v-if="searchQuery">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+          <button class="search-btn" @click="handleSearch">
+            <i class="fas fa-search"></i>
+          </button>
+        </div>
+      </div>
+
+      <nav class="mobile-nav">
+        <router-link to="/" @click="toggleMobileMenu" class="nav-item">
+          <i class="fas fa-home"></i>
+          <span>Trang chủ</span>
+        </router-link>
+        <router-link to="/categories" @click="toggleMobileMenu" class="nav-item">
+          <i class="fas fa-th-large"></i>
+          <span>Danh mục</span>
+        </router-link>
+        <router-link to="/wishlist" @click="toggleMobileMenu" class="nav-item">
+          <i class="fas fa-heart"></i>
+          <span>Yêu thích</span>
+          <span v-if="wishlistCount" class="badge">{{wishlistCount}}</span>
+        </router-link>
+        <router-link to="/cart" @click="toggleMobileMenu" class="nav-item">
+          <i class="fas fa-shopping-cart"></i>
+          <span>Giỏ hàng</span>
+          <span v-if="cartCount" class="badge">{{cartCount}}</span>
+        </router-link>
+      </nav>
+
+      <div class="mobile-actions">
+        <template v-if="!isLoggedIn">
+          <router-link to="/login" class="btn-login" @click="toggleMobileMenu">
+            <i class="fas fa-sign-in-alt"></i>
+            <span>Đăng nhập</span>
+          </router-link>
+        </template>
+        <template v-else>
+          <router-link to="/profile" class="action-item" @click="toggleMobileMenu">
+            <i class="fas fa-user"></i>
+            <span>Tài khoản của tôi</span>
+          </router-link>
+          <router-link to="/orders" class="action-item" @click="toggleMobileMenu">
+            <i class="fas fa-shopping-bag"></i>
+            <span>Đơn hàng</span>
+          </router-link>
+          <a @click="logout" class="action-item logout">
+            <i class="fas fa-sign-out-alt"></i>
+            <span>Đăng xuất</span>
+          </a>
+        </template>
+      </div>
+    </div>
+
+    <!-- Top Bar -->
     <div class="top-bar">
       <div class="container">
-        <div class="d-flex justify-content-between align-items-center">
-          <!-- Contact Info -->
-          <div class="contact-info d-none d-md-flex align-items-center">
-            <a href="tel:1900xxxx" class="top-link">
+        <div class="top-bar-content">
+          <div class="contact-info">
+            <a href="tel:1900xxxx">
               <i class="fas fa-phone-alt"></i>
               <span>1900 xxxx</span>
             </a>
-            <a href="mailto:support@tstore.com" class="top-link">
+            <span class="divider">|</span>
+            <a href="mailto:support@tstore.com">
               <i class="fas fa-envelope"></i>
               <span>support@tstore.com</span>
             </a>
           </div>
-          
-          <!-- Quick Links -->
-          <div class="quick-links">
-            <a href="/track-order" class="top-link">
+          <div class="top-links">
+            <a href="/track-order">
               <i class="fas fa-truck"></i>
               <span>Theo dõi đơn hàng</span>
             </a>
-            <a href="/stores" class="top-link">
+            <span class="divider">|</span>
+            <a href="/stores">
               <i class="fas fa-map-marker-alt"></i>
               <span>Hệ thống cửa hàng</span>
             </a>
@@ -35,17 +130,23 @@
     <div class="main-header">
       <div class="container">
         <div class="header-content">
-          <!-- Logo -->
           <router-link to="/" class="logo">
             <i class="fas fa-microchip"></i>
             <span>T-Store</span>
           </router-link>
 
-          <!-- Search Bar -->
-          <div class="search-container">
-            <div class="search-box">
+          <div class="search-bar">
+            <div class="category-select">
+              <select v-model="selectedCategory">
+                <option value="">Tất cả danh mục</option>
+                <option v-for="cat in categories" :key="cat.id" :value="cat.id">
+                  {{ cat.name }}
+                </option>
+              </select>
+            </div>
+            <div class="search-input">
               <input 
-                type="text" 
+                type="text"
                 v-model="searchQuery"
                 @keyup.enter="handleSearch"
                 placeholder="Tìm kiếm sản phẩm..."
@@ -56,60 +157,87 @@
             </div>
           </div>
 
-          <!-- User Actions -->
-          <div class="user-actions">
-            <!-- Wishlist -->
-            <router-link to="/wishlist" class="action-btn">
-              <div class="icon-wrapper">
+          <div class="header-actions">
+            <div class="action-item wishlist">
+              <router-link to="/wishlist">
                 <i class="fas fa-heart"></i>
-                <span v-if="wishlistCount" class="badge">{{ wishlistCount }}</span>
-              </div>
-              <span class="label">Yêu thích</span>
-            </router-link>
+                <span class="badge" v-if="wishlistCount">{{ wishlistCount }}</span>
+                <span class="label">Yêu thích</span>
+              </router-link>
+            </div>
 
-            <!-- Cart -->
-            <router-link to="/cart" class="action-btn">
-              <div class="icon-wrapper">
+            <div class="action-item cart">
+              <router-link to="/cart">
                 <i class="fas fa-shopping-cart"></i>
-                <span v-if="cartCount" class="badge">{{ cartCount }}</span>
-              </div>
-              <span class="label">Giỏ hàng</span>
-            </router-link>
-
-            <!-- User Menu -->
-            <template v-if="!isLoggedIn">
-              <router-link to="/login" class="auth-btn login">
-                Đăng nhập
+                <span class="badge" v-if="cartCount">{{ cartCount }}</span>
+                <span class="label">Giỏ hàng</span>
               </router-link>
-              <router-link to="/register" class="auth-btn register">
-                Đăng ký
-              </router-link>
-            </template>
+            </div>
 
-            <div v-else class="user-menu">
+            <div class="action-item user" v-if="!isLoggedIn">
+              <router-link to="/login" class="login-btn">
+                <i class="fas fa-user"></i>
+                <span>Đăng nhập</span>
+              </router-link>
+            </div>
+
+            <div class="action-item user-menu" v-else>
               <button class="user-btn" @click="toggleUserMenu">
-                <i class="fas fa-user-circle"></i>
-                <span>{{ username }}</span>
+                <div class="avatar">
+                  <img v-if="userAvatar" :src="userAvatar" :alt="username">
+                  <i v-else class="fas fa-user-circle"></i>
+                </div>
+                <span class="username">{{ username }}</span>
                 <i class="fas fa-chevron-down"></i>
               </button>
-              <div class="dropdown-menu" :class="{ 'show': showUserMenu }">
-                <router-link to="/profile" class="dropdown-item">
-                  <i class="fas fa-user"></i>
-                  <span>Tài khoản của tôi</span>
-                </router-link>
-                <router-link to="/orders" class="dropdown-item">
-                  <i class="fas fa-shopping-bag"></i>
-                  <span>Đơn hàng</span>
-                </router-link>
-                <router-link to="/addresses" class="dropdown-item">
-                  <i class="fas fa-map-marker-alt"></i>
-                  <span>Sổ địa chỉ</span>
-                </router-link>
-                <div class="dropdown-divider"></div>
-                <a @click="logout" class="dropdown-item text-danger">
-                  <i class="fas fa-sign-out-alt"></i>
-                  <span>Đăng xuất</span>
-                </a>
+
+              <div class="user-dropdown" :class="{ 'show': showUserMenu }">
+                <div class="profile-header">
+                  <div class="profile-avatar">
+                    <img v-if="userAvatar" :src="userAvatar" :alt="username">
+                    <i v-else class="fas fa-user-circle"></i>
+                    <span class="status-dot"></span>
+                  </div>
+                  <div class="profile-info">
+                    <h4 class="profile-name">{{ username }}</h4>
+                    <span class="profile-email">{{ userEmail }}</span>
+                  </div>
+                  <button class="logout-button" @click="logout" title="Đăng xuất">
+                    <i class="fas fa-sign-out-alt"></i>
+                  </button>
+                </div>
+
+                <div class="menu-options">
+                  <router-link to="/profile" class="menu-option">
+                    <div class="option-icon">
+                      <i class="fas fa-user"></i>
+                    </div>
+                    <div class="option-content">
+                      <span class="option-title">Tài khoản của tôi</span>
+                      <span class="option-desc">Quản lý thông tin cá nhân</span>
+                    </div>
+                  </router-link>
+
+                  <router-link to="/orders" class="menu-option">
+                    <div class="option-icon">
+                      <i class="fas fa-shopping-bag"></i>
+                    </div>
+                    <div class="option-content">
+                      <span class="option-title">Đơn hàng</span>
+                      <span class="option-desc">Xem lịch sử mua hàng</span>
+                    </div>
+                  </router-link>
+
+                  <router-link to="/addresses" class="menu-option">
+                    <div class="option-icon">
+                      <i class="fas fa-map-marker-alt"></i>
+                    </div>
+                    <div class="option-content">
+                      <span class="option-title">Sổ địa chỉ</span>
+                      <span class="option-desc">Quản lý địa chỉ giao hàng</span>
+                    </div>
+                  </router-link>
+                </div>
               </div>
             </div>
           </div>
@@ -123,6 +251,7 @@
 import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
+import CustomSweetAlert from '@/components/Common/CustomSweetAlert'
 
 export default {
   name: 'HeaderComponent',
@@ -131,6 +260,9 @@ export default {
     const router = useRouter()
     const searchQuery = ref('')
     const showUserMenu = ref(false)
+    const showMobileMenu = ref(false)
+    const selectedCategory = ref('')
+    const categories = ref([])
 
     const isLoggedIn = computed(() => store.getters.isAuthenticated)
     const username = computed(() => {
@@ -140,9 +272,19 @@ export default {
     const cartCount = computed(() => store.getters.cartCount)
     const wishlistCount = computed(() => store.getters.wishlistCount)
 
+    const toggleMobileMenu = () => {
+      showMobileMenu.value = !showMobileMenu.value
+      if (showMobileMenu.value) {
+        document.body.style.overflow = 'hidden'
+      } else {
+        document.body.style.overflow = 'auto'
+      }
+    }
+
     const handleSearch = () => {
       if (searchQuery.value.trim()) {
         router.push(`/search?q=${encodeURIComponent(searchQuery.value.trim())}`)
+        showMobileMenu.value = false
       }
     }
 
@@ -150,18 +292,39 @@ export default {
       showUserMenu.value = !showUserMenu.value
     }
 
-    const logout = () => {
-      store.dispatch('logout')
-      router.push('/login')
-      showUserMenu.value = false
+    const logout = async () => {
+      try {
+        await store.dispatch('logout')
+        showUserMenu.value = false
+        showMobileMenu.value = false
+        
+        await CustomSweetAlert.success(
+          'Đăng xuất thành công!',
+          'Hẹn gặp lại bạn!'
+        )
+        
+        setTimeout(() => {
+          router.push('/')
+        }, 2000)
+        
+      } catch (error) {
+        CustomSweetAlert.error(
+          'Lỗi!',
+          'Không thể đăng xuất. Vui lòng thử lại!'
+        )
+      }
     }
 
-    // Close dropdown when clicking outside
     const closeUserMenu = (e) => {
       if (!e.target.closest('.user-menu')) {
         showUserMenu.value = false
       }
     }
+
+    router.afterEach(() => {
+      showMobileMenu.value = false
+      document.body.style.overflow = 'auto'
+    })
 
     onMounted(() => {
       document.addEventListener('click', closeUserMenu)
@@ -169,17 +332,22 @@ export default {
 
     onUnmounted(() => {
       document.removeEventListener('click', closeUserMenu)
+      document.body.style.overflow = 'auto'
     })
 
     return {
       searchQuery,
+      selectedCategory,
+      categories,
       isLoggedIn,
       username,
       cartCount,
       wishlistCount,
       showUserMenu,
+      showMobileMenu,
       handleSearch,
       toggleUserMenu,
+      toggleMobileMenu,
       logout
     }
   }
@@ -187,177 +355,141 @@ export default {
 </script>
 
 <style scoped>
-.header-wrapper {
-  position: sticky;
-  top: 0;
-  z-index: 1000;
-  background: #fff;
-}
-
 .top-bar {
-  background: linear-gradient(to right, #1a237e, #0d47a1);
+  background: #f8f9fa;
   padding: 8px 0;
   font-size: 0.9rem;
+  border-bottom: 1px solid #eee;
 }
 
-.top-link {
-  color: rgba(255, 255, 255, 0.9);
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  margin-right: 20px;
-  transition: all 0.3s ease;
-}
-
-.top-link i {
-  margin-right: 8px;
-  font-size: 14px;
-}
-
-.top-link:hover {
-  color: #fff;
-  transform: translateY(-1px);
-}
-
-.main-header {
-  background: #fff;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-  padding: 15px 0;
-}
-
-.header-content {
+.top-bar-content {
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  gap: 30px;
-}
-
-.logo {
-  text-decoration: none;
-  color: #1a237e;
-  font-size: 1.8rem;
-  font-weight: 700;
-  display: flex;
   align-items: center;
-  gap: 10px;
-  transition: transform 0.3s ease;
 }
 
-.logo:hover {
-  transform: scale(1.05);
-}
-
-.search-container {
-  flex: 1;
-  max-width: 600px;
-}
-
-.search-box {
-  display: flex;
-  align-items: center;
-  background: #f5f5f5;
-  border-radius: 30px;
-  padding: 5px;
-  transition: all 0.3s ease;
-}
-
-.search-box:focus-within {
-  background: #fff;
-  box-shadow: 0 0 0 2px #1a237e;
-}
-
-.search-box input {
-  flex: 1;
-  border: none;
-  background: transparent;
-  padding: 10px 20px;
-  font-size: 1rem;
-  outline: none;
-}
-
-.search-box button {
-  background: #1a237e;
-  color: #fff;
-  border: none;
-  padding: 10px 25px;
-  border-radius: 25px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.search-box button:hover {
-  background: #0d47a1;
-  transform: translateX(2px);
-}
-
-.user-actions {
+.contact-info, .top-links {
   display: flex;
   align-items: center;
   gap: 20px;
 }
 
-.action-btn {
+.contact-info a, .top-links a {
+  color: #666;
   text-decoration: none;
-  color: #333;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: color 0.2s;
+}
+
+.contact-info a:hover, .top-links a:hover {
+  color: #1a73e8;
+}
+
+.divider {
+  color: #ddd;
+}
+
+.main-header {
+  padding: 20px 0;
+  background: white;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+}
+
+.header-content {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 40px;
+  align-items: center;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #1a73e8;
+  text-decoration: none;
+}
+
+.search-bar {
+  display: flex;
+  max-width: 600px;
+  width: 100%;
+  border: 2px solid #1a73e8;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.category-select {
+  width: 150px;
+  border-right: 1px solid #eee;
+}
+
+.category-select select {
+  width: 100%;
+  height: 100%;
+  border: none;
+  padding: 0 15px;
+  background: #f8f9fa;
+  cursor: pointer;
+}
+
+.search-input {
+  flex: 1;
+  display: flex;
+}
+
+.search-input input {
+  flex: 1;
+  border: none;
+  padding: 12px 15px;
+  outline: none;
+}
+
+.search-input button {
+  padding: 0 20px;
+  background: #1a73e8;
+  color: white;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.search-input button:hover {
+  background: #1557b0;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 25px;
+}
+
+.action-item {
+  position: relative;
+}
+
+.action-item a {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 5px;
-  transition: all 0.3s ease;
-}
-
-.action-btn:hover {
-  color: #1a237e;
-  transform: translateY(-2px);
-}
-
-.icon-wrapper {
-  position: relative;
-  font-size: 1.4rem;
+  text-decoration: none;
+  color: #333;
+  gap: 4px;
 }
 
 .badge {
   position: absolute;
   top: -8px;
   right: -8px;
-  background: #f50057;
-  color: #fff;
+  background: #1a73e8;
+  color: white;
   font-size: 0.7rem;
   padding: 2px 6px;
   border-radius: 10px;
-  border: 2px solid #fff;
-}
-
-.label {
-  font-size: 0.8rem;
-}
-
-.auth-btn {
-  text-decoration: none;
-  padding: 8px 20px;
-  border-radius: 25px;
-  font-weight: 500;
-  transition: all 0.3s ease;
-}
-
-.login {
-  color: #1a237e;
-  border: 2px solid #1a237e;
-}
-
-.login:hover {
-  background: #1a237e;
-  color: #fff;
-}
-
-.register {
-  background: #1a237e;
-  color: #fff;
-}
-
-.register:hover {
-  background: #0d47a1;
-  transform: translateY(-2px);
 }
 
 .user-menu {
@@ -373,98 +505,474 @@ export default {
   padding: 8px 15px;
   cursor: pointer;
   border-radius: 25px;
-  transition: all 0.3s ease;
+  transition: all 0.2s;
 }
 
 .user-btn:hover {
-  background: #f5f5f5;
+  background: #f5f7fa;
 }
 
-.dropdown-menu {
+.user-dropdown {
   position: absolute;
-  top: 100%;
+  top: calc(100% + 12px);
   right: 0;
-  width: 220px;
-  background: #fff;
-  border-radius: 10px;
-  box-shadow: 0 5px 25px rgba(0,0,0,0.1);
-  padding: 10px;
-  margin-top: 10px;
+  width: 320px;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
   opacity: 0;
   visibility: hidden;
-  transform: translateY(-10px);
-  transition: all 0.3s ease;
+  transform: translateY(-8px);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 1000;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.08);
 }
 
-.dropdown-menu.show {
+.user-dropdown.show {
   opacity: 1;
   visibility: visible;
   transform: translateY(0);
 }
 
-.dropdown-item {
+.profile-header {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 12px 15px;
+  padding: 24px;
+  background: linear-gradient(135deg, #1a73e8, #289fff);
+  color: white;
+  position: relative;
+}
+
+.profile-avatar {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  margin-right: 16px;
+}
+
+.profile-avatar img,
+.profile-avatar i {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  background: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+}
+
+.status-dot {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  width: 10px;
+  height: 10px;
+  background: #4caf50;
+  border: 2px solid white;
+  border-radius: 50%;
+}
+
+.profile-info {
+  flex: 1;
+}
+
+.profile-name {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0 0 4px 0;
+  letter-spacing: 0.3px;
+}
+
+.profile-email {
+  font-size: 0.85rem;
+  opacity: 0.9;
+}
+
+.logout-button {
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: white;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.logout-button:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: rotate(90deg);
+}
+
+.menu-options {
+  padding: 8px;
+}
+
+.menu-option {
+  display: flex;
+  align-items: center;
+  padding: 12px;
   color: #333;
   text-decoration: none;
-  border-radius: 8px;
-  transition: all 0.3s ease;
+  border-radius: 12px;
+  transition: all 0.2s ease;
+  gap: 16px;
 }
 
-.dropdown-item:hover {
-  background: #f5f5f5;
-  transform: translateX(5px);
+.menu-option:hover {
+  background: rgba(26, 115, 232, 0.04);
 }
 
-.dropdown-divider {
-  height: 1px;
-  background: #eee;
-  margin: 8px 0;
+.option-icon {
+  width: 40px;
+  height: 40px;
+  background: #f8fafc;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #1a73e8;
+  font-size: 1.2rem;
+  transition: all 0.2s ease;
 }
 
-.text-danger {
-  color: #dc3545;
+.menu-option:hover .option-icon {
+  background: #1a73e8;
+  color: white;
+  transform: scale(1.05);
 }
 
-.text-danger:hover {
-  background: #dc35451a;
+.option-content {
+  flex: 1;
 }
 
-@media (max-width: 992px) {
-  .label {
-    display: none;
+.option-title {
+  display: block;
+  font-weight: 500;
+  color: #1e293b;
+}
+
+.option-desc {
+  display: block;
+  font-size: 0.8rem;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.show {
+  animation: slideIn 0.2s ease forwards;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .dropdown-menu {
+    width: 280px;
   }
   
-  .search-container {
-    max-width: 400px;
+  .item-desc {
+    display: none;
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 992px) {
+  .header-content {
+    grid-template-columns: auto 1fr;
+  }
+  
+  .search-bar {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    margin-top: 15px;
+  }
+  
+  .category-select {
+    display: none;
   }
 }
 
 @media (max-width: 768px) {
-  .contact-info {
+  .top-bar {
     display: none;
   }
   
-  .header-content {
-    flex-wrap: wrap;
-  }
-  
-  .search-container {
-    order: 3;
-    max-width: 100%;
-    width: 100%;
-    margin-top: 15px;
-  }
-  
-  .user-actions {
+  .header-actions {
     gap: 15px;
   }
   
-  .auth-btn {
-    padding: 6px 15px;
-    font-size: 0.9rem;
+  .action-item .label {
+    display: none;
   }
+}
+
+/* Add new mobile styles */
+.mobile-menu-btn {
+  display: none;
+  position: fixed;
+  top: 15px;
+  left: 15px;
+  z-index: 1000;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: #333;
+}
+
+.mobile-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.5);
+  opacity: 0;
+  visibility: hidden;
+  transition: 0.3s;
+  z-index: 1000;
+}
+
+.mobile-overlay.show {
+  opacity: 1;
+  visibility: visible;
+}
+
+.mobile-menu {
+  position: fixed;
+  top: 0;
+  left: -100%;
+  width: 85%;
+  max-width: 360px;
+  height: 100vh;
+  background: white;
+  z-index: 1001;
+  transition: 0.3s ease-out;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.mobile-menu.show {
+  left: 0;
+  box-shadow: 5px 0 25px rgba(0,0,0,0.15);
+}
+
+.mobile-menu-header {
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #eee;
+}
+
+.mobile-user-info {
+  padding: 15px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #f8f9fa;
+}
+
+.mobile-search {
+  padding: 15px 20px;
+  border-bottom: 1px solid #eee;
+}
+
+.mobile-nav {
+  padding: 15px 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.nav-item {
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #333;
+  text-decoration: none;
+  transition: 0.2s;
+}
+
+.nav-item:hover {
+  background: #f8f9fa;
+  color: #4299e1;
+}
+
+.mobile-actions {
+  margin-top: auto;
+  padding: 20px;
+  border-top: 1px solid #eee;
+}
+
+.btn-login {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px;
+  background: #4299e1;
+  color: white;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .top-bar,
+  .main-header .search-bar,
+  .main-header .header-actions {
+    display: none;
+  }
+
+  .main-header {
+    padding: 15px 0;
+  }
+
+  .main-header .container {
+    padding-left: 60px;
+  }
+
+  .mobile-menu-btn {
+    display: block;
+  }
+}
+
+.search-button {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #1a73e8, #0d47a1);
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-weight: 500;
+  cursor: pointer;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(26, 115, 232, 0.2);
+}
+
+/* Icon style */
+.search-button i {
+  font-size: 1.1rem;
+  transition: transform 0.3s ease;
+}
+
+/* Text style */
+.button-text {
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Hover effect */
+.search-button:hover {
+  background: linear-gradient(135deg, #1557b0, #083275);
+  box-shadow: 0 4px 12px rgba(26, 115, 232, 0.3);
+  transform: translateY(-1px);
+}
+
+.search-button:hover i {
+  transform: scale(1.1);
+}
+
+/* Click effect */
+.search-button:active {
+  transform: translateY(1px);
+  box-shadow: 0 2px 4px rgba(26, 115, 232, 0.2);
+}
+
+/* Ripple effect */
+.button-effect {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: width 0.6s ease-out, height 0.6s ease-out;
+}
+
+.search-button:active .button-effect {
+  width: 200px;
+  height: 200px;
+  opacity: 0;
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+  .search-button {
+    padding: 10px 20px;
+  }
+  
+  .button-text {
+    display: none; /* Ẩn text trên mobile */
+  }
+  
+  .search-button i {
+    font-size: 1.2rem; /* Icon to hơn trên mobile */
+  }
+}
+
+/* Glass morphism effect cho phiên bản cao cấp */
+.search-button.glass {
+  background: rgba(26, 115, 232, 0.8);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Loading state */
+.search-button.loading {
+  pointer-events: none;
+  opacity: 0.8;
+}
+
+.search-button.loading i {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Focus state */
+.search-button:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.3);
+}
+
+/* Disabled state */
+.search-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: linear-gradient(135deg, #9e9e9e, #616161);
 }
 </style>

@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import Home from '../views/Home.vue'
+import HomeView from '../views/Home.vue'
 import ProductList from '../views/ProductList.vue'
 import ProductDetail from '../views/ProductDetail.vue'
 import Cart from '../views/Cart.vue'
@@ -7,15 +7,16 @@ import Login from '../views/Login.vue'
 import Register from '../views/Register.vue'
 import Profile from '../views/Profile.vue'
 import Orders from '../views/Orders.vue'
+import { h, onMounted } from 'vue'
+import { useStore } from 'vuex'
+import { useRoute, useRouter } from 'vue-router'
+import CustomSweetAlert from '@/components/Common/CustomSweetAlert'
 
 const routes = [
   {
     path: '/',
-    name: 'Home',
-    component: Home,
-    meta: {
-      title: 'Trang chủ - T-Store'
-    }
+    name: 'home',
+    component: HomeView
   },
   {
     path: '/products',
@@ -64,11 +65,60 @@ const routes = [
     name: 'Orders',
     component: Orders,
     meta: { requiresAuth: true }
+  },
+  {
+    path: '/auth/callback',
+    name: 'AuthCallback',
+    component: {
+      setup() {
+        const route = useRoute();
+        const router = useRouter();
+        const store = useStore();
+
+        onMounted(async () => {
+          const { token, user } = route.query;
+          
+          if (token && user) {
+            const userData = JSON.parse(decodeURIComponent(user));
+            
+            await store.commit('setUser', {
+              userId: userData.id,
+              fullname: userData.fullname,
+              email: userData.email,
+              role: userData.role_name,
+              token: token,
+              avatar_url: userData.avatar_url,
+              phonenumber: userData.phonenumber
+            });
+            
+            localStorage.setItem('token', token);
+            localStorage.setItem('userId', userData.id);
+            localStorage.setItem('fullname', userData.fullname);
+            localStorage.setItem('role', userData.role_name);
+
+            await CustomSweetAlert.success(
+              'Đăng nhập thành công!',
+              `Chào mừng ${userData.fullname}`
+            );
+            
+            router.push('/');
+          } else {
+            CustomSweetAlert.error(
+              'Lỗi đăng nhập!',
+              'Không thể xác thực với Google'
+            );
+            router.push('/login');
+          }
+        });
+
+        return () => h('div', 'Đang xử lý đăng nhập...');
+      }
+    }
   }
 ]
 
 const router = createRouter({
-  history: createWebHistory(),
+  history: createWebHistory(process.env.BASE_URL),
   routes,
   scrollBehavior(to, from, savedPosition) {
     if (savedPosition) {

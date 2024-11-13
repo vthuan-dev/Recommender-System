@@ -500,17 +500,37 @@ export default {
 }
 
 @media (max-width: 768px) {
+  .hero-section {
+    padding: 40px 0;
+  }
+  
   .hero-content {
-    padding: 4rem 0;
     text-align: center;
   }
   
-  .hero-image {
-    height: 200px;
+  .hero-content h1 {
+    font-size: 2rem;
   }
   
-  .hero-icon {
-    font-size: 8rem;
+  .flash-card {
+    margin-bottom: 20px;
+  }
+  
+  .product-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  
+  .product-card {
+    padding: 10px;
+  }
+  
+  .product-title {
+    font-size: 0.9rem;
+  }
+  
+  .product-price {
+    font-size: 0.85rem;
   }
 }
 </style>

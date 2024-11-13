@@ -1,5 +1,5 @@
 import { createStore } from 'vuex'
-import axiosInstance from '../utils/axios'
+// import axiosInstance from '../utils/axios'
 
 export default createStore({
   state: {
@@ -24,47 +24,83 @@ export default createStore({
   
   mutations: {
     setUser(state, userData) {
-      state.auth.user = userData;
-      state.auth.isAuthenticated = true;
-    },
-    clearUser(state) {
-      state.auth.user = null;
-      state.auth.isAuthenticated = false;
-    },
-    setCartCount(state, count) {
-      state.cart.itemCount = count;
-    },
-    setWishlistCount(state, count) {
-      state.wishlist.itemCount = count;
-    },
-    setTrendingProducts(state, products) {
-      state.products.trending = products
-    },
-    setRecommendedProducts(state, products) {
-      state.products.recommended = products
-    },
-    setRecentlyViewed(state, products) {
-      state.products.recentlyViewed = products
-    }
-  },
-  
-  actions: {
-    async login({ commit }, credentials) {
-      const response = await axiosInstance.post('/login-client', credentials);
-      const userData = {
-        userId: response.data.userId,
-        fullname: response.data.fullname,
-        role: response.data.role,
-        token: response.data.token
+      state.auth = {
+        user: {
+          userId: userData.userId,
+          fullname: userData.fullname,
+          email: userData.email,
+          role: userData.role,
+          token: userData.token,
+          avatarUrl: userData.avatar_url || null,
+          phonenumber: userData.phonenumber
+        },
+        isAuthenticated: true
       };
       
       localStorage.setItem('token', userData.token);
       localStorage.setItem('userId', userData.userId);
       localStorage.setItem('fullname', userData.fullname);
       localStorage.setItem('role', userData.role);
-      
-      commit('setUser', userData);
-      return userData;
+      localStorage.setItem('avatar_url', userData.avatar_url || '');
+      localStorage.setItem('email', userData.email || '');
+    },
+    
+    initializeAuth(state) {
+      const token = localStorage.getItem('token');
+      if (token) {
+        state.auth = {
+          user: {
+            userId: localStorage.getItem('userId'),
+            fullname: localStorage.getItem('fullname'),
+            email: localStorage.getItem('email'),
+            role: localStorage.getItem('role'),
+            token: token,
+            avatarUrl: localStorage.getItem('avatar_url'),
+            phonenumber: localStorage.getItem('phonenumber')
+          },
+          isAuthenticated: true
+        };
+      }
+    }
+  },
+  
+  actions: {
+    async login({ commit }, credentials) {
+      try {
+        const response = await fetch('http://localhost:3000/api/login-client', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          credentials: 'include',
+          body: JSON.stringify(credentials)
+        });
+
+        const data = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(data.message || 'Đăng nhập thất bại');
+        }
+
+        const userData = {
+          userId: data.userId,
+          fullname: data.fullname,
+          role: data.role || 'customer',
+          token: data.token
+        };
+
+        localStorage.setItem('token', userData.token);
+        localStorage.setItem('userId', userData.userId);
+        localStorage.setItem('fullname', userData.fullname);
+        localStorage.setItem('role', userData.role);
+        
+        commit('setUser', userData);
+        return userData;
+      } catch (error) {
+        console.error('Login error:', error);
+        throw error;
+      }
     },
     
     logout({ commit }) {
@@ -78,8 +114,6 @@ export default createStore({
   
   getters: {
     isAuthenticated: state => state.auth.isAuthenticated,
-    currentUser: state => state.auth.user,
-    cartCount: state => state.cart.itemCount,
-    wishlistCount: state => state.wishlist.itemCount
+    currentUser: state => state.auth.user
   }
 })

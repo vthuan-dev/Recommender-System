@@ -5,6 +5,7 @@ const path = require('path');
 const { pool, authenticateJWT } = require('./database/dbconfig.js');
 const { testFirebaseConnection } = require('./firebaseConfig.js');
 const session = require('express-session');
+const passport = require('./config/passport');
 
 
 
@@ -51,8 +52,7 @@ const corsOptions = {
   origin: ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:8080'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Access-Control-Allow-Origin'],
-  exposedHeaders: ['Access-Control-Allow-Origin']
+  allowedHeaders: ['Content-Type', 'Authorization'],
 };
 
 app.use(cors(corsOptions));
@@ -117,4 +117,29 @@ app.use((req, res, next) => {
   }
   next();
 });
+
+// Cấu hình CORS
+app.use(cors({
+  origin: process.env.FRONTEND_URL,
+  credentials: true
+}));
+
+// Cấu hình session trước khi sử dụng passport
+app.use(session({
+  secret: process.env.JWT_SECRET,
+  resave: false,
+  saveUninitialized: false,
+  cookie: { 
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  }
+}));
+
+// Khởi tạo passport
+app.use(passport.initialize());
+app.use(passport.session());
+
+// Import và sử dụng routes
+const googleAuthRoutes = require('./client/auth/google_route');
+app.use('/', googleAuthRoutes);
 

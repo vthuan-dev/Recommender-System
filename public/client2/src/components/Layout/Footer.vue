@@ -335,13 +335,50 @@
 }
 
 @media (max-width: 768px) {
-  .footer-bottom-links {
-    justify-content: center;
-    margin-top: 15px;
+  .newsletter-wrapper {
+    padding: 20px;
   }
-
-  .copyright {
+  
+  .newsletter-form .input-group {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .newsletter-form input,
+  .newsletter-form button {
+    width: 100%;
+  }
+  
+  .footer-main .row {
     text-align: center;
+  }
+  
+  .footer-contact {
+    justify-content: center;
+  }
+  
+  .social-links {
+    justify-content: center;
+    margin-top: 20px;
+  }
+  
+  .footer-links {
+    margin-bottom: 30px;
+  }
+  
+  .footer-title::after {
+    left: 50%;
+    transform: translateX(-50%);
+  }
+  
+  .footer-bottom {
+    text-align: center;
+  }
+  
+  .footer-bottom-links {
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 15px;
   }
 }
 </style>
