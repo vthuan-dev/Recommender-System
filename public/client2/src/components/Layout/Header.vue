@@ -297,6 +297,8 @@ export default {
         await store.dispatch('logout')
         showUserMenu.value = false
         showMobileMenu.value = false
+
+       
         
         await CustomSweetAlert.success(
           'Đăng xuất thành công!',
@@ -305,7 +307,9 @@ export default {
         
         setTimeout(() => {
           router.push('/')
+         
         }, 2000)
+        window.location.reload()
         
       } catch (error) {
         CustomSweetAlert.error(

@@ -169,8 +169,8 @@ router.post('/register-client', async (req, res) => {
     
     // Thêm user mới
     const [result] = await pool.query(
-      `INSERT INTO users (fullname, phonenumber, email, password, role_id) 
-       VALUES (?, ?, ?, ?, ?)`,
+      `INSERT INTO users (fullname, phonenumber, email, password, role_id, auth_type) 
+       VALUES (?, ?, ?, ?, ?, 'local')`,
       [fullname, phonenumber || null, email, hashedPassword, customerRoleId]
     );
     
