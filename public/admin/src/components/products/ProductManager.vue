@@ -169,11 +169,10 @@
 
     <!-- Modals -->
     <ProductModal
+      v-if="showModal"
       :show="showModal"
-      :product-data="selectedProduct"
-      :is-edit="!!selectedProduct"
       @close="closeModal"
-      @save="handleProductSaved"
+      @product-saved="handleProductSaved"
     />
   </div>
 </template>
@@ -278,15 +277,26 @@ const closeModal = () => {
 }
 
 // Xử lý khi lưu sản phẩm
-const handleProductSaved = async () => {
-  await fetchProducts()
-  closeModal()
-  // Hiển thị thông báo thành công
-  Swal.fire({
-    icon: 'success',
-    title: 'Thành công!',
-    text: 'Đã lưu sản phẩm thành công'
-  })
+const handleProductSaved = async (newProduct) => {
+  // Nếu đang ở trang đầu tiên, thêm sản phẩm mới vào đầu danh sách
+  if (currentPage.value === 1) {
+    products.value = [newProduct, ...products.value];
+    // Nếu danh sách vượt quá items per page, xóa item cuối
+    if (products.value.length > itemsPerPage) {
+      products.value.pop();
+    }
+  }
+  
+  // Cập nhật tổng số sản phẩm
+  totalProducts.value++;
+  
+  // Tính lại tổng số trang
+  totalPages.value = Math.ceil(totalProducts.value / itemsPerPage);
+  
+  // Tải lại danh sách nếu không ở trang đầu
+  if (currentPage.value !== 1) {
+    await loadProducts();
+  }
 }
 
 const handleSearch = async () => {

@@ -6,6 +6,7 @@ const { pool, authenticateJWT } = require('./database/dbconfig.js');
 const { testFirebaseConnection } = require('./firebaseConfig.js');
 const session = require('express-session');
 const passport = require('./config/passport');
+const { initUploadDirs } = require('./utils/init');
 
 
 
@@ -147,4 +148,7 @@ app.use('/', googleAuthRoutes);
 
 // Serve static files từ thư mục assets
 app.use('/assets', express.static(path.join(__dirname, 'assets')));
+
+// Khởi tạo thư mục uploads khi start server
+initUploadDirs().catch(console.error);
 

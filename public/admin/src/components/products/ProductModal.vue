@@ -141,6 +141,7 @@
 <script setup>
 import { ref, watch, onMounted, onUnmounted } from 'vue'
 import { productService } from '@/services/productService'
+import Swal from 'sweetalert2'
 
 const props = defineProps({
   show: Boolean,
@@ -172,41 +173,51 @@ const brands = ref([])
 
 // Methods
 const handleSubmit = async () => {
-  if (!validateForm()) return
-
   try {
-    isSubmitting.value = true
-    const formDataToSend = new FormData()
+    if (!validateForm()) return;
     
-    // Append basic fields
-    formDataToSend.append('name', formData.value.name)
-    formDataToSend.append('description', formData.value.description)
-    formDataToSend.append('category_id', formData.value.category_id)
-    formDataToSend.append('brand_id', formData.value.brand_id)
+    isSubmitting.value = true;
     
-    // Append image if exists
+    // Tạo FormData object
+    const submitData = new FormData();
+    submitData.append('name', formData.value.name);
+    submitData.append('description', formData.value.description);
+    submitData.append('category_id', formData.value.category_id);
+    submitData.append('brand_id', formData.value.brand_id);
+    submitData.append('variants', JSON.stringify(formData.value.variants));
+    
     if (formData.value.image) {
-      formDataToSend.append('image', formData.value.image)
+      submitData.append('image', formData.value.image);
     }
-    
-    // Append variants as JSON string
-    formDataToSend.append('variants', JSON.stringify(formData.value.variants))
 
-    const response = props.isEdit 
-      ? await productService.updateProduct(props.productData.id, formDataToSend)
-      : await productService.createProduct(formDataToSend)
+    const response = await productService.createProduct(submitData);
 
-    emit('save', response)
-    emit('close')
+    if (response.success) {
+      // Hiển thị thông báo thành công
+      Swal.fire({
+        icon: 'success',
+        title: 'Thành công!',
+        text: 'Thêm sản phẩm mới thành công',
+        timer: 1500,
+        showConfirmButton: false
+      });
+      
+      // Emit event với data sản phẩm mới
+      emit('product-saved', response.data);
+      emit('close');
+    }
   } catch (error) {
-    console.error('Lỗi khi lưu sản phẩm:', error)
-    if (error.response?.data?.errors) {
-      errors.value = error.response.data.errors
-    }
+    console.error('Error submitting form:', error);
+    // Hiển thị thông báo lỗi
+    Swal.fire({
+      icon: 'error',
+      title: 'Lỗi!',
+      text: error.message || 'Có lỗi xảy ra khi thêm sản phẩm',
+    });
   } finally {
-    isSubmitting.value = false
+    isSubmitting.value = false;
   }
-}
+};
 
 // Lifecycle hooks
 const fetchInitialData = async () => {
@@ -296,6 +307,21 @@ const validateForm = () => {
 
   return isValid
 }
+
+const handleImageChange = (e) => {
+  const file = e.target.files[0];
+  if (file) {
+    // Lưu file vào formData
+    formData.value.image = file;
+    
+    // Tạo preview
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      imagePreview.value = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+};
 </script>
 
 <style scoped>

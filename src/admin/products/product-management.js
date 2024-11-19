@@ -9,17 +9,19 @@ const router = express.Router();
 // Cấu hình multer để lưu file
 const storage = multer.diskStorage({
   destination: async (req, file, cb) => {
-    const uploadDir = path.join(__dirname, '../../assets/uploads/products');
+    const uploadDir = path.resolve(__dirname, '../../assets/uploads/products');
     try {
       await fs.mkdir(uploadDir, { recursive: true });
       cb(null, uploadDir);
     } catch (error) {
+      console.error('Error creating upload directory:', error);
       cb(error, null);
     }
   },
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, uniqueSuffix + path.extname(file.originalname));
+    const ext = path.extname(file.originalname);
+    cb(null, `product-${uniqueSuffix}${ext}`);
   }
 });
 
@@ -146,91 +148,80 @@ router.post('/add-products', authenticateJWT, checkAdminRole, upload.single('ima
 // Lấy danh sách sản phẩm (có phân trang và tìm kiếm)
 router.get('/products', authenticateJWT, checkAdminRole, async (req, res) => {
   try {
-    const { page = 1, search = '', category = '', brand = '' } = req.query;
-    const limit = 10;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
     const offset = (page - 1) * limit;
-    
-    // First, get total count
-    let countQuery = `
-      SELECT COUNT(DISTINCT p.id) as total
-      FROM products p
-      WHERE 1=1
-    `;
-    
-    const countParams = [];
-    if (search) {
-      countQuery += ` AND (p.name LIKE ? OR p.description LIKE ?)`;
-      countParams.push(`%${search}%`, `%${search}%`);
-    }
-    if (category) {
-      countQuery += ` AND p.category_id = ?`;
-      countParams.push(category);
-    }
-    if (brand) {
-      countQuery += ` AND p.brand_id = ?`;
-      countParams.push(brand);
-    }
+    const search = req.query.search || '';
+    const category = req.query.category || '';
+    const brand = req.query.brand || '';
 
-    const [totalResult] = await pool.query(countQuery, countParams);
-    const totalProducts = totalResult[0].total;
-    
-    // Then get products with variants
     let query = `
       SELECT 
-        p.*,
+        p.id,
+        p.name,
+        p.description,
+        p.image_url,
+        p.category_id,
         c.name as category_name,
+        p.brand_id,
         b.name as brand_name,
-        JSON_ARRAYAGG(
+        GROUP_CONCAT(
           JSON_OBJECT(
             'id', pv.id,
             'name', pv.name,
             'price', pv.price,
-            'initial_stock', pv.initial_stock,
-            'sold_count', pv.sold_count
+            'initial_stock', pv.initial_stock
           )
         ) as variants
       FROM products p
       LEFT JOIN categories c ON p.category_id = c.id
       LEFT JOIN brands b ON p.brand_id = b.id
       LEFT JOIN productvariants pv ON p.id = pv.product_id
-      WHERE 1=1
     `;
-    
-    const params = [];
-    
+
+    let countQuery = "SELECT COUNT(DISTINCT p.id) as total FROM products p";
+    let whereConditions = [];
+    let params = [];
+
     if (search) {
-      query += ` AND (p.name LIKE ? OR p.description LIKE ?)`;
+      whereConditions.push("(p.name LIKE ? OR p.description LIKE ?)");
       params.push(`%${search}%`, `%${search}%`);
     }
-    
+
     if (category) {
-      query += ` AND p.category_id = ?`;
+      whereConditions.push("p.category_id = ?");
       params.push(category);
     }
-    
+
     if (brand) {
-      query += ` AND p.brand_id = ?`;
+      whereConditions.push("p.brand_id = ?");
       params.push(brand);
     }
-    
-    query += ` GROUP BY p.id ORDER BY p.created_at DESC LIMIT ? OFFSET ?`;
+
+    if (whereConditions.length > 0) {
+      const whereClause = " WHERE " + whereConditions.join(" AND ");
+      query += whereClause;
+      countQuery += whereClause;
+    }
+
+    query += " GROUP BY p.id ORDER BY p.id DESC LIMIT ? OFFSET ?";
     params.push(limit, offset);
 
     const [products] = await pool.query(query, params);
+    const [totalResult] = await pool.query(countQuery, params.slice(0, -2));
 
-    // Format products - handle null variants
+    // Parse variants JSON string
     const formattedProducts = products.map(product => ({
       ...product,
-      variants: product.variants && product.variants !== 'null' ? 
-        (Array.isArray(product.variants) ? product.variants : [product.variants]) : []
+      variants: product.variants ? JSON.parse(`[${product.variants}]`) : []
     }));
 
     res.json({
       success: true,
       products: formattedProducts,
-      currentPage: parseInt(page),
-      totalPages: Math.ceil(totalProducts / limit),
-      totalProducts
+      totalPages: Math.ceil(totalResult[0].total / limit),
+      currentPage: page,
+      totalProducts: totalResult[0].total
     });
 
   } catch (error) {
