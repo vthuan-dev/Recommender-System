@@ -330,11 +330,15 @@ router.get('/categories', authenticateJWT, checkAdminRole, async (req, res) => {
 // Lấy danh sách thương hiệu
 router.get('/brands', authenticateJWT, checkAdminRole, async (req, res) => {
   try {
-    const [brands] = await pool.query('SELECT id, name FROM brands');
+    const [brands] = await pool.query('SELECT id, name, description FROM brands ORDER BY name');
     res.json(brands);
   } catch (error) {
     console.error('Error fetching brands:', error);
-    res.status(500).json({ message: 'Error loading brands', error: error.message });
+    res.status(500).json({ 
+      success: false,
+      message: 'Không thể tải danh sách thương hiệu',
+      error: error.message 
+    });
   }
 });
 

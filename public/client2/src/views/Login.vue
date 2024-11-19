@@ -3,10 +3,32 @@
     <div class="auth-container">
       <div class="auth-card">
         <div class="auth-header">
-          <div class="logo">
-            <i class="fas fa-shopping-bag"></i>
+          <div class="brand-logo">
+            <svg class="logo-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M20.94 19.2C20.94 19.84 20.42 20.36 19.78 20.36H4.22C3.58 20.36 3.06 19.84 3.06 19.2V18.04H20.94V19.2Z" fill="url(#paint0_linear)"/>
+              <path d="M20.94 18.04H3.06L4.22 8.28C4.32 7.64 4.86 7.12 5.5 7.12H18.5C19.14 7.12 19.68 7.64 19.78 8.28L20.94 18.04Z" fill="url(#paint1_linear)"/>
+              <path d="M15.1 7.12V5.96C15.1 4.68 14.06 3.64 12.78 3.64H11.22C9.94 3.64 8.9 4.68 8.9 5.96V7.12H15.1ZM13.94 7.12V5.96C13.94 5.32 13.42 4.8 12.78 4.8H11.22C10.58 4.8 10.06 5.32 10.06 5.96V7.12H13.94Z" fill="url(#paint2_linear)"/>
+              <defs>
+                <linearGradient id="paint0_linear" x1="3.06" y1="19.2" x2="20.94" y2="19.2" gradientUnits="userSpaceOnUse">
+                  <stop stop-color="#4F46E5"/>
+                  <stop offset="1" stop-color="#7C3AED"/>
+                </linearGradient>
+                <linearGradient id="paint1_linear" x1="3.06" y1="12.58" x2="20.94" y2="12.58" gradientUnits="userSpaceOnUse">
+                  <stop stop-color="#4F46E5"/>
+                  <stop offset="1" stop-color="#7C3AED"/>
+                </linearGradient>
+                <linearGradient id="paint2_linear" x1="8.9" y1="5.38" x2="15.1" y2="5.38" gradientUnits="userSpaceOnUse">
+                  <stop stop-color="#4F46E5"/>
+                  <stop offset="1" stop-color="#7C3AED"/>
+                </linearGradient>
+              </defs>
+            </svg>
+            <span class="brand-name">T-STORE</span>
           </div>
-          <h2>Đăng nhập</h2>
+          <div class="header-content">
+            <h2>Chào mừng trở lại</h2>
+            <p>Đăng nhập để tiếp tục mua sắm</p>
+          </div>
         </div>
 
         <form @submit.prevent="handleLogin" class="auth-form">
@@ -220,29 +242,74 @@ export default {
 
 .auth-header {
   text-align: center;
-  margin-bottom: 32px;
+  margin-bottom: 40px;
 }
 
-.logo {
-  width: 60px;
-  height: 60px;
-  margin: 0 auto 16px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 12px;
+.brand-logo {
   display: flex;
   align-items: center;
   justify-content: center;
+  margin-bottom: 24px;
+  gap: 12px;
 }
 
-.logo i {
+.logo-icon {
+  width: 40px;
+  height: 40px;
+  filter: drop-shadow(0 4px 6px rgba(124, 58, 237, 0.2));
+}
+
+.brand-name {
   font-size: 28px;
-  color: white;
+  font-weight: 800;
+  letter-spacing: 2px;
+  background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
-.auth-header h2 {
+.header-content h2 {
   font-size: 24px;
-  color: #1a202c;
-  margin: 0;
+  font-weight: 700;
+  color: #1F2937;
+  margin-bottom: 8px;
+}
+
+.header-content p {
+  font-size: 16px;
+  color: #6B7280;
+  font-weight: 400;
+}
+
+/* Thêm animation cho logo khi hover */
+.brand-logo:hover .logo-icon {
+  transform: scale(1.05);
+  transition: transform 0.3s ease;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .brand-logo {
+    margin-bottom: 20px;
+  }
+  
+  .logo-icon {
+    width: 32px;
+    height: 32px;
+  }
+  
+  .brand-name {
+    font-size: 24px;
+  }
+  
+  .header-content h2 {
+    font-size: 20px;
+  }
+  
+  .header-content p {
+    font-size: 14px;
+  }
 }
 
 .form-group {

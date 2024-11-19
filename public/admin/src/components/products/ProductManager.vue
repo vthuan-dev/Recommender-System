@@ -168,294 +168,157 @@
     </div>
 
     <!-- Modals -->
-    <ProductModal 
-      v-if="showModal"
+    <ProductModal
       :show="showModal"
-      :is-edit="!!selectedProduct"
       :product-data="selectedProduct"
-      :categories="categories"
-      :brands="brands"
+      :is-edit="!!selectedProduct"
       @close="closeModal"
-      @saved="handleProductSaved"
+      @save="handleProductSaved"
     />
   </div>
 </template>
 
-<script>
-import { ref, computed, onMounted } from 'vue'
-import { productService } from '../../services/productService'
+<script setup>
+import { ref, onMounted, computed } from 'vue'
+import { productService } from '@/services/productService'
 import ProductModal from './ProductModal.vue'
-import Swal from 'sweetalert2'
-import { debounce } from 'lodash'
 
-export default {
-  name: 'ProductManager',
-  components: {
-    ProductModal
-  },
-  setup() {
-    // Khai báo reactive states
-    const products = ref([])
-    const loading = ref(false)
-    const currentPage = ref(1)
-    const totalPages = ref(0)
-    const totalProducts = ref(0)
-    const showModal = ref(false)
-    const selectedProduct = ref(null)
-    const filters = ref({
-      search: '',
-      category: '',
-      brand: ''
+// Khai báo reactive states với giá trị mặc định
+const products = ref([])
+const loading = ref(true)
+const showModal = ref(false)
+const selectedProduct = ref(null)
+const currentPage = ref(1)
+const totalPages = ref(0)
+const totalProducts = ref(0)
+
+const filters = ref({
+  search: '',
+  category: '',
+  brand: ''
+})
+
+const categories = ref([])
+const brands = ref([])
+
+// Computed property để kiểm tra có filter nào đang active không
+const hasActiveFilters = computed(() => {
+  return filters.value.search || filters.value.category || filters.value.brand
+})
+
+// Fetch products với xử lý loading state
+const fetchProducts = async () => {
+  try {
+    loading.value = true
+    const response = await productService.getProducts({
+      page: currentPage.value,
+      ...filters.value
     })
-    const categories = ref([])
-    const brands = ref([])
+    
+    products.value = response.products || []
+    totalPages.value = response.totalPages || 0
+    totalProducts.value = response.totalProducts || 0
+  } catch (error) {
+    console.error('Error fetching products:', error)
+  } finally {
+    loading.value = false
+  }
+}
 
-    // Computed properties
-    const hasActiveFilters = computed(() => {
-      return filters.value.search || 
-             filters.value.category || 
-             filters.value.brand
-    })
+const fetchCategories = async () => {
+  try {
+    const data = await productService.getCategories()
+    categories.value = data
+  } catch (error) {
+    console.error('Error fetching categories:', error)
+  }
+}
 
-    // Methods
-    const fetchProducts = async () => {
-      try {
-        loading.value = true
-        const response = await productService.getProducts({
-          page: currentPage.value,
-          ...filters.value
-        })
-        
-        products.value = response.products
-        totalPages.value = response.totalPages
-        totalProducts.value = response.totalProducts
-      } catch (error) {
-        console.error('Error fetching products:', error)
-        Swal.fire({
-          icon: 'error',
-          title: 'Lỗi!',
-          text: 'Không thể tải danh sách sản phẩm'
-        })
-      } finally {
-        loading.value = false
-      }
-    }
+const fetchBrands = async () => {
+  try {
+    const data = await productService.getBrands()
+    brands.value = data
+  } catch (error) {
+    console.error('Error fetching brands:', error)
+  }
+}
 
-    const fetchCategories = async () => {
-      try {
-        const data = await productService.getCategories()
-        categories.value = data
-      } catch (error) {
-        console.error('Error fetching categories:', error)
-        Swal.fire({
-          icon: 'error',
-          title: 'Lỗi!',
-          text: 'Không thể tải danh sách danh mục'
-        })
-      }
-    }
+onMounted(async () => {
+  await Promise.all([
+    fetchProducts(),
+    fetchCategories(),
+    fetchBrands()
+  ])
+})
 
-    const fetchBrands = async () => {
-      try {
-        const data = await productService.getBrands()
-        brands.value = data
-      } catch (error) {
-        console.error('Error fetching brands:', error)
-        Swal.fire({
-          icon: 'error',
-          title: 'Lỗi!',
-          text: 'Không thể tải danh sách thương hiệu'
-        })
-      }
-    }
+// Hàm mở modal
+const openAddModal = () => {
+  selectedProduct.value = null
+  showModal.value = true
+}
 
-    const handleSearch = async () => {
-      currentPage.value = 1
+// Hàm đóng modal
+const closeModal = () => {
+  showModal.value = false
+  selectedProduct.value = null
+}
+
+// Xử lý khi lưu sản phẩm
+const handleProductSaved = async () => {
+  await fetchProducts()
+  closeModal()
+  // Hiển thị thông báo thành công
+  Swal.fire({
+    icon: 'success',
+    title: 'Thành công!',
+    text: 'Đã lưu sản phẩm thành công'
+  })
+}
+
+const handleSearch = async () => {
+  currentPage.value = 1
+  await fetchProducts()
+}
+
+const handleFilters = async () => {
+  currentPage.value = 1
+  await fetchProducts()
+}
+
+const clearSearch = () => {
+  filters.value.search = ''
+  handleSearch()
+}
+
+const clearAllFilters = () => {
+  filters.value.search = ''
+  filters.value.category = ''
+  filters.value.brand = ''
+  handleSearch()
+}
+
+const editProduct = (product) => {
+  selectedProduct.value = product
+  showModal.value = true
+}
+
+const confirmDelete = async (product) => {
+  const result = await Swal.fire({
+    title: 'Xác nhận xóa?',
+    text: 'Bạn không thể hoàn tác hành động này!',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonText: 'Xóa',
+    cancelButtonText: 'Hủy'
+  })
+
+  if (result.isConfirmed) {
+    try {
+      await productService.deleteProduct(product.id)
       await fetchProducts()
-    }
-
-    const handleFilters = async () => {
-      currentPage.value = 1
-      await fetchProducts()
-    }
-
-    const clearSearch = () => {
-      filters.value.search = ''
-      handleSearch()
-    }
-
-    const clearAllFilters = () => {
-      filters.value.search = ''
-      filters.value.category = ''
-      filters.value.brand = ''
-      handleSearch()
-    }
-
-    const changePage = async (page) => {
-      currentPage.value = page
-      await fetchProducts()
-    }
-
-    const openAddModal = () => {
-      selectedProduct.value = null
-      showModal.value = true
-    }
-
-    const editProduct = async (product) => {
-      try {
-        const productDetail = await productService.getProductDetail(product.id)
-        selectedProduct.value = productDetail
-        showModal.value = true
-      } catch (error) {
-        console.error('Error fetching product detail:', error)
-      }
-    }
-
-    const confirmDelete = (product) => {
-      Swal.fire({
-        title: 'Xác nhận xóa',
-        text: `Bạn có chắc chắn muốn xóa sản phẩm "${product.name}"?`,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#d33',
-        cancelButtonColor: '#3085d6',
-        confirmButtonText: 'Xóa',
-        cancelButtonText: 'Hủy',
-        showLoaderOnConfirm: true,
-        preConfirm: async () => {
-          try {
-            await productService.deleteProduct(product.id);
-            return true;
-          } catch (error) {
-            Swal.showValidationMessage(
-              `Lỗi: ${error.response?.data?.message || 'Không thể xóa sản phẩm'}`
-            );
-            return false;
-          }
-        },
-        allowOutsideClick: () => !Swal.isLoading()
-      }).then(async (result) => {
-        if (result.isConfirmed) {
-          try {
-            await fetchProducts(); // Refresh danh sách
-            Swal.fire({
-              icon: 'success',
-              title: 'Đã xóa!',
-              text: 'Sản phẩm đã được xóa thành công.',
-              timer: 1500,
-              showConfirmButton: false
-            });
-          } catch (error) {
-            Swal.fire({
-              icon: 'error',
-              title: 'Lỗi!',
-              text: 'Không thể tải lại danh sách sản phẩm.',
-              timer: 1500
-            });
-          }
-        }
-      });
-    }
-
-    const closeModal = () => {
-      showModal.value = false
-      selectedProduct.value = null
-    }
-
-    const handleProductSaved = async (product) => {
-      await fetchProducts()
-      closeModal()
-      Swal.fire({
-        icon: 'success',
-        title: 'Thành công!',
-        text: 'Sản phẩm đã được lưu thành công',
-        timer: 1500,
-        showConfirmButton: false
-      })
-    }
-
-    const truncateText = (text, length) => {
-      if (!text) return ''
-      return text.length > length ? text.substring(0, length) + '...' : text
-    }
-
-    const formatPrice = (price) => {
-      return new Intl.NumberFormat('vi-VN', {
-        style: 'currency',
-        currency: 'VND'
-      }).format(price)
-    }
-
-    const calculateTotalStock = (variants) => {
-      return variants.reduce((total, variant) => total + (variant.initial_stock || 0), 0)
-    }
-
-    const getStockClass = (stock) => {
-      if (stock <= 0) return 'out-of-stock'
-      if (stock < 10) return 'low-stock'
-      return 'in-stock'
-    }
-
-    const manageInventory = (product) => {
-      // Thêm chức năng quản lý kho sau
-    }
-
-    const handleAddProduct = async (newProduct) => {
-      try {
-        const response = await productService.addProduct(newProduct);
-        if (response.success) {
-          // Thêm sản phẩm mới vào đầu danh sách
-          products.value.unshift(response.data);
-          $toast.success('Thêm sản phẩm thành công');
-          closeAddModal();
-        }
-      } catch (error) {
-        console.error('Lỗi thêm sản phẩm:', error);
-        $toast.error('Lỗi thêm sản phẩm');
-      }
-    }
-
-    // Mounted hook
-    onMounted(async () => {
-      await Promise.all([
-        fetchProducts(),
-        fetchCategories(),
-        fetchBrands()
-      ])
-    })
-
-    // Return values
-    return {
-      products,
-      loading,
-      currentPage,
-      totalPages,
-      totalProducts,
-      filters,
-      categories,
-      brands,
-      showModal,
-      selectedProduct,
-      hasActiveFilters,
-      fetchProducts,
-      fetchCategories,
-      fetchBrands,
-      handleSearch,
-      handleFilters,
-      clearSearch,
-      clearAllFilters,
-      changePage,
-      openAddModal,
-      editProduct,
-      confirmDelete,
-      closeModal,
-      handleProductSaved,
-      truncateText,
-      formatPrice,
-      calculateTotalStock,
-      getStockClass,
-      manageInventory,
-      handleAddProduct
+      Swal.fire('Đã xóa!', 'Sản phẩm đã được xóa.', 'success')
+    } catch (error) {
+      Swal.fire('Lỗi!', 'Không thể xóa sản phẩm.', 'error')
     }
   }
 }

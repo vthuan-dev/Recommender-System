@@ -1,8 +1,9 @@
 <!-- src/components/products/ProductModal.vue -->
 <template>
-  <div class="modal-wrapper" v-if="show">
-    <div class="modal" tabindex="-1">
-      <div class="modal-dialog modal-lg">
+  <Teleport to="body">
+    <div class="modal-wrapper" v-if="show">
+      <div class="modal-backdrop" @click="$emit('close')"></div>
+      <div class="modal-container">
         <div class="modal-content">
           <div class="modal-header">
             <h5 class="modal-title">{{ isEdit ? 'Sửa sản phẩm' : 'Thêm sản phẩm mới' }}</h5>
@@ -134,192 +135,162 @@
         </div>
       </div>
     </div>
-    <div class="modal-backdrop" @click="$emit('close')"></div>
-  </div>
+  </Teleport>
 </template>
 
-<script>
-import { ref, reactive, onMounted, watch, onUnmounted } from 'vue'
+<script setup>
+import { ref, watch, onMounted, onUnmounted } from 'vue'
 import { productService } from '@/services/productService'
 
-export default {
-  name: 'ProductModal',
-  props: {
-    show: {
-      type: Boolean,
-      required: true
-    },
-    isEdit: {
-      type: Boolean,
-      default: false
-    },
-    productData: {
-      type: Object,
-      default: () => ({})
+const props = defineProps({
+  show: Boolean,
+  isEdit: Boolean,
+  productData: Object
+})
+
+const emit = defineEmits(['close', 'save'])
+
+// Khai báo reactive states
+const formData = ref({
+  name: '',
+  description: '',
+  category_id: '',
+  brand_id: '',
+  image: null,
+  variants: [{
+    name: '',
+    price: 0,
+    initial_stock: 0
+  }]
+})
+
+const errors = ref({})
+const isSubmitting = ref(false)
+const imagePreview = ref('')
+const categories = ref([])
+const brands = ref([])
+
+// Methods
+const handleSubmit = async () => {
+  if (!validateForm()) return
+
+  try {
+    isSubmitting.value = true
+    const formDataToSend = new FormData()
+    
+    // Append basic fields
+    formDataToSend.append('name', formData.value.name)
+    formDataToSend.append('description', formData.value.description)
+    formDataToSend.append('category_id', formData.value.category_id)
+    formDataToSend.append('brand_id', formData.value.brand_id)
+    // Append image if exists
+    if (formData.value.image) {
+      formDataToSend.append('image', formData.value.image)
     }
-  },
+    
+    // Append variants as JSON string
+    formDataToSend.append('variants', JSON.stringify(formData.value.variants))
 
-  setup(props, { emit }) {
-    const formData = reactive({
-      name: '',
-      description: '',
-      category_id: '',
-      brand_id: '',
-      image: null,
-      variants: []
-    })
-
-    const errors = reactive({})
-    const categories = ref([])
-    const brands = ref([])
-    const imagePreview = ref('')
-    const isSubmitting = ref(false)
-
-    // Methods
-    const validateForm = () => {
-      errors.value = {}
-      let isValid = true
-
-      if (!formData.name) {
-        errors.name = 'Vui lòng nhập tên sản phẩm'
-        isValid = false
-      }
-
-      if (!formData.description) {
-        errors.description = 'Vui lòng nhập mô tả sản phẩm'
-        isValid = false
-      }
-
-      if (!formData.category_id) {
-        errors.category_id = 'Vui lòng chọn danh mục'
-        isValid = false
-      }
-
-      if (!formData.brand_id) {
-        errors.brand_id = 'Vui lòng chọn thương hiệu'
-        isValid = false
-      }
-
-      if (!formData.image && !props.isEdit) {
-        errors.image = 'Vui lòng chọn ảnh sản phẩm'
-        isValid = false
-      }
-
-      if (formData.variants.length === 0) {
-        errors.variants = 'Vui lòng thêm ít nhất một phiên bản sản phẩm'
-        isValid = false
-      }
-
-      return isValid
+    const response = await productService.createProduct(formDataToSend)
+    emit('save', response)
+    emit('close')
+  } catch (error) {
+    console.error('Lỗi khi lưu sản phẩm:', error)
+    if (error.response?.data?.errors) {
+      errors.value = error.response.data.errors
     }
+  } finally {
+    isSubmitting.value = false
+  }
+}
 
-    const handleImageChange = (event) => {
-      const file = event.target.files[0]
-      if (file) {
-        formData.image = file
-        imagePreview.value = URL.createObjectURL(file)
-      }
-    }
+// Lifecycle hooks
+const fetchInitialData = async () => {
+  try {
+    const [categoriesData, brandsData] = await Promise.all([
+      productService.getCategories(),
+      productService.getBrands()
+    ])
+    categories.value = categoriesData
+    brands.value = brandsData
+  } catch (error) {
+    console.error('Lỗi khi tải dữ liệu:', error)
+  }
+}
 
-    const addVariant = () => {
-      formData.variants.push({
-        name: '',
-        price: 0,
-        initial_stock: 0
-      })
-    }
+onMounted(() => {
+  fetchInitialData()
+  if (props.isEdit && props.productData) {
+    Object.assign(formData.value, props.productData)
+  }
+})
 
-    const removeVariant = (index) => {
-      formData.variants.splice(index, 1)
-    }
+watch(props.show, (newVal) => {
+  if (newVal) {
+    document.body.classList.add('modal-open')
+  } else {
+    document.body.classList.remove('modal-open')
+  }
+})
 
-    const handleSubmit = async () => {
-      if (!validateForm()) return
-
-      try {
-        isSubmitting.value = true
-        let response;
-        
-        if (props.isEdit) {
-          response = await productService.updateProduct(props.productData.id, formData);
-        } else {
-          response = await productService.createProduct(formData);
-        }
-        
-        emit('saved', response)
-        emit('close')
-      } catch (error) {
-        console.error('Lỗi khi lưu sản phẩm:', error)
-        if (error.response?.data?.errors) {
-          errors.value = error.response.data.errors
-        }
-      } finally {
-        isSubmitting.value = false
-      }
-    }
-
-    // Lifecycle hooks
-    const fetchInitialData = async () => {
-      try {
-        const [categoriesData, brandsData] = await Promise.all([
-          productService.getCategories(),
-          productService.getBrands()
-        ])
-        categories.value = categoriesData
-        brands.value = brandsData
-      } catch (error) {
-        console.error('Lỗi khi tải dữ liệu:', error)
-      }
-    }
-
-    onMounted(() => {
-      fetchInitialData()
-      if (props.isEdit && props.productData) {
-        Object.assign(formData, props.productData)
-      }
-    })
-
-    watch(props.show, (newVal) => {
-      if (newVal) {
-        document.body.classList.add('modal-open')
-      } else {
-        document.body.classList.remove('modal-open')
-      }
-    })
-
-    watch(() => props.productData, (newVal) => {
-      if (newVal && props.isEdit) {
-        Object.assign(formData, {
-          name: newVal.name,
-          description: newVal.description,
-          category_id: newVal.category_id,
-          brand_id: newVal.brand_id,
-          image_url: newVal.image_url,
-          variants: newVal.variants || []
-        });
-        if (newVal.image_url) {
-          imagePreview.value = newVal.image_url;
-        }
-      }
-    }, { immediate: true })
-
-    onUnmounted(() => {
-      document.body.classList.remove('modal-open')
-    })
-
-    return {
-      formData,
-      errors,
-      categories,
-      brands,
-      imagePreview,
-      isSubmitting,
-      handleImageChange,
-      addVariant,
-      removeVariant,
-      handleSubmit
+watch(() => props.productData, (newVal) => {
+  if (newVal && props.isEdit) {
+    Object.assign(formData.value, {
+      name: newVal.name,
+      description: newVal.description,
+      category_id: newVal.category_id,
+      brand_id: newVal.brand_id,
+      image_url: newVal.image_url,
+      variants: newVal.variants || []
+    });
+    if (newVal.image_url) {
+      imagePreview.value = newVal.image_url;
     }
   }
+}, { immediate: true })
+
+onUnmounted(() => {
+  document.body.classList.remove('modal-open')
+})
+
+const validateForm = () => {
+  errors.value = {}
+  let isValid = true
+
+  if (!formData.value.name) {
+    errors.value.name = 'Tên sản phẩm là bắt buộc'
+    isValid = false
+  }
+
+  if (!formData.value.description) {
+    errors.value.description = 'Mô tả là bắt buộc'
+    isValid = false
+  }
+
+  if (!formData.value.category_id) {
+    errors.value.category_id = 'Vui lòng chọn danh mục'
+    isValid = false
+  }
+
+  if (!formData.value.brand_id) {
+    errors.value.brand_id = 'Vui lòng chọn thương hiệu'
+    isValid = false
+  }
+
+  // Validate variants
+  if (!formData.value.variants.length) {
+    errors.value.variants = 'Phải có ít nhất một phiên bản sản phẩm'
+    isValid = false
+  }
+
+  formData.value.variants.forEach((variant, index) => {
+    if (!variant.name || variant.price <= 0) {
+      errors.value.variants = 'Thông tin phiên bản không hợp lệ'
+      isValid = false
+    }
+  })
+
+  return isValid
 }
 </script>
 
@@ -351,33 +322,9 @@ export default {
   width: 100%;
   height: 100%;
   display: flex;
-  align-items: center;
   justify-content: center;
+  align-items: center;
   z-index: 1050;
-}
-
-.modal {
-  position: relative;
-  width: 100%;
-  z-index: 1052;
-  background: transparent;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.modal-dialog {
-  position: relative;
-  width: 100%;
-  max-width: 800px;
-  margin: 1.75rem auto;
-  pointer-events: auto;
-}
-
-.modal-content {
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
 
 .modal-backdrop {
@@ -387,7 +334,35 @@ export default {
   width: 100%;
   height: 100%;
   background-color: rgba(0, 0, 0, 0.5);
-  z-index: 1051;
+  z-index: 1040;
+}
+
+.modal-container {
+  position: relative;
+  width: 90%;
+  max-width: 800px;
+  max-height: 90vh;
+  margin: 2rem;
+  z-index: 1060;
+  overflow-y: auto;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.modal-header {
+  padding: 1rem;
+  border-bottom: 1px solid #dee2e6;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-body {
+  padding: 1rem;
 }
 
 /* Thêm style cho body khi modal mở */

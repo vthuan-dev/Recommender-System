@@ -61,8 +61,12 @@ const routes = [
     component: Customers
   },
   {
+    path: '/',
+    redirect: '/sign-in'
+  },
+  {
     path: '/:pathMatch(.*)*',
-    redirect: '/dashboard'
+    redirect: '/sign-in'
   }
 ];
 
@@ -73,6 +77,11 @@ const router = createRouter({
 
 router.beforeEach((to, from, next) => {
   const adminToken = localStorage.getItem('adminToken')
+  
+  if (to.meta.requiresUnauth && adminToken) {
+    next({ path: '/admin/dashboard' })
+    return
+  }
   
   if (to.path.startsWith('/admin') && 
       !['SignIn', 'SignUp'].includes(to.name)) {

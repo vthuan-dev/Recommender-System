@@ -133,10 +133,11 @@
 
 <script>
 import { ref, onMounted } from 'vue'
-import { orderService } from '@/services/orderService'
+import api from '@/utils/api'
 import OrderDetailModal from './OrderDetailModal.vue'
 import Swal from 'sweetalert2'
 import debounce from 'lodash/debounce'
+import { orderService } from '@/services/orderService'
 
 export default {
   name: 'OrderManager',
@@ -219,7 +220,7 @@ export default {
         }
 
         // Gọi API cập nhật trạng thái
-        await orderService.updateOrderStatus(order.id, newStatus);
+        await api.put(`/orders/${order.id}`, { status: newStatus });
         await fetchOrders(); // Refresh danh sách
         
         // Hiển thị thông báo thành công
@@ -264,15 +265,17 @@ export default {
     const fetchOrders = async () => {
       try {
         loading.value = true;
-        const response = await orderService.getOrders({
-          page: currentPage.value,
-          status: filters.value.status // Chỉ gửi status lên server
+        const response = await api.get('/orders', {
+          params: {
+            page: currentPage.value,
+            status: filters.value.status // Chỉ gửi status lên server
+          }
         });
 
         // Lọc theo thời gian ở frontend
-        let filteredOrders = response.orders;
+        let filteredOrders = response.data.orders;
         if (filters.value.dateRange !== 'all') {
-          filteredOrders = response.orders.filter(order => 
+          filteredOrders = response.data.orders.filter(order => 
             isInDateRange(order.created_at, filters.value.dateRange)
           );
         }
@@ -331,7 +334,7 @@ export default {
         showDetailModal.value = true
         
         // Fetch full order details
-        const response = await orderService.getOrderDetail(order.id)
+        const response = await api.get(`/orders/${order.id}`)
         if (response) {
           selectedOrder.value = response
         }
@@ -376,11 +379,11 @@ export default {
     // Thêm hàm cập nhật thống kê
     const updateOrderStats = async () => {
       try {
-        const response = await orderService.getOrderStats()
-        if (response.orderStats) {
+        const response = await api.get('/order-stats')
+        if (response.data.orderStats) {
           orderStats.value = orderStats.value.map(stat => ({
             ...stat,
-            count: response.orderStats[stat.status] || 0
+            count: response.data.orderStats[stat.status] || 0
           }))
         }
       } catch (error) {

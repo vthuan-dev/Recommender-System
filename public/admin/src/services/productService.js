@@ -87,9 +87,10 @@ export const productService = {
 
   getBrands: async () => {
     try {
-      const response = await api.get('/brands')
+      const response = await api.get('/admin/brands')
       return response.data
     } catch (error) {
+      console.error('Error fetching brands:', error)
       throw error.response?.data || error.message
     }
   },

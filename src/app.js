@@ -120,8 +120,10 @@ app.use((req, res, next) => {
 
 // Cấu hình CORS
 app.use(cors({
-  origin: process.env.FRONTEND_URL,
-  credentials: true
+  origin: ['http://localhost:5173', 'http://localhost:8080'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 // Cấu hình session trước khi sử dụng passport
