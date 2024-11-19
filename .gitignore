@@ -101,3 +101,7 @@ src/ml/models/collaborative_model.joblib
 "src/ml/models/*.joblib" 
 "src/ml/models/*.joblib" 
 src/ml/models/*.joblib 
+
+# Ignore uploaded files
+src/assets/uploads/**
+!src/assets/uploads/.gitkeep

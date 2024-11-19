@@ -10,6 +10,10 @@ import 'animate.css'
 import i18n from './i18n'
 import './styles/themes.css'
 import './styles/variables.css'
+import axios from 'axios'
+
+// Cấu hình base URL cho axios
+axios.defaults.baseURL = 'http://localhost:5173' // Thay đổi port nếu cần
 
 const app = createApp(App)
 app.use(store)

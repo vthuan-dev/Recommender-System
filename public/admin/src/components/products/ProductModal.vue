@@ -183,6 +183,7 @@ const handleSubmit = async () => {
     formDataToSend.append('description', formData.value.description)
     formDataToSend.append('category_id', formData.value.category_id)
     formDataToSend.append('brand_id', formData.value.brand_id)
+    
     // Append image if exists
     if (formData.value.image) {
       formDataToSend.append('image', formData.value.image)
@@ -191,7 +192,10 @@ const handleSubmit = async () => {
     // Append variants as JSON string
     formDataToSend.append('variants', JSON.stringify(formData.value.variants))
 
-    const response = await productService.createProduct(formDataToSend)
+    const response = props.isEdit 
+      ? await productService.updateProduct(props.productData.id, formDataToSend)
+      : await productService.createProduct(formDataToSend)
+
     emit('save', response)
     emit('close')
   } catch (error) {

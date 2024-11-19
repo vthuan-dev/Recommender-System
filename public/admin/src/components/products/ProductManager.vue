@@ -182,6 +182,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { productService } from '@/services/productService'
 import ProductModal from './ProductModal.vue'
+import Swal from 'sweetalert2'
 
 // Khai báo reactive states với giá trị mặc định
 const products = ref([])
@@ -210,16 +211,29 @@ const hasActiveFilters = computed(() => {
 const fetchProducts = async () => {
   try {
     loading.value = true
+    console.log('Fetching products with params:', {
+      page: currentPage.value,
+      ...filters.value
+    })
+    
     const response = await productService.getProducts({
       page: currentPage.value,
       ...filters.value
     })
     
-    products.value = response.products || []
-    totalPages.value = response.totalPages || 0
-    totalProducts.value = response.totalProducts || 0
+    console.log('API Response:', response)
+    
+    if (response && response.products) {
+      products.value = response.products
+      totalPages.value = response.totalPages
+      totalProducts.value = response.totalProducts
+      console.log('Updated products:', products.value)
+    } else {
+      console.error('Invalid response format:', response)
+    }
   } catch (error) {
     console.error('Error fetching products:', error)
+    products.value = []
   } finally {
     loading.value = false
   }
@@ -303,24 +317,78 @@ const editProduct = (product) => {
 }
 
 const confirmDelete = async (product) => {
-  const result = await Swal.fire({
-    title: 'Xác nhận xóa?',
-    text: 'Bạn không thể hoàn tác hành động này!',
-    icon: 'warning',
-    showCancelButton: true,
-    confirmButtonText: 'Xóa',
-    cancelButtonText: 'Hủy'
-  })
+  try {
+    const result = await Swal.fire({
+      title: 'Xác nhận xóa?',
+      text: `Bạn có chắc chắn muốn xóa sản phẩm "${product.name}"?`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Xóa',
+      cancelButtonText: 'Hủy'
+    });
 
-  if (result.isConfirmed) {
-    try {
-      await productService.deleteProduct(product.id)
-      await fetchProducts()
-      Swal.fire('Đã xóa!', 'Sản phẩm đã được xóa.', 'success')
-    } catch (error) {
-      Swal.fire('Lỗi!', 'Không thể xóa sản phẩm.', 'error')
+    if (result.isConfirmed) {
+      // Hiển thị loading
+      Swal.fire({
+        title: 'Đang xóa...',
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
+
+      // Gọi API xóa sản phẩm
+      const response = await productService.deleteProduct(product.id);
+      
+      if (response && response.success) {
+        // Cập nhật lại danh sách sản phẩm
+        await fetchProducts();
+        
+        Swal.fire({
+          icon: 'success',
+          title: 'Đã xóa!',
+          text: response.message || 'Sản phẩm đã được xóa thành công.',
+          timer: 1500
+        });
+      } else {
+        throw new Error(response?.message || 'Không thể xóa sản phẩm');
+      }
     }
+  } catch (error) {
+    console.error('Error deleting product:', error);
+    Swal.fire({
+      icon: 'error',
+      title: 'Lỗi!',
+      text: error.message || 'Không thể xóa sản phẩm. Vui lòng thử lại sau.',
+    });
   }
+};
+
+// Thêm các helper functions
+const truncateText = (text, length) => {
+  if (!text) return ''
+  return text.length > length ? text.substring(0, length) + '...' : text
+}
+
+const formatPrice = (price) => {
+  return new Intl.NumberFormat('vi-VN', {
+    style: 'currency',
+    currency: 'VND'
+  }).format(price)
+}
+
+const calculateTotalStock = (variants) => {
+  if (!variants) return 0
+  return variants.reduce((total, variant) => total + (parseInt(variant.initial_stock) || 0), 0)
+}
+
+const getStockClass = (stock) => {
+  stock = parseInt(stock) || 0
+  if (stock === 0) return 'out-of-stock'
+  if (stock < 10) return 'low-stock'
+  return 'in-stock'
 }
 </script>
 

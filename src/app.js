@@ -145,3 +145,6 @@ app.use(passport.session());
 const googleAuthRoutes = require('./client/auth/google_route');
 app.use('/', googleAuthRoutes);
 
+// Serve static files từ thư mục assets
+app.use('/assets', express.static(path.join(__dirname, 'assets')));
+

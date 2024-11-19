@@ -3,7 +3,7 @@ import api from '../utils/axios'
 export const productService = {
   getProducts: async (params) => {
     try {
-      const response = await api.get('/products', { params })
+      const response = await api.get('/admin/products', { params })
       return {
         products: response.data.products,
         totalPages: response.data.totalPages,
@@ -15,32 +15,13 @@ export const productService = {
     }
   },
 
-  createProduct: async (productData) => {
+  createProduct: async (formData) => {
     try {
-      const formData = new FormData()
-      
-      // Thêm các trường thông tin cơ bản
-      formData.append('name', productData.name)
-      formData.append('description', productData.description)
-      formData.append('category_id', productData.category_id)
-      formData.append('brand_id', productData.brand_id)
-      
-      // Thêm ảnh nếu có
-      if (productData.image) {
-        formData.append('image', productData.image)
-      }
-      
-      // Thêm variants dưới dạng JSON string
-      if (productData.variants) {
-        formData.append('variants', JSON.stringify(productData.variants))
-      }
-
-      const response = await api.post('/add-products', formData, {
+      const response = await api.post('/admin/add-products', formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
       })
-      
       return response.data
     } catch (error) {
       throw error.response?.data || error.message
@@ -104,12 +85,13 @@ export const productService = {
     }
   },
 
-  deleteProduct: async (id) => {
+  deleteProduct: async (productId) => {
     try {
-      const response = await api.delete(`/products/${id}`)
-      return response.data
+      const response = await api.delete(`/admin/products/${productId}`);
+      return response.data;
     } catch (error) {
-      throw error.response?.data || error.message
+      console.error('Error in deleteProduct:', error);
+      throw new Error(error.response?.data?.message || 'Không thể xóa sản phẩm');
     }
   }
 }
