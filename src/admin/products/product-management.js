@@ -9,7 +9,7 @@ const router = express.Router();
 // Cấu hình multer để lưu file
 const storage = multer.diskStorage({
   destination: async (req, file, cb) => {
-    const uploadDir = path.resolve(__dirname, '../../../public/uploads/products');
+    const uploadDir = path.resolve(__dirname, '../../assets/uploads/products');
     try {
       await fs.mkdir(uploadDir, { recursive: true });
       cb(null, uploadDir);
@@ -81,7 +81,7 @@ router.post('/add-products', authenticateJWT, checkAdminRole, upload.single('ima
 
       let image_url = '';
       if (req.file) {
-        image_url = `/uploads/products/${req.file.filename}`;
+        image_url = `/assets/uploads/products/${req.file.filename}`;
       }
 
       // Bắt đầu transaction

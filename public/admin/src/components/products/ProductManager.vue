@@ -102,6 +102,7 @@
             <th style="width: 50px">
               <input type="checkbox" v-model="selectAll" @change="handleSelectAll">
             </th>
+            <th style="width: 70px">Hình ảnh</th>
             <th style="width: 200px">Tên sản phẩm</th>
             <th style="width: 150px">Danh mục</th>
             <th style="width: 150px">Thương hiệu</th>
@@ -122,6 +123,14 @@
                   v-model="selectedProducts" 
                   :value="product.id"
                   @click.stop
+                >
+              </td>
+              <td>
+                <img 
+                  :src="getImageUrl(product.image_url)" 
+                  :alt="product.name"
+                  class="product-thumbnail"
+                  @error="handleImageError"
                 >
               </td>
               <td>
@@ -329,6 +338,7 @@ import { productService } from '@/services/productService'
 import ProductModal from './ProductModal.vue'
 import EditProductModal from './EditProductModal.vue'
 import Swal from 'sweetalert2'
+import path from 'path'
 
 // State variables
 const products = ref([])
@@ -530,7 +540,9 @@ const toggleProductDetails = (productId) => {
 const getImageUrl = (url) => {
   if (!url) return 'https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEj2GqhUbpEqRxJvzyk3TvXjZ0drENlUZUtyUEf0SxgT9s6QJfEt2X6WHORiJBreix1VMbi8Qi1Pgqel1G3nWElQywahVfUI8U6kfjMfELukWOsWbJorp0ODdBL2oJXOLft-XRu02-r_WIw/s580/placeholder-image.jpg';
   if (url.startsWith('http')) return url;
-  return `http://localhost:5173${url}`; // Thêm domain
+  
+  // Sửa lại đường dẫn để match với cấu hình trong app.js
+  return `${import.meta.env.VITE_API_URL}/assets/uploads/products/${path.basename(url)}`;
 };
 
 const handleImageError = (e) => {
