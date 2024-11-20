@@ -102,5 +102,15 @@ export const productService = {
     } catch (error) {
       throw new Error(error.response?.data?.message || 'Lỗi lấy thông tin sản phẩm');
     }
+  },
+
+  getAllProducts: async () => {
+    try {
+      const response = await api.get('/admin/products/all');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching all products:', error);
+      throw error.response?.data || error.message;
+    }
   }
 }

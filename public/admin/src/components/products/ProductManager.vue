@@ -8,7 +8,7 @@
         <button class="btn btn-primary" @click="openAddModal">
           <i class="fas fa-plus"></i> Thêm sản phẩm
         </button>
-        <button class="btn btn-secondary">
+        <button class="btn btn-secondary" @click="exportToExcel">
           <i class="fas fa-file-excel"></i> Xuất Excel
         </button>
       </div>
@@ -173,9 +173,11 @@
                   <button 
                     class="btn btn-sm btn-outline-danger" 
                     title="Xóa"
-                    @click.stop="confirmDelete(product.id)"
+                    :disabled="isDeleting && productToDelete === product.id"
+                    @click="confirmDelete(product, $event)"
                   >
-                    <i class="fas fa-trash"></i>
+                    <i class="fas fa-spinner fa-spin" v-if="isDeleting && productToDelete === product.id"></i>
+                    <i class="fas fa-trash" v-else></i>
                   </button>
                 </div>
               </td>
@@ -339,6 +341,8 @@ import ProductModal from './ProductModal.vue'
 import EditProductModal from './EditProductModal.vue'
 import Swal from 'sweetalert2'
 import path from 'path'
+import * as XLSX from 'xlsx'
+import { saveAs } from 'file-saver'
 
 // State variables
 const products = ref([])
@@ -366,37 +370,66 @@ const hasActiveFilters = computed(() => {
   return filters.value.search || filters.value.category || filters.value.brand
 })
 
+// Thêm các ref mới
+const perPage = ref(10)
+const itemsPerPage = ref(10)
+
+// Thêm các computed properties cho phân trang
+const startItem = computed(() => {
+  if (totalProducts.value === 0) return 0;
+  return (currentPage.value - 1) * perPage.value + 1;
+});
+
+const endItem = computed(() => {
+  const end = currentPage.value * perPage.value;
+  return end > totalProducts.value ? totalProducts.value : end;
+});
+
+const totalItems = computed(() => totalProducts.value);
+
+const visiblePages = computed(() => {
+  const total = totalPages.value;
+  const current = currentPage.value;
+  const delta = 2;
+  const range = [];
+  
+  for (let i = 1; i <= total; i++) {
+    if (
+      i === 1 || // Luôn hiển thị trang đầu
+      i === total || // Luôn hiển thị trang cuối
+      (i >= current - delta && i <= current + delta) // Hiển thị các trang xung quanh trang hiện tại
+    ) {
+      range.push(i);
+    } else if (range[range.length - 1] !== '...') {
+      range.push('...');
+    }
+  }
+  
+  return range;
+});
+
 // Fetch products với xử lý loading state
 const fetchProducts = async () => {
   try {
-    loading.value = true
-    console.log('Fetching products with params:', {
-      page: currentPage.value,
-      ...filters.value
-    })
-    
+    loading.value = true;
     const response = await productService.getProducts({
       page: currentPage.value,
+      limit: perPage.value, // Thêm limit vào params
       ...filters.value
-    })
-    
-    console.log('API Response:', response)
+    });
     
     if (response && response.products) {
-      products.value = response.products
-      totalPages.value = response.totalPages
-      totalProducts.value = response.totalProducts
-      console.log('Updated products:', products.value)
-    } else {
-      console.error('Invalid response format:', response)
+      products.value = response.products;
+      totalPages.value = response.totalPages;
+      totalProducts.value = response.totalProducts;
     }
   } catch (error) {
-    console.error('Error fetching products:', error)
-    products.value = []
+    console.error('Error fetching products:', error);
+    products.value = [];
   } finally {
-    loading.value = false
+    loading.value = false;
   }
-}
+};
 
 const fetchCategories = async () => {
   try {
@@ -548,6 +581,170 @@ const getImageUrl = (url) => {
 const handleImageError = (e) => {
   e.target.src = 'https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEj2GqhUbpEqRxJvzyk3TvXjZ0drENlUZUtyUEf0SxgT9s6QJfEt2X6WHORiJBreix1VMbi8Qi1Pgqel1G3nWElQywahVfUI8U6kfjMfELukWOsWbJorp0ODdBL2oJXOLft-XRu02-r_WIw/s580/placeholder-image.jpg';
 };
+
+// Thêm methods xử lý phân trang
+const goToPage = async (page) => {
+  if (page === currentPage.value) return;
+  currentPage.value = page;
+  await fetchProducts();
+};
+
+const handlePerPageChange = async () => {
+  currentPage.value = 1;
+  itemsPerPage.value = perPage.value;
+  await fetchProducts();
+};
+
+// Thêm state cho việc xóa
+const isDeleting = ref(false)
+const productToDelete = ref(null)
+
+// Thêm method xử lý xóa
+const confirmDelete = async (product, event) => {
+  // Ngăn sự kiện click lan ra ngoài (tránh mở expanded row)
+  event.stopPropagation()
+  
+  try {
+    const result = await Swal.fire({
+      title: 'Xác nhận xóa?',
+      text: `Bạn có chắc chắn muốn xóa sản phẩm "${product.name}"?`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc3545',
+      cancelButtonColor: '#6c757d',
+      confirmButtonText: 'Xóa',
+      cancelButtonText: 'Hủy'
+    })
+
+    if (result.isConfirmed) {
+      isDeleting.value = true
+      productToDelete.value = product.id
+      
+      try {
+        await productService.deleteProduct(product.id)
+        
+        // Cập nhật UI
+        products.value = products.value.filter(p => p.id !== product.id)
+        totalProducts.value--
+        
+        // Tính lại tổng số trang
+        totalPages.value = Math.ceil(totalProducts.value / itemsPerPage.value)
+        
+        // Nếu xóa hết sản phẩm ��� trang hiện tại, load trang trớc đó
+        if (products.value.length === 0 && currentPage.value > 1) {
+          currentPage.value--
+          await fetchProducts()
+        }
+        
+        Swal.fire(
+          'Đã xóa!',
+          'Sản phẩm đã được xóa thành công.',
+          'success'
+        )
+      } catch (error) {
+        console.error('Error deleting product:', error)
+        Swal.fire(
+          'Lỗi!',
+          'Không thể xóa sản phẩm. Vui lòng thử lại sau.',
+          'error'
+        )
+      }
+    }
+  } catch (error) {
+    console.error('Error in delete confirmation:', error)
+  } finally {
+    isDeleting.value = false
+    productToDelete.value = null
+  }
+}
+
+// Thêm method xuất Excel
+const exportToExcel = async () => {
+  try {
+    // Hiển thị loading
+    Swal.fire({
+      title: 'Đang xuất Excel',
+      text: 'Vui lòng đợi trong giây lát...',
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading()
+      }
+    })
+
+    // Lấy toàn bộ dữ liệu
+    const response = await productService.getAllProducts()
+    const productsData = response.products
+
+    // Định dạng dữ liệu cho Excel
+    const excelData = productsData.map((product, index) => ({
+      'STT': index + 1,
+      'Mã SP': product.id,
+      'Tên sản phẩm': product.name,
+      'Danh mục': product.category_name || '',
+      'Thương hiệu': product.brand_name || '',
+      'Mô tả': product.description || '',
+      'Số phiên bản': product.variants?.length || 0,
+      'Tổng tồn kho': calculateTotalStock(product.variants),
+      'Giá thấp nhất': product.min_price ? Number(product.min_price) : 0,
+      'Giá cao nhất': product.max_price ? Number(product.max_price) : 0,
+      'Trạng thái': product.status ? 'Đang bán' : 'Ngừng bán',
+      'Ngày tạo': product.created_at ? new Date(product.created_at).toLocaleDateString('vi-VN') : '',
+      'Cập nhật lần cuối': product.updated_at ? new Date(product.updated_at).toLocaleDateString('vi-VN') : ''
+    }))
+
+    // Tạo worksheet
+    const ws = XLSX.utils.json_to_sheet(excelData, {
+      header: Object.keys(excelData[0])
+    })
+
+    // Điều chỉnh độ rộng cột
+    const colWidths = Object.keys(excelData[0]).map(key => ({
+      wch: Math.max(
+        key.length,
+        ...excelData.map(row => String(row[key] || '').length)
+      )
+    }))
+    ws['!cols'] = colWidths
+
+    // Tạo workbook
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'Danh sách sản phẩm')
+
+    // Xuất file
+    const excelBuffer = XLSX.write(wb, { 
+      bookType: 'xlsx', 
+      type: 'array',
+      bookSST: false
+    })
+    
+    const blob = new Blob([excelBuffer], { 
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+    })
+
+    // Tạo tên file với timestamp
+    const fileName = `products_${new Date().toISOString().slice(0,10)}.xlsx`
+    
+    // Lưu file
+    saveAs(blob, fileName)
+
+    // Đóng loading và hiển thị thông báo thành công
+    Swal.fire({
+      icon: 'success',
+      title: 'Xuất Excel thành công!',
+      text: `File đã được tải xuống với tên "${fileName}"`,
+      timer: 2000,
+      showConfirmButton: false
+    })
+
+  } catch (error) {
+    console.error('Error exporting to Excel:', error)
+    Swal.fire({
+      icon: 'error',
+      title: 'Lỗi xuất Excel',
+      text: 'Có lỗi xảy ra khi xuất file Excel. Vui lòng thử lại sau.'
+    })
+  }
+}
 </script>
 
 <style scoped>

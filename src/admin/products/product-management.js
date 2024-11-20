@@ -6,6 +6,51 @@ const fs = require('fs').promises;
 const { authenticateJWT } = require('../../database/dbconfig');
 const router = express.Router();
 
+// Lấy tất cả sản phẩm (không phân trang) cho xuất Excel
+router.get('/products/all', authenticateJWT, checkAdminRole, async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    const [products] = await connection.query(`
+      SELECT 
+        p.*,
+        c.name as category_name,
+        b.name as brand_name,
+        GROUP_CONCAT(v.id) as variant_ids,
+        MIN(v.price) as min_price,
+        MAX(v.price) as max_price
+      FROM products p
+      LEFT JOIN categories c ON p.category_id = c.id
+      LEFT JOIN brands b ON p.brand_id = b.id
+      LEFT JOIN productvariants v ON p.id = v.product_id
+      GROUP BY p.id
+      ORDER BY p.created_at DESC
+    `);
+
+    // Lấy variants cho mỗi sản phẩm
+    for (let product of products) {
+      const [variants] = await connection.query(
+        'SELECT * FROM productvariants WHERE product_id = ?',
+        [product.id]
+      );
+      product.variants = variants;
+    }
+
+    res.json({ 
+      success: true,
+      products 
+    });
+  } catch (error) {
+    console.error('Error fetching all products:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi khi tải danh sách sản phẩm',
+      error: error.message
+    });
+  } finally {
+    connection.release();
+  }
+});
+
 // Cấu hình multer để lưu file
 const storage = multer.diskStorage({
   destination: async (req, file, cb) => {
@@ -483,8 +528,5 @@ router.delete('/products/:id', authenticateJWT, checkAdminRole, async (req, res)
     connection.release();
   }
 });
-
-
-
 
 module.exports = router;
