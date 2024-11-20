@@ -15,14 +15,13 @@ const categoryProducts = {
         default: return `${brand} ${faker.helpers.arrayElement(['Pro', 'Ultra', 'Plus'])} ${faker.number.int({min: 1, max: 99})}`;
       }
     },
-    variants: (brand) => {
-      const storage = ['128GB', '256GB', '512GB'];
-      const colors = ['Đen', 'Trắng', 'Xanh', 'Vàng'];
-      return storage.map(s => colors.map(c => ({
-        name: `${s} ${c}`,
-        price: faker.number.int({min: 5000000, max: 45000000}),
+    variants: () => {
+      const colors = ['Đen', 'Trắng', 'Xanh'];
+      return colors.map(c => ({
+        name: c,
+        price: faker.number.int({min: 2000000, max: 40000000}),
         initial_stock: faker.number.int({min: 20, max: 100})
-      }))).flat();
+      }));
     }
   },
   'Máy tính bảng': {
@@ -102,14 +101,10 @@ const categoryProducts = {
       return `${brand} ${faker.helpers.arrayElement(brandSeries)} ${faker.string.alpha(2).toUpperCase()}${faker.number.int({min: 15, max: 17})}`;
     },
     variants: () => {
-      const configs = [
-        'RTX 3050 16GB 512GB',
-        'RTX 3060 16GB 512GB',
-        'RTX 4060 32GB 1TB'
-      ];
+      const configs = ['RTX 3050', 'RTX 3060', 'RTX 4060'];
       return configs.map(c => ({
         name: c,
-        price: faker.number.int({min: 22000000, max: 85000000}),
+        price: faker.number.int({min: 15000000, max: 60000000}),
         initial_stock: faker.number.int({min: 5, max: 30})
       }));
     }
@@ -182,7 +177,7 @@ const categoryProducts = {
       const configs = ['Body', 'Kit 24-70mm', 'Kit 24-105mm'];
       return configs.map(c => ({
         name: c,
-        price: faker.number.int({min: 30000000, max: 150000000}),
+        price: faker.number.int({min: 10000000, max: 90000000}),
         initial_stock: faker.number.int({min: 5, max: 20})
       }));
     }
@@ -270,7 +265,7 @@ const categoryProducts = {
       const models = ['1080p', '2K', '4K'];
       return models.map(m => ({
         name: m,
-        price: faker.number.int({min: 500000, max: 5000000}),
+        price: faker.number.int({min: 500000, max: 8000000}),
         initial_stock: faker.number.int({min: 20, max: 100})
       }));
     }
@@ -280,28 +275,28 @@ const categoryProducts = {
 const categoryImages = {
   'Điện thoại': {
     'Apple': [
-      'https://cdn.tgdd.vn/Products/Images/42/305658/iphone-15-pro-max-blue-1.jpg',
-      'https://cdn.tgdd.vn/Products/Images/42/299033/iphone-15-pro-black-1.jpg'
+      'https://cdn2.cellphones.com.vn/insecure/rs:fill:0:358/q:90/plain/https://cellphones.com.vn/media/catalog/product/i/p/iphone-15-pro-max_3.png',
+      'https://cdn2.cellphones.com.vn/insecure/rs:fill:0:358/q:90/plain/https://cellphones.com.vn/media/catalog/product/i/p/iphone-16-plus-1_1.png'
     ],
     'Samsung': [
-      'https://images.samsung.com/vn/smartphones/galaxy-s24-ultra/images/galaxy-s24-ultra-highlights-color-titanium-gray-mo.jpg',
-      'https://images.samsung.com/vn/smartphones/galaxy-s24/images/galaxy-s24-highlights-color-amber-yellow-mo.jpg'
+      'https://cdn.hoanghamobile.com/i/preview-np-V2/Uploads/ImageHightlight/3570_samsung-galaxy-z-fold6/galaxy-z-fold6-thietke-1020x570.jpg',
+      'https://cdn.hoanghamobile.com/i/previewV2/Uploads/2024/07/10/z-fold6-pink-1.png'
     ],
     'Xiaomi': [
-      'https://cdn.tgdd.vn/Products/Images/42/309816/xiaomi-14-1.jpg',
-      'https://cdn.tgdd.vn/Products/Images/42/307172/xiaomi-13t-pro-1.jpg'
+      'https://cdn.hoanghamobile.com/i/previewV2/Uploads/2024/04/22/xiaomi-14-ultra-3.png',
+      'https://cdn.hoanghamobile.com/i/previewV2/Uploads/2024/04/22/xiaomi-14-ultra-4.png'
     ],
     'OPPO': [
-      'https://cdn.tgdd.vn/Products/Images/42/306979/oppo-reno10-5g-blue-1.jpg',
-      'https://cdn.tgdd.vn/Products/Images/42/299033/oppo-find-n3-flip-1.jpg'
+      'https://cdn.nguyenkimmall.com/images/thumbnails/382/382/detailed/839/10053753-dien-thoai-oppo-a17-4gb-64gb-xanh-1.jpg',
+      'https://lh3.googleusercontent.com/3vVR3IRJR1YKHHsPM3WubJclSuUnW_37vHMEZitGstR50AnrYAKPCicQJg4DbwnhgHzAIRy6QJCbRL55nsTqy_i10g3_fOBe=rw'
     ],
     'Vivo': [
-      'https://cdn.tgdd.vn/Products/Images/42/309864/vivo-v29e-5g-1.jpg',
-      'https://cdn.tgdd.vn/Products/Images/42/308722/vivo-v27e-1.jpg'
+      'https://cdn.hoanghamobile.com/i/previewV2/Uploads/2023/10/20/den-dai-ngan-1.png',
+      'https://cdn.hoanghamobile.com/i/previewV2/Uploads/2023/10/20/xanh-song-bang-6.png'
     ],
     'Realme': [
-      'https://cdn.tgdd.vn/Products/Images/42/301603/realme-11-pro-plus-5g-1.jpg',
-      'https://cdn.tgdd.vn/Products/Images/42/292672/realme-c55-1.jpg'
+      'https://store.sony.com.vn/cdn/shop/files/747_ProductPrimary_image_Khaki-Green_400x.png?v=1700110016',
+      'https://cdn.hoanghamobile.com/i/previewV2/Uploads/2024/04/16/realme-c53-3.png'
     ]
   },
 
@@ -322,72 +317,72 @@ const categoryImages = {
 
   'Laptop văn phòng': {
     'Dell': [
-      'https://i.dell.com/is/image/DellContent/content/dam/ss2/product-images/dell-client-products/notebooks/inspiron-notebooks/14-5420/media-gallery/in5420t-xnb-01-sl.psd',
-      'https://i.dell.com/is/image/DellContent/content/dam/ss2/product-images/dell-client-products/notebooks/latitude-notebooks/14-3440/media-gallery/notebook-latitude-3440-gray-gallery-1.psd'
+      'https://s.alicdn.com/@sc04/kf/H665fa3869e9e4268ab782660d7569e5dw.jpg_720x720q50.jpg',
+      'https://s.alicdn.com/@sc04/kf/Hc8aa85f888a9498f8517b88192538a8cm.jpg_720x720q50.jpg'
     ],
     'HP': [
-      'https://ssl-product-images.www8-hp.com/digmedialib/prodimg/lowres/c08173326.png',
-      'https://ssl-product-images.www8-hp.com/digmedialib/prodimg/lowres/c08174151.png'
+      'https://www.laptopvip.vn/images/ab__webp/thumbnails/1100/900/detailed/26/5MT98UA-ABL-4-1750x1285-www.laptopvip.vn-1624951443.png.webp',
+      'https://www.laptopvip.vn/images/ab__webp/thumbnails/1100/900/detailed/26/6428658cv10d-www.laptopvip.vn-1619429646-itag-0j-www.laptopvip.vn-1624951443.png.webp'
     ],
     'Lenovo': [
-      'https://www.lenovo.com/medias/lenovo-laptops-thinkpad-x1-carbon-gen-11-hero.png',
-      'https://www.lenovo.com/medias/lenovo-laptop-yoga-9i-gen-8-14-intel-hero.png'
+      'https://cdn2.cellphones.com.vn/insecure/rs:fill:0:358/q:90/plain/https://cellphones.com.vn/media/catalog/product/t/e/text_ng_n_15__7_14.png',
+      'https://cdn2.cellphones.com.vn/insecure/rs:fill:0:358/q:90/plain/https://cellphones.com.vn/media/catalog/product/t/e/text_ng_n_15__7_14.png'
     ]
   },
 
   'Laptop gaming': {
     'Asus': [
-      'https://dlcdnwebimgs.asus.com/gain/28104E63-F126-4FE5-8B9D-D52D60847594/w1000/h732',
-      'https://dlcdnwebimgs.asus.com/gain/C08F1909-E0F9-4C6B-B7B9-C8D163830BCD/w1000/h732'
+      'https://cdn2.cellphones.com.vn/insecure/rs:fill:0:358/q:90/plain/https://cellphones.com.vn/media/catalog/product/t/e/text_ng_n_4__5_35_1.png',
+      'https://cdn2.cellphones.com.vn/insecure/rs:fill:0:358/q:90/plain/https://cellphones.com.vn/media/catalog/product/t/e/text_ng_n_4__5_35_1.png',
     ],
     'MSI': [
-      'https://storage.googleapis.com/msigaming/msigaming2023/Laptop/Product_List/Raider%20GE78%20HX%2014V/ge78hx-14v-1.png',
-      'https://storage.googleapis.com/msigaming/msigaming2023/Laptop/Product_List/Stealth%2016%20Studio%20A13V/stealth16-studio-a13v-1.png'
+      'https://imagor.owtg.one/unsafe/fit-in/1000x1000/filters:quality(100)/https://d28jzcg6y4v9j1.cloudfront.net/media/core/products/2024/7/5/acer-predator-helios-neo-16-phn16-72-91rf-undefined.jpg',
+      'https://product.hstatic.net/200000420363/product/laptop-gaming-msi-katana-15-b13vek_24b6d078bd91414daaf0f02e8d38c83d_master.png'
     ],
     'Acer': [
-      'https://images.acer.com/is/image/acer/predator-triton-17x-ptx17-71-gallery-01',
-      'https://images.acer.com/is/image/acer/nitro-5-an515-58-gallery-01'
+      'https://cdn2.cellphones.com.vn/insecure/rs:fill:0:358/q:90/plain/https://cellphones.com.vn/media/catalog/product/2/8/28_1_17.jpg',
+      'https://cdn.tgdd.vn/Products/Images/44/325051/acer-swift-go-14-ai-73-71zx-ultra-7-nxkslsv002-2-1-750x500.jpg'
     ]
   },
 
   'Camera & Máy ảnh': {
     'Canon': [
-      'https://asia.canon/media/image/2022/05/19/c2f6e71c217f4018b5c2e1172f5a4727_EOS+R7+RF-S18-150mm+Front+Slant.png',
-      'https://asia.canon/media/image/2022/05/19/c19c8ac8f80f4e0f9c6497c1c2f700eb_EOS+R10+RF-S18-45mm+Front+Slant.png'
+      'https://imagedelivery.net/ZeGtsGSjuQe1P3UP_zk3fQ/b9a7da25-de82-40bc-ecc6-90473f619400/storedata',
+      'https://imagedelivery.net/ZeGtsGSjuQe1P3UP_zk3fQ/75bef658-3b0d-466f-7df0-b9227c548d00/storedata'
     ],
     'Sony': [
-      'https://electronics.sony.com/image/5d02da5c0a04b705cc0b32e9f56e05c7/A7-IV-wFE-28-70mm-lens-right-side-angle-shot',
-      'https://electronics.sony.com/image/e328a15c0a04b705cc0b32fee2605c7c/ZV-1-II-right-side-angle-shot'
+      'https://imagedelivery.net/ZeGtsGSjuQe1P3UP_zk3fQ/b68b77a1-6ca6-4523-6a08-2a572840ee00/storedata',
+      'https://cdn.vjshop.vn/may-anh/mirrorless/sony/sony-alpha-a7-mark-iv/lens-28-70mm-f35-56/sony-alpha-a7-mark-iv-lens-28-70mm-f35-56-500x500.jpg'
     ],
     'Nikon': [
-      'https://cdn-4.nikon-cdn.com/e/Q5NM96RZZo-YRYNeYvAi9beHK4x3L-8go_p7JUL6JpU=/Views/1592_Z8_front.png',
-      'https://cdn-4.nikon-cdn.com/e/Q5NM96RZZo-YRYNeYvAi9beHK4x3L-8go_p7JUL6JpU=/Views/1679_Z6II_front.png'
+      'https://imagedelivery.net/ZeGtsGSjuQe1P3UP_zk3fQ/c06fd9d1-bc40-49ab-76c0-3a282e806400/storedata',
+      'https://imagedelivery.net/ZeGtsGSjuQe1P3UP_zk3fQ/7f306e41-9711-4897-5760-768897715f00/storedata'
     ]
   },
 
   'Gaming Gear': {
     'Logitech': [
-      'https://resource.logitechg.com/w_692,c_limit,q_auto,f_auto,dpr_1.0/d_transparent.gif/content/dam/gaming/en/products/pro-x-superlight/pro-x-superlight-black-gallery-1.png',
-      'https://resource.logitechg.com/w_692,c_limit,q_auto,f_auto,dpr_1.0/d_transparent.gif/content/dam/gaming/en/products/g915/g915-tkl-gallery/us-g915-tkl-gallery-topdown.png'
+      'https://product.hstatic.net/1000129940/product/01_acdcdaa5d203400bb4173ce82e520be6_master.jpg',
+      'https://product.hstatic.net/200000420363/product/1_7f940c220a6c4e938ecfefa264af5fab_master.jpg'
     ],
     'Razer': [
-      'https://assets3.razerzone.com/CKqcqX_uVNYGiRPOJ_mlAyXEkRI=/1500x1000/https%3A%2F%2Fhybrismediaprod.blob.core.windows.net%2Fsys-master-phoenix-images-container%2Fh51%2Fh09%2F9459618693150%2Fdeathadder-v3-pro-white-500x500.png',
-      'https://assets3.razerzone.com/9chPRJD1c0ZcMkiNYEt9ZmGYQQ0=/1500x1000/https%3A%2F%2Fhybrismediaprod.blob.core.windows.net%2Fsys-master-phoenix-images-container%2Fhc3%2Fh09%2F9459618660382%2Fblackwidow-v4-pro-500x500.png'
+      'https://product.hstatic.net/200000420363/product/chuot-gaming-razer-basilisk-v3-rz01-04000100-r3m1-1__1__4bad60b240474d4db03c365ce9adcbe7_master.jpg',
+      'https://product.hstatic.net/200000420363/product/chuot-logitech-pro-x-superlight-2-wireless-gaming-7_70bc279fb0e14554ab63e23b45f74d3f_master.jpg'
     ]
   },
 
   'Loa & Âm thanh': {
     'JBL': [
-      'https://www.jbl.com/dw/image/v2/BFND_PRD/on/demandware.static/-/Sites-masterCatalog_Harman/default/dw5b2e4d43/JBL_Charge_5_WiFi_Product_Image_Hero_Black.png',
-      'https://www.jbl.com/dw/image/v2/BFND_PRD/on/demandware.static/-/Sites-masterCatalog_Harman/default/dw5b2e4d43/JBL_PartyBox_110_Hero_004_x2.png'
+      'https://antien.vn/uploaded/B%26O%20Beosound%20Balance%20Google%20Assistant/B-O-Beosound-Balance-Google-Assistant.jpg',
+      'hthttps://store.sony.com.vn/cdn/shop/files/Primary_image_1200-9_400x.jpg?v=1723014578'
     ],
     'Sony': [
-      'https://electronics.sony.com/image/5c02da5c0a04b705cc0b32e9f56e05c7/SRS-XB100-black-hero',
-      'https://electronics.sony.com/image/5d02da5c0a04b705cc0b32e9f56e05c7/SRS-XG300-black-hero'
+      'https://product.hstatic.net/200000567141/product/hifuture-vent-1_069b0255818a4867b2e2e3a30f87c774_master.jpg',
+      'https://product.hstatic.net/200000567141/product/bang-max-portable-party-speaker_e0063a92ca4f4f4c8b2f7841757841f1_master.jpg'
     ],
     'Bose': [
-      'https://assets.bose.com/content/dam/Bose_DAM/Web/consumer_electronics/global/products/speakers/soundlink_flex/product_silo_images/SLF_PDP_GALLERY-01.png',
-      'https://assets.bose.com/content/dam/Bose_DAM/Web/consumer_electronics/global/products/speakers/smart_speaker_500/product_silo_images/ss500_pdp_gallery-01.png'
+      'https://topav.vn/thumbnails/products/large/uploads/2023/11/loa-cqa-10dvd-400x399.jpg.webp',
+      'https://topav.vn/thumbnails/products/large/uploads/2023/11/loa-cqa-10dvd-400x399.jpg.webp'
     ]
   }
 };

@@ -152,3 +152,14 @@ app.use('/assets', express.static(path.join(__dirname, 'assets')));
 // Khởi tạo thư mục uploads khi start server
 initUploadDirs().catch(console.error);
 
+// Sửa lại cấu hình serve static files
+app.use('/assets/uploads', express.static(path.join(__dirname, 'assets/uploads')));
+
+// Thêm middleware để handle image MIME types
+app.use((req, res, next) => {
+  if (req.url.match(/\.(jpg|jpeg|png|gif|webp)$/)) {
+    res.type(`image/${path.extname(req.url).slice(1)}`);
+  }
+  next();
+});
+
