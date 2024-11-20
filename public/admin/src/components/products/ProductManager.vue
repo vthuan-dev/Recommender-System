@@ -98,7 +98,11 @@
     <div v-else class="products-grid">
       <div v-for="product in products" :key="product.id" class="product-card">
         <div class="product-image">
-          <img :src="product.image_url || '/placeholder.png'" :alt="product.name">
+          <img 
+            :src="getImageUrl(product.image_url)"
+            :alt="product.name"
+            @error="handleImageError"
+          >
           <div class="product-actions">
             <button class="action-btn edit" @click="editProduct(product)" title="Sửa sản phẩm">
               <i class="fas fa-edit"></i>
@@ -400,6 +404,17 @@ const getStockClass = (stock) => {
   if (stock < 10) return 'low-stock'
   return 'in-stock'
 }
+
+const getImageUrl = (imageUrl) => {
+  if (!imageUrl) return '/placeholder.png';
+  // Thêm domain nếu cần
+  return `http://localhost:3000${imageUrl}`;
+};
+
+const handleImageError = (e) => {
+  console.error('Image load failed:', e.target.src);
+  e.target.src = '/placeholder.png';
+};
 </script>
 
 <style scoped>
