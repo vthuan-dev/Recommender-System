@@ -95,89 +95,231 @@
       </button>
     </div>
 
-    <div v-else class="products-grid">
-      <div v-for="product in products" :key="product.id" class="product-card">
-        <div class="product-image">
-          <img 
-            :src="getImageUrl(product.image_url)"
-            :alt="product.name"
-            @error="handleImageError"
-          >
-          <div class="product-actions">
-            <button class="action-btn edit" @click="editProduct(product)" title="Sửa sản phẩm">
-              <i class="fas fa-edit"></i>
-            </button>
-            <button class="action-btn delete" @click="confirmDelete(product)" title="Xóa sản phẩm">
-              <i class="fas fa-trash"></i>
-            </button>
-          </div>
-        </div>
-        
-        <div class="product-info">
-          <div class="tags">
-            <span class="category-tag">{{ product.category_name }}</span>
-            <span class="brand-tag">{{ product.brand_name }}</span>
-          </div>
-          
-          <h3 class="product-name">{{ product.name }}</h3>
-          <p class="description">{{ truncateText(product.description, 100) }}</p>
-
-          <div class="variants-section">
-            <div class="variants-header">
-              <span class="variants-title">{{ product.variants?.length || 0 }} Phiên bản</span>
-              <span class="total-stock">Tổng: {{ calculateTotalStock(product.variants) }} sản phẩm</span>
-            </div>
-
-            <div class="variants-list">
-              <div v-for="variant in product.variants?.slice(0, 3)" :key="variant.id" 
-                   class="variant-item" :class="getStockClass(variant.initial_stock)">
-                <div class="variant-info">
-                  <span class="name">{{ variant.name }}</span>
-                  <span class="stock">{{ variant.initial_stock }} sp</span>
+    <div v-else class="table-responsive">
+      <table class="table">
+        <thead>
+          <tr>
+            <th style="width: 50px">
+              <input type="checkbox" v-model="selectAll" @change="handleSelectAll">
+            </th>
+            <th style="width: 200px">Tên sản phẩm</th>
+            <th style="width: 150px">Danh mục</th>
+            <th style="width: 150px">Thương hiệu</th>
+            <th style="width: 100px">Số phiên bản</th>
+            <th style="width: 100px">Tổng tồn</th>
+            <th style="width: 150px">Giá thấp nhất</th>
+            <th style="width: 150px">Giá cao nhất</th>
+            <th style="width: 120px">Thao tác</th>
+          </tr>
+        </thead>
+        <tbody>
+          <template v-for="product in products" :key="product.id">
+            <!-- Main product row -->
+            <tr :class="{ 'expanded': expandedProduct === product.id }" @click="toggleProductDetails(product.id)">
+              <td>
+                <input 
+                  type="checkbox" 
+                  v-model="selectedProducts" 
+                  :value="product.id"
+                  @click.stop
+                >
+              </td>
+              <td>
+                <div class="product-name-cell">
+                  <span class="product-name">{{ product.name }}</span>
+                  <small class="product-description">
+                    {{ truncateText(product.description, 50) }}
+                  </small>
                 </div>
-                <span class="price">{{ formatPrice(variant.price) }}</span>
-              </div>
-              
-              <div v-if="product.variants?.length > 3" class="variant-more">
-                + {{ product.variants.length - 3 }} phiên bản khác
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+              </td>
+              <td>
+                <span class="category-badge">
+                  {{ product.category_name }}
+                </span>
+              </td>
+              <td>
+                <span class="brand-badge">
+                  {{ product.brand_name }}
+                </span>
+              </td>
+              <td class="text-center">
+                {{ product.variants?.length || 0 }}
+              </td>
+              <td class="text-center">
+                <span :class="getStockClass(calculateTotalStock(product.variants))">
+                  {{ calculateTotalStock(product.variants) }}
+                </span>
+              </td>
+              <td>{{ formatPrice(getMinPrice(product.variants)) }}</td>
+              <td>{{ formatPrice(getMaxPrice(product.variants)) }}</td>
+              <td>
+                <div class="action-buttons">
+                  <button 
+                    class="btn btn-sm btn-outline-primary"
+                    @click="editProduct(product)"
+                    title="Sửa"
+                  >
+                    <i class="fas fa-edit"></i>
+                  </button>
+                  <button 
+                    class="btn btn-sm btn-outline-danger" 
+                    title="Xóa"
+                    @click.stop="confirmDelete(product.id)"
+                  >
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+            
+            <!-- Variants detail row -->
+            <tr v-if="expandedProduct === product.id" class="variant-details">
+              <td colspan="10">
+                <div class="variants-wrapper">
+                  <h5>Phiên bản sản phẩm ({{ product.variants?.length || 0 }})</h5>
+                  <table class="variants-table">
+                    <thead>
+                      <tr>
+                        <th>Tên phiên bản</th>
+                        <th>SKU</th>
+                        <th>Giá bán</th>
+                        <th>Tồn kho</th>
+                        <th>Trạng thái</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="variant in product.variants" :key="variant.id">
+                        <td>{{ variant.name }}</td>
+                        <td>{{ variant.sku }}</td>
+                        <td>{{ formatPrice(variant.price) }}</td>
+                        <td>
+                          <span :class="getStockClass(variant.initial_stock)">
+                            {{ variant.initial_stock }}
+                          </span>
+                        </td>
+                        <td>
+                          <span class="status-badge" :class="variant.status ? 'active' : 'inactive'">
+                            {{ variant.status ? 'Đang bán' : 'Ngừng bán' }}
+                          </span>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Bulk Actions -->
+    <div v-if="selectedProducts.length" class="bulk-actions">
+      <span>Đã chn {{ selectedProducts.length }} sản phẩm</span>
+      <button class="btn btn-danger" @click="deleteBulk">
+        <i class="fas fa-trash"></i> Xóa đã chọn
+      </button>
     </div>
 
     <!-- Pagination -->
-    <div class="pagination-section">
+    <div class="pagination-wrapper">
       <div class="pagination-info">
-        <span>Hiển thị {{ products.length }} / {{ totalProducts }} sản phẩm</span>
+        Hiển thị {{ startItem }}-{{ endItem }} / {{ totalItems }} sản phẩm
       </div>
-      <div class="pagination-controls">
+
+      <div class="pagination">
         <button 
-          :disabled="currentPage === 1" 
-          @click="changePage(currentPage - 1)"
-          class="btn btn-outline-primary"
+          class="pagination-btn first" 
+          :disabled="currentPage === 1"
+          @click="goToPage(1)"
         >
-          <i class="fas fa-chevron-left"></i>
+          <i class="fas fa-angle-double-left"></i>
         </button>
-        <span>Trang {{ currentPage }} / {{ totalPages }}</span>
+
         <button 
-          :disabled="currentPage === totalPages" 
-          @click="changePage(currentPage + 1)"
-          class="btn btn-outline-primary"
+          class="pagination-btn prev" 
+          :disabled="currentPage === 1"
+          @click="goToPage(currentPage - 1)"
         >
-          <i class="fas fa-chevron-right"></i>
+          <i class="fas fa-angle-left"></i>
         </button>
+
+        <template v-for="page in visiblePages" :key="page">
+          <button 
+            v-if="page !== '...'"
+            class="pagination-btn number" 
+            :class="{ active: page === currentPage }"
+            @click="goToPage(page)"
+          >
+            {{ page }}
+          </button>
+          <span v-else class="pagination-ellipsis">...</span>
+        </template>
+
+        <button 
+          class="pagination-btn next" 
+          :disabled="currentPage === totalPages"
+          @click="goToPage(currentPage + 1)"
+        >
+          <i class="fas fa-angle-right"></i>
+        </button>
+
+        <button 
+          class="pagination-btn last" 
+          :disabled="currentPage === totalPages"
+          @click="goToPage(totalPages)"
+        >
+          <i class="fas fa-angle-double-right"></i>
+        </button>
+      </div>
+
+      <div class="per-page-selector">
+        <select v-model="perPage" @change="handlePerPageChange">
+          <option :value="10">10 / trang</option>
+          <option :value="20">20 / trang</option>
+          <option :value="50">50 / trang</option>
+          <option :value="100">100 / trang</option>
+        </select>
       </div>
     </div>
 
-    <!-- Modals -->
+    <!-- Separate modals for add and edit -->
     <ProductModal
-      v-if="showModal"
-      :show="showModal"
-      @close="closeModal"
+      v-if="showAddModal"
+      :show="showAddModal"
+      @close="closeAddModal"
       @product-saved="handleProductSaved"
     />
+
+    <EditProductModal
+      v-if="showEditModal"
+      :show="showEditModal"
+      :product="selectedProduct"
+      @close="closeEditModal"
+      @product-updated="handleProductUpdated"
+    />
+
+    <!-- Thêm modal xác nhận xóa -->
+    <div class="modal fade" id="deleteModal" tabindex="-1">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Xác nhận xóa</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            Bạn có chắc chắn muốn xóa sản phẩm này?
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+            <button type="button" class="btn btn-danger" @click="deleteProduct" :disabled="isDeleting">
+              <i class="fas fa-spinner fa-spin" v-if="isDeleting"></i>
+              {{ isDeleting ? 'Đang xóa...' : 'Xóa' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -185,16 +327,20 @@
 import { ref, onMounted, computed } from 'vue'
 import { productService } from '@/services/productService'
 import ProductModal from './ProductModal.vue'
+import EditProductModal from './EditProductModal.vue'
 import Swal from 'sweetalert2'
 
-// Khai báo reactive states với giá trị mặc định
+// State variables
 const products = ref([])
 const loading = ref(true)
-const showModal = ref(false)
+const showAddModal = ref(false)
+const showEditModal = ref(false)
 const selectedProduct = ref(null)
 const currentPage = ref(1)
 const totalPages = ref(0)
 const totalProducts = ref(0)
+const selectedProducts = ref([])
+const selectAll = ref(false)
 
 const filters = ref({
   search: '',
@@ -205,7 +351,7 @@ const filters = ref({
 const categories = ref([])
 const brands = ref([])
 
-// Computed property để kiểm tra có filter nào đang active không
+// Computed property để kiểm tra có filter nào đang active khng
 const hasActiveFilters = computed(() => {
   return filters.value.search || filters.value.category || filters.value.brand
 })
@@ -270,14 +416,11 @@ onMounted(async () => {
 
 // Hàm mở modal
 const openAddModal = () => {
-  selectedProduct.value = null
-  showModal.value = true
+  showAddModal.value = true
 }
 
-// Hàm đóng modal
-const closeModal = () => {
-  showModal.value = false
-  selectedProduct.value = null
+const closeAddModal = () => {
+  showAddModal.value = false
 }
 
 // Xử lý khi lưu sản phẩm
@@ -327,60 +470,20 @@ const clearAllFilters = () => {
 
 const editProduct = (product) => {
   selectedProduct.value = product
-  showModal.value = true
+  showEditModal.value = true
 }
 
-const confirmDelete = async (product) => {
-  try {
-    const result = await Swal.fire({
-      title: 'Xác nhận xóa?',
-      text: `Bạn có chắc chắn muốn xóa sản phẩm "${product.name}"?`,
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#d33',
-      cancelButtonColor: '#3085d6',
-      confirmButtonText: 'Xóa',
-      cancelButtonText: 'Hủy'
-    });
+const closeEditModal = () => {
+  showEditModal.value = false
+  selectedProduct.value = null
+}
 
-    if (result.isConfirmed) {
-      // Hiển thị loading
-      Swal.fire({
-        title: 'Đang xóa...',
-        allowOutsideClick: false,
-        didOpen: () => {
-          Swal.showLoading();
-        }
-      });
+const handleProductUpdated = async (updatedProduct) => {
+  await fetchProducts() // Refresh product list
+  closeEditModal()
+}
 
-      // Gọi API xóa sản phẩm
-      const response = await productService.deleteProduct(product.id);
-      
-      if (response && response.success) {
-        // Cập nhật lại danh sách sản phẩm
-        await fetchProducts();
-        
-        Swal.fire({
-          icon: 'success',
-          title: 'Đã xóa!',
-          text: response.message || 'Sản phẩm đã được xóa thành công.',
-          timer: 1500
-        });
-      } else {
-        throw new Error(response?.message || 'Không thể xóa sản phẩm');
-      }
-    }
-  } catch (error) {
-    console.error('Error deleting product:', error);
-    Swal.fire({
-      icon: 'error',
-      title: 'Lỗi!',
-      text: error.message || 'Không thể xóa sản phẩm. Vui lòng thử lại sau.',
-    });
-  }
-};
-
-// Thêm các helper functions
+// Helper functions
 const truncateText = (text, length) => {
   if (!text) return ''
   return text.length > length ? text.substring(0, length) + '...' : text
@@ -400,20 +503,38 @@ const calculateTotalStock = (variants) => {
 
 const getStockClass = (stock) => {
   stock = parseInt(stock) || 0
-  if (stock === 0) return 'out-of-stock'
-  if (stock < 10) return 'low-stock'
-  return 'in-stock'
+  if (stock === 0) return 'stock-badge stock-out'
+  if (stock < 10) return 'stock-badge stock-low'
+  return 'stock-badge stock-ok'
 }
 
-const getImageUrl = (imageUrl) => {
-  if (!imageUrl) return '/placeholder.png';
-  // Thêm domain nếu cần
-  return `http://localhost:3000${imageUrl}`;
+// Thêm các computed và methods mới
+const getMinPrice = (variants) => {
+  if (!variants?.length) return 0;
+  return Math.min(...variants.map(v => v.price));
+};
+
+const getMaxPrice = (variants) => {
+  if (!variants?.length) return 0;
+  return Math.max(...variants.map(v => v.price));
+};
+
+// Add new ref for expanded product
+const expandedProduct = ref(null)
+
+// Add new method to toggle product details
+const toggleProductDetails = (productId) => {
+  expandedProduct.value = expandedProduct.value === productId ? null : productId
+}
+
+const getImageUrl = (url) => {
+  if (!url) return 'https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEj2GqhUbpEqRxJvzyk3TvXjZ0drENlUZUtyUEf0SxgT9s6QJfEt2X6WHORiJBreix1VMbi8Qi1Pgqel1G3nWElQywahVfUI8U6kfjMfELukWOsWbJorp0ODdBL2oJXOLft-XRu02-r_WIw/s580/placeholder-image.jpg';
+  if (url.startsWith('http')) return url;
+  return `http://localhost:5173${url}`; // Thêm domain
 };
 
 const handleImageError = (e) => {
-  console.error('Image load failed:', e.target.src);
-  e.target.src = '/placeholder.png';
+  e.target.src = 'https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEj2GqhUbpEqRxJvzyk3TvXjZ0drENlUZUtyUEf0SxgT9s6QJfEt2X6WHORiJBreix1VMbi8Qi1Pgqel1G3nWElQywahVfUI8U6kfjMfELukWOsWbJorp0ODdBL2oJXOLft-XRu02-r_WIw/s580/placeholder-image.jpg';
 };
 </script>
 
@@ -530,23 +651,6 @@ const handleImageError = (e) => {
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-}
-
-.product-image {
-  position: relative;
-  height: 180px;
-  overflow: hidden;
-}
-
-.product-image img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.3s ease;
-}
-
-.product-card:hover .product-image img {
-  transform: scale(1.05);
 }
 
 .product-actions {
@@ -765,14 +869,14 @@ const handleImageError = (e) => {
   color: #424242;
 }
 
-.pagination-section {
+.pagination-wrapper {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 20px;
-  margin-top: 30px;
+  justify-content: space-between;
+  margin-top: 1.5rem;
+  padding: 1rem;
   background: #f8f9fa;
-  border-radius: 10px;
+  border-radius: 8px;
 }
 
 .pagination-info {
@@ -780,37 +884,58 @@ const handleImageError = (e) => {
   font-size: 0.9rem;
 }
 
-.pagination-info span {
-  background: #fff;
-  padding: 8px 15px;
-  border-radius: 20px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-}
-
-.pagination-controls {
+.pagination {
   display: flex;
+  gap: 0.5rem;
   align-items: center;
-  gap: 15px;
 }
 
-.pagination-controls button {
-  width: 35px;
-  height: 35px;
-  padding: 0;
+.pagination-btn {
+  min-width: 36px;
+  height: 36px;
+  padding: 0 0.5rem;
+  border: 1px solid #dee2e6;
+  background: white;
+  color: #333;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 8px;
 }
 
-.pagination-controls button:disabled {
-  opacity: 0.5;
+.pagination-btn:hover:not(:disabled) {
+  background: #e9ecef;
+  border-color: #dee2e6;
+  color: #0d6efd;
+}
+
+.pagination-btn.active {
+  background: #0d6efd;
+  border-color: #0d6efd;
+  color: white;
+}
+
+.pagination-btn:disabled {
+  background: #f8f9fa;
+  border-color: #dee2e6;
+  color: #6c757d;
   cursor: not-allowed;
 }
 
-.pagination-controls span {
+.pagination-ellipsis {
+  color: #6c757d;
+  padding: 0 0.5rem;
+}
+
+.per-page-selector select {
+  padding: 0.375rem 2rem 0.375rem 0.75rem;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  background: white;
+  cursor: pointer;
   font-size: 0.9rem;
-  color: #495057;
 }
 
 .loading-state {
@@ -900,5 +1025,183 @@ const handleImageError = (e) => {
     flex-direction: column;
     gap: 15px;
   }
+}
+
+/* Thêm styles mới cho dạng bảng */
+.table-responsive {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  margin-bottom: 20px;
+}
+
+.table {
+  margin-bottom: 0;
+}
+
+.table th {
+  background: #f8f9fa;
+  border-bottom: 2px solid #dee2e6;
+  padding: 12px;
+  font-weight: 600;
+  color: #495057;
+}
+
+.table td {
+  padding: 12px;
+  vertical-align: middle;
+}
+
+.product-thumbnail {
+  width: 50px;
+  height: 50px;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+.product-name-cell {
+  display: flex;
+  flex-direction: column;
+}
+
+.product-name {
+  font-weight: 500;
+}
+
+.product-description {
+  color: #6c757d;
+  font-size: 0.85rem;
+}
+
+.category-badge, .brand-badge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+}
+
+.category-badge {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+
+.brand-badge {
+  background: #f3e5f5;
+  color: #7b1fa2;
+}
+
+.stock-badge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.stock-out {
+  background: #ffebee;
+  color: #d32f2f;
+}
+
+.stock-low {
+  background: #fff3e0;
+  color: #f57c00;
+}
+
+.stock-ok {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 5px;
+}
+
+.bulk-actions {
+  margin-top: 15px;
+  padding: 10px;
+  background: #fff3cd;
+  border-radius: 4px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Add these new styles */
+.expanded {
+  background-color: #f8f9fa;
+}
+
+.variant-details {
+  background-color: #f8f9fa;
+}
+
+.variants-wrapper {
+  padding: 15px;
+}
+
+.variants-wrapper h5 {
+  margin-bottom: 15px;
+  color: #2c3e50;
+}
+
+.variants-table {
+  width: 100%;
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.variants-table th,
+.variants-table td {
+  padding: 12px;
+  border: 1px solid #eee;
+}
+
+.variants-table thead {
+  background: #f8f9fa;
+}
+
+.status-badge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+}
+
+.status-badge.active {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.status-badge.inactive {
+  background: #ffebee;
+  color: #d32f2f;
+}
+
+tr {
+  cursor: pointer;
+}
+
+tr:hover {
+  background-color: #f5f5f5;
+}
+
+/* Thêm styles cho modal và nút xóa */
+.btn-outline-danger {
+  padding: 0.25rem 0.5rem;
+}
+
+.btn-outline-danger:hover {
+  background-color: #dc3545;
+  color: white;
+}
+
+.modal-footer .btn-danger:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.fa-spinner {
+  margin-right: 0.5rem;
 }
 </style>

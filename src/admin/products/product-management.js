@@ -9,7 +9,7 @@ const router = express.Router();
 // Cấu hình multer để lưu file
 const storage = multer.diskStorage({
   destination: async (req, file, cb) => {
-    const uploadDir = path.resolve(__dirname, '../../assets/uploads/products');
+    const uploadDir = path.resolve(__dirname, '../../../public/uploads/products');
     try {
       await fs.mkdir(uploadDir, { recursive: true });
       cb(null, uploadDir);
@@ -81,8 +81,7 @@ router.post('/add-products', authenticateJWT, checkAdminRole, upload.single('ima
 
       let image_url = '';
       if (req.file) {
-        // Lưu đường dẫn tương đối để lưu vào DB
-        image_url = `/assets/uploads/products/${req.file.filename}`;
+        image_url = `/uploads/products/${req.file.filename}`;
       }
 
       // Bắt đầu transaction
@@ -238,24 +237,52 @@ router.get('/products', authenticateJWT, checkAdminRole, async (req, res) => {
 router.get('/products/:id', authenticateJWT, checkAdminRole, async (req, res) => {
   try {
     const [product] = await pool.query(
-      `SELECT p.*, b.name as brand_name, c.name as category_name 
-       FROM products p 
-       LEFT JOIN brands b ON p.brand_id = b.id 
-       LEFT JOIN categories c ON p.category_id = c.id 
-       WHERE p.id = ?`,
+      `SELECT 
+        p.*,
+        b.name as brand_name,
+        c.name as category_name,
+        GROUP_CONCAT(
+          JSON_OBJECT(
+            'id', pv.id,
+            'name', pv.name,
+            'price', pv.price,
+            'initial_stock', pv.initial_stock
+          )
+        ) as variants
+      FROM products p 
+      LEFT JOIN brands b ON p.brand_id = b.id 
+      LEFT JOIN categories c ON p.category_id = c.id 
+      LEFT JOIN productvariants pv ON p.id = pv.product_id
+      WHERE p.id = ?
+      GROUP BY p.id`,
       [req.params.id]
     );
 
-    if (product.length === 0) {
-      return res.status(404).json({ message: 'Sản phẩm không tồn tại' });
+    if (!product || product.length === 0) {
+      return res.status(404).json({ 
+        success: false,
+        message: 'Sản phẩm không tồn tại' 
+      });
     }
 
-    const [variants] = await pool.query('SELECT * FROM productvariants WHERE product_id = ?', [req.params.id]);
+    // Parse variants từ string sang array
+    const formattedProduct = {
+      ...product[0],
+      variants: product[0].variants ? JSON.parse(`[${product[0].variants}]`) : []
+    };
 
-    res.json({ ...product[0], variants });
+    res.json({
+      success: true,
+      data: formattedProduct
+    });
+
   } catch (error) {
     console.error('Lỗi lấy chi tiết sản phẩm:', error);
-    res.status(500).json({ message: 'Lỗi lấy chi tiết sản phẩm', error: error.message });
+    res.status(500).json({ 
+      success: false,
+      message: 'Lỗi lấy chi tiết sản phẩm', 
+      error: error.message 
+    });
   }
 });
 

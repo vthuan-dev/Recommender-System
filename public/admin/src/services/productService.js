@@ -45,7 +45,7 @@ export const productService = {
         formData.append('variants', JSON.stringify(productData.variants))
       }
 
-      const response = await api.put(`/products/${id}`, formData, {
+      const response = await api.put(`/admin/products/${id}`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
@@ -92,6 +92,15 @@ export const productService = {
     } catch (error) {
       console.error('Error in deleteProduct:', error);
       throw new Error(error.response?.data?.message || 'Không thể xóa sản phẩm');
+    }
+  },
+
+  async getProduct(id) {
+    try {
+      const response = await api.get(`/admin/products/${id}`);
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Lỗi lấy thông tin sản phẩm');
     }
   }
 }
