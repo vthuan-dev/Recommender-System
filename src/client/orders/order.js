@@ -100,12 +100,15 @@ router.post('/orders', authenticateJWT, async (req, res) => {
     try {
       const [orderDetails] = await pool.query(
         `SELECT o.*, oi.product_id, oi.variant_id, oi.quantity, oi.price, 
-                p.name as product_name, pv.name as variant_name,
+                p.name as product_name, p.image_url, 
+                pv.name as variant_name,
+                b.name as brand_name,
                 a.address_line1, a.address_line2, a.city, a.state, a.postal_code, a.country
          FROM orders o 
          JOIN orderitems oi ON o.id = oi.order_id 
          JOIN products p ON oi.product_id = p.id 
          JOIN productvariants pv ON oi.variant_id = pv.id 
+         JOIN brands b ON p.brand_id = b.id
          JOIN addresses a ON o.address_id = a.id
          WHERE o.id = ? AND o.user_id = ?`,
         [req.params.id, req.user.userId]
@@ -240,7 +243,7 @@ router.post('/orders', authenticateJWT, async (req, res) => {
       }
   
       if (orderResult[0].status !== 'pending') {
-        return res.status(400).json({ message: 'Không thể hủy đơn hàng ở tr��ng thái này' });
+        return res.status(400).json({ message: 'Không thể hủy đơn hàng ở trng thái này' });
       }
   
       await connection.query('UPDATE orders SET status = "cancelled" WHERE id = ?', [orderId]);

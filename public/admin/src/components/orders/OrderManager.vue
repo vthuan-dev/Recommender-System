@@ -346,6 +346,7 @@ export default {
           text: 'Không thể tải chi tiết đơn hàng'
         })
       }
+
     }
 
     const closeDetailModal = () => {
@@ -809,3 +810,4 @@ export default {
   }
 }
 </style>
+

@@ -226,7 +226,7 @@
 
     <!-- Bulk Actions -->
     <div v-if="selectedProducts.length" class="bulk-actions">
-      <span>Đã chn {{ selectedProducts.length }} sản phẩm</span>
+      <span>Đã chọn {{ selectedProducts.length }} sản phẩm</span>
       <button class="btn btn-danger" @click="deleteBulk">
         <i class="fas fa-trash"></i> Xóa đã chọn
       </button>
