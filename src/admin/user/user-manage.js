@@ -3,83 +3,55 @@ const router = express.Router();
 const { pool, authenticateJWT } = require('../../database/dbconfig');
 
 async function checkAdminRole(req, res, next) {
-    const user = req.user;
-    if (user.role_name !== 'admin') {
-      return res.status(403).json({ message: 'Không có quyền truy cập' });
+  try {
+    if (req.user && req.user.role === 'admin') {
+      next();
+    } else {
+      res.status(403).json({ message: 'Chỉ admin mới có quyền truy cập' });
     }
-    next();
+  } catch (error) {
+    res.status(500).json({ message: 'Lỗi kiểm tra quyền admin', error: error.message });
+  }
 }
 
 // Get all users with pagination and filters
 router.get('/users', authenticateJWT, checkAdminRole, async (req, res) => {
     try {
-        const { page = 1, limit = 10, search, status, sort } = req.query;
+        const { page = 1, limit = 10, search, role, sort } = req.query;
         const offset = (page - 1) * limit;
         
-        let query = `
+        // Query lấy users và roles trong cùng một request
+        const [users] = await pool.query(`
             SELECT 
                 u.id, 
                 u.fullname, 
                 u.email, 
                 u.phonenumber,
+                u.status,
                 u.created_at,
-                u.role_id,
+                r.id as role_id,
                 r.name as role_name,
-                COUNT(DISTINCT o.id) as total_orders,
-                COALESCE(SUM(o.total_amount), 0) as total_spent
+                r.permissions
             FROM users u
             LEFT JOIN roles r ON u.role_id = r.id
-            LEFT JOIN orders o ON u.id = o.user_id
-        `;
+            WHERE (u.fullname LIKE ? OR u.email LIKE ?)
+            ${role ? 'AND r.id = ?' : ''}
+            ORDER BY ${sort || 'u.created_at DESC'}
+            LIMIT ? OFFSET ?
+        `, [`%${search || ''}%`, `%${search || ''}%`, ...(role ? [role] : []), limit, offset]);
 
-        const whereConditions = [];
-        const params = [];
-
-        if (search) {
-            whereConditions.push(`(u.fullname LIKE ? OR u.email LIKE ? OR u.phonenumber LIKE ?)`);
-            params.push(`%${search}%`, `%${search}%`, `%${search}%`);
-        }
-
-        if (status) {
-            whereConditions.push('u.status = ?');
-            params.push(status);
-        }
-
-        if (whereConditions.length) {
-            query += ` WHERE ${whereConditions.join(' AND ')}`;
-        }
-
-        query += ` GROUP BY u.id`;
-
-        if (sort) {
-            const [field, order] = sort.split(':');
-            const validFields = ['fullname', 'created_at', 'total_orders', 'total_spent'];
-            if (validFields.includes(field)) {
-                query += ` ORDER BY ${field} ${order === 'desc' ? 'DESC' : 'ASC'}`;
-            }
-        }
-
-        query += ` LIMIT ? OFFSET ?`;
-        params.push(Number(limit), offset);
-
-        const [users] = await pool.query(query, params);
-        const [{ total }] = await pool.query(`SELECT COUNT(*) as total FROM users`);
-
+        const [roles] = await pool.query('SELECT * FROM roles');
+        
         res.json({
             users,
+            roles,
             pagination: {
-                total,
                 page: Number(page),
-                limit: Number(limit),
-                total_pages: Math.ceil(total / limit)
+                limit: Number(limit)
             }
         });
     } catch (error) {
-        console.error('Error fetching users:', error);
-        res.status(500).json({ 
-            message: 'Lỗi lấy thông tin người dùng', 
-            error: error.message 
-        });
+        res.status(500).json({ message: 'Lỗi server', error: error.message });
     }
 });
 
@@ -110,19 +82,30 @@ router.get('/users/:id', authenticateJWT, checkAdminRole, async (req, res) => {
 
 // Update user
 router.put('/users/:id', authenticateJWT, checkAdminRole, async (req, res) => {
-    try {
-        const { fullname, email, phonenumber, role_id, status } = req.body;
-        await pool.query(
-            'UPDATE users SET fullname = ?, email = ?, phonenumber = ?, role_id = ?, status = ? WHERE id = ?',
-            [fullname, email, phonenumber, role_id, status, req.params.id]
-        );
-        res.json({ message: 'Cập nhật thông tin thành công' });
-    } catch (error) {
-        res.status(500).json({ 
-            message: 'Lỗi cập nhật thông tin', 
-            error: error.message 
-        });
-    }
+  try {
+    const { id } = req.params;
+    const { fullname, email, phonenumber, role_id } = req.body;
+
+    await pool.query(`
+      UPDATE users 
+      SET fullname = ?, 
+          email = ?, 
+          phonenumber = ?,
+          role_id = ?,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `, [fullname, email, phonenumber, role_id, id]);
+
+    res.json({ 
+      message: 'Cập nhật thông tin thành công',
+      userId: id 
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      message: 'Lỗi cập nhật thông tin', 
+      error: error.message 
+    });
+  }
 });
 
 // Delete user
@@ -259,6 +242,142 @@ router.get('/users/export', authenticateJWT, checkAdminRole, async (req, res) =>
             error: error.message 
         });
     }
+});
+
+// Thêm route cập nhật trạng thái người dùng
+router.put('/users/:id/status', authenticateJWT, checkAdminRole, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body; // status: 'active' hoặc 'blocked'
+    
+    await pool.query(
+      'UPDATE users SET status = ? WHERE id = ?',
+      [status, id]
+    );
+    
+    res.json({ 
+      message: 'Cập nhật trạng thái thành công',
+      userId: id,
+      status 
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      message: 'Lỗi cập nhật trạng thái', 
+      error: error.message 
+    });
+  }
+});
+
+router.get('/users/:id/activity', authenticateJWT, checkAdminRole, async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const [activities] = await pool.query(`
+      SELECT 
+        o.id as order_id,
+        o.total,
+        o.status as order_status,
+        o.created_at,
+        COUNT(oi.id) as total_items
+      FROM orders o
+      LEFT JOIN orderitems oi ON o.id = oi.order_id
+      WHERE o.user_id = ?
+      GROUP BY o.id
+      ORDER BY o.created_at DESC
+      LIMIT 10
+    `, [id]);
+
+    res.json(activities);
+  } catch (error) {
+    res.status(500).json({ 
+      message: 'Lỗi lấy lịch sử hoạt động', 
+      error: error.message 
+    });
+  }
+});
+
+router.get('/roles', authenticateJWT, checkAdminRole, async (req, res) => {
+  try {
+    const [roles] = await pool.query('SELECT * FROM roles');
+    res.json(roles);
+  } catch (error) {
+    res.status(500).json({ 
+      message: 'Lỗi lấy danh sách quyền', 
+      error: error.message 
+    });
+  }
+});
+
+router.put('/users/:id/role', authenticateJWT, checkAdminRole, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { role_id } = req.body;
+    
+    await pool.query(
+      'UPDATE users SET role_id = ? WHERE id = ?',
+      [role_id, id]
+    );
+    
+    res.json({ 
+      message: 'Cập nhật quyền thành công',
+      userId: id 
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      message: 'Lỗi cập nhật quyền', 
+      error: error.message 
+    });
+  }
+});
+
+router.get('/users/:id/stats', authenticateJWT, checkAdminRole, async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const [userStats] = await pool.query(`
+      SELECT 
+        COUNT(DISTINCT o.id) as total_orders,
+        SUM(o.total) as total_spent,
+        AVG(o.total) as avg_order_value,
+        MAX(o.created_at) as last_order_date,
+        COUNT(DISTINCT CASE WHEN o.status = 'cancelled' THEN o.id END) as cancelled_orders
+      FROM users u
+      LEFT JOIN orders o ON u.id = o.user_id
+      WHERE u.id = ?
+      GROUP BY u.id
+    `, [id]);
+
+    res.json(userStats[0]);
+  } catch (error) {
+    res.status(500).json({ 
+      message: 'Lỗi lấy thống kê người dùng', 
+      error: error.message 
+    });
+  }
+});
+
+router.get('/customers', authenticateJWT, checkAdminRole, async (req, res) => {
+  try {
+    const { search, status, sort } = req.query;
+    
+    const [customers] = await pool.query(`
+      SELECT 
+        u.*,
+        COUNT(DISTINCT o.id) as total_orders,
+        SUM(o.total) as total_spent
+      FROM users u
+      LEFT JOIN orders o ON u.id = o.user_id
+      WHERE u.role_id = (SELECT id FROM roles WHERE name = 'customer')
+        AND (u.fullname LIKE ? OR u.email LIKE ?)
+        ${status ? 'AND u.status = ?' : ''}
+      GROUP BY u.id
+      ORDER BY ${sort || 'u.created_at DESC'}
+    `, [`%${search || ''}%`, `%${search || ''}%`, ...(status ? [status] : [])]);
+
+    res.json({ customers });
+  } catch (error) {
+    res.status(500).json({ message: 'Lỗi server', error: error.message });
+  }
 });
 
 module.exports = router;

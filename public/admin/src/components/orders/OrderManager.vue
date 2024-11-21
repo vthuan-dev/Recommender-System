@@ -83,7 +83,7 @@
                 <button 
                   class="btn-status" 
                   @click="updateStatus(order)"
-                  :disabled="order.status === 'delivered' || order.status === 'cancelled'"
+                  :disabled="!canUpdateStatus(order.status)"
                   title="Cập nhật trạng thái"
                 >
                   <i class="fas fa-sync-alt"></i>
@@ -178,61 +178,50 @@ export default {
 
     const updateStatus = async (order) => {
       try {
-        let newStatus;
-        
-        // Hiển thị dialog chọn trạng thái
-        const { value: selectedStatus } = await Swal.fire({
+        const { value: newStatus } = await Swal.fire({
           title: 'Cập nhật trạng thái',
           input: 'select',
           inputOptions: {
-            'pending': 'Chờ xử lý',
-            'processing': 'Đang xử lý', 
-            'shipped': 'Đã gửi hàng',
-            'delivered': 'Đã giao hàng',
-            'cancelled': 'Hủy đơn'
+            pending: 'Chờ xử lý',
+            processing: 'Đang xử lý',
+            shipped: 'Đã gửi hàng',
+            delivered: 'Đã giao hàng',
+            cancelled: 'Đã hủy'
           },
           inputValue: order.status,
           showCancelButton: true,
+          cancelButtonText: 'Hủy',
           confirmButtonText: 'Cập nhật',
-          cancelButtonText: 'Hủy'
+          inputValidator: (value) => {
+            if (!value) {
+              return 'Vui lòng chọn trạng thái!';
+            }
+          }
         });
 
-        if (!selectedStatus) {
-          return; // Người dùng đã hủy
-        }
-
-        newStatus = selectedStatus;
-
-        // Hiển thị cảnh báo đặc biệt khi chọn hủy đơn
-        if (newStatus === 'cancelled') {
-          const confirmCancel = await Swal.fire({
-            title: 'Xác nhận hủy đơn',
-            text: 'Đơn hàng sẽ được hủy và số lượng sản phẩm sẽ được hoàn trả về kho. Bạn có chắc chắn?',
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonText: 'Đồng ý',
-            cancelButtonText: 'Không'
+        if (newStatus) {
+          const response = await api.put(`/admin/orders/${order.id}/status`, {
+            status: newStatus
           });
 
-          if (!confirmCancel.isConfirmed) {
-            return;
+          if (response.data) {
+            Swal.fire({
+              icon: 'success',
+              title: 'Thành công',
+              text: response.data.message
+            });
+            
+            // Refresh data
+            await fetchOrders();
           }
         }
-
-        // Gọi API cập nhật trạng thái
-        await api.put(`/orders/${order.id}`, { status: newStatus });
-        await fetchOrders(); // Refresh danh sách
-        
-        // Hiển thị thông báo thành công
-        const message = newStatus === 'cancelled' 
-          ? 'Đã hủy đơn hàng và hoàn trả số lượng về kho'
-          : 'Đã cập nhật trạng thái đơn hàng';
-          
-        Swal.fire('Thành công', message, 'success');
-
       } catch (error) {
-        console.error('Error updating order status:', error);
-        Swal.fire('Lỗi', error.message || 'Không thể cập nhật trạng thái đơn hàng', 'error');
+        console.error('Error updating status:', error);
+        Swal.fire({
+          icon: 'error',
+          title: 'Lỗi',
+          text: 'Không thể cập nhật trạng thái đơn hàng'
+        });
       }
     };
 
@@ -330,24 +319,31 @@ export default {
 
     const openDetailModal = async (order) => {
       try {
-        selectedOrder.value = order
-        showDetailModal.value = true
+        loading.value = true;
+        selectedOrder.value = order;
+        showDetailModal.value = true;
         
-        // Fetch full order details
-        const response = await api.get(`/orders/${order.id}`)
-        if (response) {
-          selectedOrder.value = response
+        // Fetch chi tiết đơn hàng
+        const response = await api.get(`/admin/orders/${order.id}`);
+        
+        if (response.data) {
+          selectedOrder.value = {
+            ...order,
+            ...response.data
+          };
         }
       } catch (error) {
-        console.error('Error fetching order details:', error)
+        console.error('Error fetching order details:', error);
         Swal.fire({
           icon: 'error',
           title: 'Lỗi',
           text: 'Không thể tải chi tiết đơn hàng'
-        })
+        });
+        showDetailModal.value = false;
+      } finally {
+        loading.value = false;
       }
-
-    }
+    };
 
     const closeDetailModal = () => {
       showDetailModal.value = false
@@ -391,26 +387,32 @@ export default {
         console.error('Error updating stats:', error)
       }
     }
-        return {
-        orders,
-        loading,
-        currentPage,
-        totalPages,
-        filters,
-        orderStats,
-        selectedOrder,
-        showDetailModal,
-        formatPrice,
-        formatDate,
-        fetchOrders,
-        handleSearch,
-        handleFilterChange,
-        changePage,
-        openDetailModal,
-        closeDetailModal,
-        getStatusLabel,
-        updateStatus
-        }
+
+    const canUpdateStatus = (status) => {
+      return status !== 'delivered' && status !== 'cancelled';
+    };
+
+    return {
+      orders,
+      loading,
+      currentPage,
+      totalPages,
+      filters,
+      orderStats,
+      selectedOrder,
+      showDetailModal,
+      formatPrice,
+      formatDate,
+      fetchOrders,
+      handleSearch,
+      handleFilterChange,
+      changePage,
+      openDetailModal,
+      closeDetailModal,
+      getStatusLabel,
+      updateStatus,
+      canUpdateStatus
+    }
   }
 }
 </script>

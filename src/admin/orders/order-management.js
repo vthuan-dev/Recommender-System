@@ -198,67 +198,56 @@ router.get('/orders/:id', authenticateJWT, checkAdminRole, async (req, res) => {
   try {
     const orderId = req.params.id;
     
-    // Lấy thông tin đơn hàng, khách hàng và địa chỉ
+    // Lấy thông tin đơn hàng, khách hàng, địa chỉ và thanh toán
     const [orderDetails] = await connection.query(`
-      SELECT 
-        o.*,
-        u.fullname as customer_name,
-        u.email as customer_email,
-        u.phonenumber as customer_phone,
-        a.address_line1,
-        a.address_line2,
-        a.city,
-        a.state,
-        a.postal_code,
-        a.country,
-        p.status as payment_status,
-        p.method as payment_method,
-        p.payment_date
+      SELECT o.*,
+             u.fullname as customer_name,
+             u.email as customer_email,
+             u.phonenumber as customer_phone,
+             p.status as payment_status,
+             p.method as payment_method,
+             p.amount as payment_amount,
+             p.payment_date,
+             a.address_line1,
+             a.address_line2,
+             a.city,
+             a.state,
+             a.postal_code,
+             a.country
       FROM orders o
-      LEFT JOIN users u ON o.user_id = u.id
+      JOIN users u ON o.user_id = u.id
+      LEFT JOIN payments p ON o.id = p.order_id
       LEFT JOIN addresses a ON o.address_id = a.id
-      LEFT JOIN payments p ON p.order_id = o.id
       WHERE o.id = ?
     `, [orderId]);
 
-    if (!orderDetails || orderDetails.length === 0) {
+    if (!orderDetails.length) {
       return res.status(404).json({ message: 'Không tìm thấy đơn hàng' });
     }
 
-    // Lấy chi tiết các sản phẩm trong đơn hàng
+    // Lấy chi tiết sản phẩm trong đơn hàng
     const [orderItems] = await connection.query(`
-      SELECT 
-        oi.*,
-        p.name as product_name,
-        p.image_url as product_image,
-        pv.name as variant_name,
-        b.name as brand_name
+      SELECT oi.*,
+             p.name as product_name,
+             p.image_url as product_image,
+             pv.name as variant_name,
+             b.name as brand_name
       FROM orderitems oi
-      LEFT JOIN products p ON oi.product_id = p.id
-      LEFT JOIN productvariants pv ON oi.variant_id = pv.id
-      LEFT JOIN brands b ON p.brand_id = b.id
+      JOIN productvariants pv ON oi.variant_id = pv.id
+      JOIN products p ON oi.product_id = p.id
+      JOIN brands b ON p.brand_id = b.id
       WHERE oi.order_id = ?
     `, [orderId]);
 
     // Format response
     const formattedOrder = {
-      id: orderDetails[0].id,
-      status: orderDetails[0].status,
-      total: orderDetails[0].total,
-      created_at: orderDetails[0].created_at,
-      updated_at: orderDetails[0].updated_at,
-      
-      // Thông tin khách hàng
+      ...orderDetails[0],
       customer: {
-        id: orderDetails[0].user_id,
         name: orderDetails[0].customer_name,
         email: orderDetails[0].customer_email,
-        phone: orderDetails[0].customer_phone
+        phone: orderDetails[0].customer_phone || 'Không có'
       },
-
-      // Địa chỉ giao hàng
       shipping_address: {
-        id: orderDetails[0].address_id,
         address_line1: orderDetails[0].address_line1,
         address_line2: orderDetails[0].address_line2,
         city: orderDetails[0].city,
@@ -266,15 +255,12 @@ router.get('/orders/:id', authenticateJWT, checkAdminRole, async (req, res) => {
         postal_code: orderDetails[0].postal_code,
         country: orderDetails[0].country
       },
-
-      // Thông tin thanh toán
       payment: {
-        status: orderDetails[0].payment_status,
-        method: orderDetails[0].payment_method,
+        status: orderDetails[0].payment_status || 'pending',
+        method: orderDetails[0].payment_method || 'N/A',
+        amount: parseFloat(orderDetails[0].payment_amount) || 0,
         date: orderDetails[0].payment_date
       },
-
-      // Chi tiết sản phẩm
       items: orderItems.map(item => ({
         id: item.id,
         product_name: item.product_name,
@@ -282,9 +268,10 @@ router.get('/orders/:id', authenticateJWT, checkAdminRole, async (req, res) => {
         variant_name: item.variant_name,
         brand_name: item.brand_name,
         quantity: item.quantity,
-        price: item.price,
-        subtotal: item.quantity * item.price
-      }))
+        price: parseFloat(item.price),
+        subtotal: parseFloat(item.price * item.quantity)
+      })),
+      total: parseFloat(orderDetails[0].total)
     };
 
     res.json(formattedOrder);
@@ -296,9 +283,7 @@ router.get('/orders/:id', authenticateJWT, checkAdminRole, async (req, res) => {
       error: error.message 
     });
   } finally {
-    if (connection) {
-      connection.release();
-    }
+    connection.release();
   }
 });
 
@@ -365,6 +350,74 @@ router.put('/orders/:id/status', authenticateJWT, checkAdminRole, async (req, re
     });
   } finally {
     connection.release();
+  }
+});
+
+// Thêm route để cập nhật trạng thái thanh toán
+router.put('/orders/:id/payment', authenticateJWT, checkAdminRole, async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+    const orderId = req.params.id;
+    const { status, method } = req.body;
+
+    // Cập nhật hoặc tạo mới payment
+    await connection.query(`
+      INSERT INTO payments (order_id, status, method, amount, payment_date)
+      SELECT id, ?, ?, total, NOW()
+      FROM orders WHERE id = ?
+      ON DUPLICATE KEY UPDATE 
+        status = VALUES(status),
+        method = VALUES(method),
+        payment_date = NOW()
+    `, [status, method, orderId]);
+
+    await connection.commit();
+    res.json({
+      message: 'Cập nhật thông tin thanh toán thành công',
+      orderId,
+      paymentStatus: status
+    });
+  } catch (error) {
+    await connection.rollback();
+    res.status(500).json({ message: 'Lỗi cập nhật thanh toán', error: error.message });
+  } finally {
+    connection.release();
+  }
+});
+
+// Route cập nhật ghi chú
+router.put('/orders/:id/note', authenticateJWT, checkAdminRole, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { note } = req.body;
+    
+    await pool.query('UPDATE orders SET admin_note = ? WHERE id = ?', [note, id]);
+    
+    res.json({ message: 'Cập nhật ghi chú thành công' });
+  } catch (error) {
+    res.status(500).json({ message: 'Lỗi cập nhật ghi chú', error: error.message });
+  }
+});
+
+router.get('/orders/reports/sales', authenticateJWT, checkAdminRole, async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+    const [salesReport] = await pool.query(`
+      SELECT 
+        DATE(created_at) as date,
+        COUNT(*) as total_orders,
+        SUM(total) as revenue,
+        COUNT(CASE WHEN status = 'cancelled' THEN 1 END) as cancelled_orders
+      FROM orders
+      WHERE created_at BETWEEN ? AND ?
+      GROUP BY DATE(created_at)
+      ORDER BY date DESC
+    `, [startDate, endDate]);
+    
+    res.json(salesReport);
+  } catch (error) {
+    res.status(500).json({ message: 'Lỗi lấy báo cáo', error: error.message });
   }
 });
 

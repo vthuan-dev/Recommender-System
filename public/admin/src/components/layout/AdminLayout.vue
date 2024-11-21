@@ -29,6 +29,11 @@
           <span>Dashboard</span>
         </router-link>
 
+        <router-link to="/admin/users" class="nav-item" active-class="active">
+          <i class="fas fa-users"></i>
+          <span>Quản lý người dùng</span>
+        </router-link>
+
         <router-link to="/admin/products" class="nav-item" active-class="active">
           <i class="fas fa-box"></i>
           <span>Sản phẩm</span>
@@ -39,7 +44,7 @@
           <span>Đơn hàng</span>
         </router-link>
 
-        <router-link to="/admin/customers" class="nav-item" active-class="active">
+        <router-link to="/admin/users/customers" class="nav-item" active-class="active">
           <i class="fas fa-users"></i>
           <span>Khách hàng</span>
         </router-link>
@@ -103,12 +108,16 @@ export default {
   data() {
     return {
       fullname: localStorage.getItem('fullname') || 'Admin User',
-      isSidebarOpen: false
+      isSidebarOpen: false,
+      isUserMenuOpen: false
     }
   },
   methods: {
     toggleSidebar() {
       this.isSidebarOpen = !this.isSidebarOpen
+    },
+    toggleUserMenu() {
+      this.isUserMenuOpen = !this.isUserMenuOpen;
     },
     async logout() {
       try {
@@ -532,5 +541,69 @@ export default {
 
 .sidebar-close i {
   font-size: 1.2rem;
+}
+
+/* Thêm styles cho submenu */
+.nav-group {
+  position: relative;
+}
+
+.nav-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1.5rem;
+  color: #e2e8f0;
+  text-decoration: none;
+  transition: all 0.3s;
+  cursor: pointer;
+}
+
+.submenu-arrow {
+  position: absolute;
+  right: 1rem;
+  transition: transform 0.3s;
+}
+
+.submenu {
+  background: rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.sub-item {
+  padding-left: 3rem;
+  font-size: 0.9rem;
+}
+
+.sub-item i {
+  font-size: 0.85rem;
+}
+
+.nav-item:hover,
+.nav-item.active {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+.sub-item:hover,
+.sub-item.active {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* Animation cho submenu */
+.submenu-enter-active,
+.submenu-leave-active {
+  transition: max-height 0.3s ease-in-out;
+  overflow: hidden;
+}
+
+.submenu-enter-from,
+.submenu-leave-to {
+  max-height: 0;
+}
+
+.submenu-enter-to,
+.submenu-leave-from {
+  max-height: 400px;
 }
 </style>

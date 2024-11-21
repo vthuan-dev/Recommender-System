@@ -6,7 +6,8 @@ import Dashboard from '../views/Dashboard.vue';
 import Settings from '../components/settings/Settings.vue';
 import ProductManager from '../components/products/ProductManager.vue';
 import Orders from '../views/Orders.vue';
-import Customers from '../components/users/Customers.vue';
+// import Customers from '../components/users/Customers.vue';
+import UserManagement from '../components/users/UserManagement.vue';
 
 const routes = [
   {
@@ -51,15 +52,25 @@ const routes = [
         meta: {
           title: 'Quản lý đơn hàng'
         }
+      },
+      {
+        path: 'users',
+        name: 'UserManagement',
+        component: UserManagement,
+        meta: { requiresAuth: true }
       }
-     
+      // {
+      //   path: 'users/customers',
+      //   name: 'Customers',
+      //   component: Customers
+      // }
     ]
   },
-  {
-    path: '/customers',
-    name: 'Customers',
-    component: Customers
-  },
+  // {
+  //   path: '/customers',
+  //   name: 'Customers',
+  //   component: Customers
+  // },
   {
     path: '/',
     redirect: '/sign-in'

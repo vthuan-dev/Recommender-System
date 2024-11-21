@@ -92,7 +92,7 @@
             <div class="payment-details">
               <div class="payment-row">
                 <span class="label">Phương thức:</span>
-                <span class="value">{{ order.payment?.method || 'N/A' }}</span>
+                <span class="value">{{ getPaymentMethodLabel(order.payment?.method) }}</span>
               </div>
               <div class="payment-row">
                 <span class="label">Trạng thái:</span>
@@ -101,8 +101,12 @@
                 </span>
               </div>
               <div class="payment-row">
+                <span class="label">Số tiền:</span>
+                <span class="value">{{ formatPrice(order.payment?.amount) }}</span>
+              </div>
+              <div class="payment-row">
                 <span class="label">Ngày thanh toán:</span>
-                <span class="value">{{ formatDate(order.payment?.date) }}</span>
+                <span class="value">{{ order.payment?.date ? formatDate(order.payment.date) : 'Chưa thanh toán' }}</span>
               </div>
             </div>
           </div>
@@ -394,6 +398,13 @@ td {
     transform: translateY(0);
   }
 }
+
+/* Thêm styles cho trạng thái thanh toán */
+.payment-row .value.pending { color: #f59e0b; }
+.payment-row .value.completed { color: #10b981; }
+.payment-row .value.failed { color: #ef4444; }
+.payment-row .value.refunded { color: #6366f1; }
+.payment-row .value.cancelled { color: #64748b; }
 </style>
 
 <script>
@@ -421,15 +432,28 @@ export default {
       return statusMap[status] || status
     }
 
+    const getPaymentMethodLabel = (method) => {
+      const methodMap = {
+        'cod': 'Thanh toán khi nhận hàng',
+        'bank_transfer': 'Chuyển khoản ngân hàng',
+        'momo': 'Ví MoMo',
+        'vnpay': 'VNPay',
+        'zalopay': 'ZaloPay'
+      };
+      return methodMap[method] || 'Không xác định';
+    };
+
     const getPaymentStatusLabel = (status) => {
-      const paymentStatusMap = {
+      const statusMap = {
         'pending': 'Chờ thanh toán',
+        'processing': 'Đang xử lý',
         'completed': 'Đã thanh toán',
         'failed': 'Thanh toán thất bại',
-        'refunded': 'Đã hoàn tiền'
-      }
-      return paymentStatusMap[status] || 'Không xác định'
-    }
+        'refunded': 'Đã hoàn tiền',
+        'cancelled': 'Đã hủy'
+      };
+      return statusMap[status] || 'Không xác định';
+    };
 
     const formatPrice = (price) => {
       if (!price) return '0 ₫'
@@ -446,6 +470,7 @@ export default {
 
     return {
       getStatusLabel,
+      getPaymentMethodLabel,
       getPaymentStatusLabel,
       formatPrice,
       formatDate
