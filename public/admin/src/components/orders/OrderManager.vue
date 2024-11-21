@@ -265,7 +265,7 @@ export default {
     const fetchOrders = async () => {
       try {
         loading.value = true;
-        const response = await api.get('/orders', {
+        const response = await api.get('/admin/orders', {
           params: {
             page: currentPage.value,
             status: filters.value.status // Chỉ gửi status lên server
