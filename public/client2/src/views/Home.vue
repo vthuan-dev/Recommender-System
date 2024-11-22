@@ -56,13 +56,10 @@
               <div class="discount-badge">
                 -{{ product.discount }}%
               </div>
-              <div class="countdown">
-                {{ formatCountdown(product.endTime) }}
-              </div>
               <div class="product-card">
                 <div class="card border-0 rounded-4 shadow-hover h-100">
                   <div class="product-image">
-                    <img :src="product.image" :alt="product.name">
+                    <img :src="product.image_url" :alt="product.name">
                     <div class="product-actions">
                       <button class="action-btn" @click="addToWishlist(product)">
                         <i class="fas fa-heart"></i>
@@ -75,7 +72,13 @@
                   <div class="card-body">
                     <h5 class="product-title">{{ product.name }}</h5>
                     <div class="product-price">
-                      <span class="new-price">{{ formatPrice(product.price) }}</span>
+                      <span class="new-price">{{ formatPrice(product.min_price) }}</span>
+                      <span class="old-price text-muted text-decoration-line-through ms-2">
+                        {{ formatPrice(product.max_price) }}
+                      </span>
+                    </div>
+                    <div class="brand-name text-muted small">
+                      {{ product.brand_name }}
                     </div>
                   </div>
                 </div>
@@ -137,7 +140,7 @@
                 <div class="product-card">
                   <div class="card border-0 rounded-4 shadow-hover h-100">
                     <div class="product-image">
-                      <img :src="product.image" :alt="product.name">
+                      <img :src="product.image_url" :alt="product.name">
                       <div class="product-actions">
                         <button class="action-btn" @click="addToWishlist(product)">
                           <i class="fas fa-heart"></i>
@@ -150,7 +153,13 @@
                     <div class="card-body">
                       <h5 class="product-title">{{ product.name }}</h5>
                       <div class="product-price">
-                        <span class="new-price">{{ formatPrice(product.price) }}</span>
+                        <span class="new-price">{{ formatPrice(product.min_price) }}</span>
+                        <span class="old-price text-muted text-decoration-line-through ms-2">
+                          {{ formatPrice(product.max_price) }}
+                        </span>
+                      </div>
+                      <div class="brand-name text-muted small">
+                        {{ product.brand_name }}
                       </div>
                     </div>
                   </div>
@@ -267,14 +276,8 @@ export default {
 
     const flashDeals = ref([])
     const isAuthenticated = computed(() => store.state.auth.isAuthenticated)
-    const trendingProducts = computed(() => 
-      store.state.products?.trending || []
-    )
-    
-    const recommendedProducts = computed(() => 
-      store.state.products?.recommended || []
-    )
-    
+    const trendingProducts = ref([])
+    const recommendedProducts = ref([])
     const recentlyViewed = computed(() => 
       store.state.products?.recentlyViewed || []
     )
@@ -297,12 +300,36 @@ export default {
       }).format(price)
     }
 
-    const addToCart = (product) => {
-      store.dispatch('cart/addItem', product)
+    const calculateDiscount = (originalPrice, minPrice) => {
+      return Math.round(((originalPrice - minPrice) / originalPrice) * 100)
     }
 
-    const addToWishlist = (product) => {
-      store.dispatch('wishlist/addItem', product)
+    const addToCart = async (product) => {
+      try {
+        if (!isAuthenticated.value) {
+          return
+        }
+        await store.dispatch('cart/addItem', {
+          productId: product.id,
+          quantity: 1,
+          variantId: product.variants?.[0]?.id
+        })
+      } catch (error) {
+        console.error('Lỗi khi thêm vào giỏ hàng:', error)
+      }
+    }
+
+    const addToWishlist = async (product) => {
+      try {
+        if (!isAuthenticated.value) {
+          return
+        }
+        await axiosInstance.post('/favorites', {
+          productId: product.id
+        })
+      } catch (error) {
+        console.error('Lỗi khi thêm vào yêu thích:', error)
+      }
     }
 
     const getCategoryIcon = (categoryName) => {
@@ -318,20 +345,26 @@ export default {
 
     onMounted(async () => {
       try {
-        // Fetch flash deals
-        const response = await axiosInstance.get('/flash-deals')
-        flashDeals.value = response.data
+        const categoriesResponse = await axiosInstance.get('/categories')
+        categories.value = categoriesResponse.data
 
-        // Fetch categories
-        const catResponse = await axiosInstance.get('/categories')
-        categories.value = catResponse.data
+        const flashDealsResponse = await axiosInstance.get('/flash-deals')
+        flashDeals.value = flashDealsResponse.data.map(product => ({
+          ...product,
+          discount: calculateDiscount(product.max_price, product.min_price),
+          endTime: new Date(Date.now() + 24 * 60 * 60 * 1000)
+        }))
 
-        // Fetch trending products
         const trendingResponse = await axiosInstance.get('/trending-products')
-        store.commit('setTrendingProducts', trendingResponse.data)
-        
+        trendingProducts.value = trendingResponse.data
+
+        if (isAuthenticated.value) {
+          const recommendedResponse = await axiosInstance.get('/recommended-products')
+          recommendedProducts.value = recommendedResponse.data
+        }
+
       } catch (error) {
-        console.error('Error fetching data:', error)
+        console.error('Lỗi khi lấy dữ liệu:', error)
       }
     })
 

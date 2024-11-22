@@ -3,7 +3,7 @@
     <div class="auth-container">
       <div class="auth-card">
         <div class="auth-header">
-          <div class="brand-logo">
+          <!-- <div class="brand-logo">
             <svg class="logo-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M20.94 19.2C20.94 19.84 20.42 20.36 19.78 20.36H4.22C3.58 20.36 3.06 19.84 3.06 19.2V18.04H20.94V19.2Z" fill="url(#paint0_linear)"/>
               <path d="M20.94 18.04H3.06L4.22 8.28C4.32 7.64 4.86 7.12 5.5 7.12H18.5C19.14 7.12 19.68 7.64 19.78 8.28L20.94 18.04Z" fill="url(#paint1_linear)"/>
@@ -24,7 +24,7 @@
               </defs>
             </svg>
             <span class="brand-name">T-STORE</span>
-          </div>
+          </div> -->
           <div class="header-content">
             <h2>Chào mừng trở lại</h2>
             <p>Đăng nhập để tiếp tục mua sắm</p>
