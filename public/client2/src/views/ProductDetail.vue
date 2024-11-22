@@ -1,156 +1,171 @@
 <template>
   <div class="container py-4">
-    <!-- Breadcrumb -->
-    <nav aria-label="breadcrumb">
-      <ol class="breadcrumb">
-        <li class="breadcrumb-item"><router-link to="/">Trang chủ</router-link></li>
-        <li class="breadcrumb-item"><router-link to="/products">Sản phẩm</router-link></li>
-        <li class="breadcrumb-item active">{{ product?.name }}</li>
-      </ol>
-    </nav>
-
-    <div class="row">
-      <!-- Hình ảnh sản phẩm -->
-      <div class="col-md-6">
-        <div class="product-image-container">
-          <img :src="product?.image_url" :alt="product?.name" class="img-fluid main-image">
-          <button class="favorite-btn" @click="toggleFavorite">
-            <i class="fas" :class="isFavorited ? 'fa-heart text-danger' : 'fa-heart-o'"></i>
-          </button>
-        </div>
-      </div>
-
-      <!-- Thông tin sản phẩm -->
-      <div class="col-md-6">
-        <div class="product-info">
-          <!-- Tên và đánh giá -->
-          <h1 class="product-title">{{ product?.name }}</h1>
-          <div class="rating-section">
-            <div class="stars">
-              <i v-for="n in 5" :key="n" class="fas fa-star" 
-                 :class="n <= product?.avg_rating ? 'text-warning' : 'text-muted'"></i>
-            </div>
-            <span>{{ product?.review_count }} đánh giá</span>
-          </div>
-
-          <!-- Phiên bản -->
-          <div class="variants-section mt-4">
-            <h6>Chọn phiên bản</h6>
-            <div class="variant-options">
-              <button v-for="variant in product?.variants" 
-                      :key="variant.id"
-                      class="variant-btn"
-                      :class="{ active: selectedVariant?.id === variant.id }"
-                      @click="selectVariant(variant)">
-                <div class="variant-name">{{ variant.name }}</div>
-                <div class="variant-price">{{ formatPrice(variant.price) }}</div>
-              </button>
-            </div>
-          </div>
-
-          <!-- Màu sắc -->
-          <div class="colors-section mt-4" v-if="colors.length">
-            <h6>Chọn màu</h6>
-            <div class="color-options">
-              <button v-for="color in colors" 
-                      :key="color"
-                      class="color-btn"
-                      :class="{ active: selectedColor === color }"
-                      @click="selectColor(color)">
-                {{ color }}
-              </button>
-            </div>
-          </div>
-
-          <!-- Giá -->
-          <div class="price-section mt-4">
-            <div class="current-price">{{ formatPrice(selectedVariant?.price || product?.price) }}</div>
-            <div class="original-price" v-if="hasDiscount">
-              <span class="old-price">{{ formatPrice(product?.original_price) }}</span>
-              <span class="discount">-{{ calculateDiscount }}%</span>
-            </div>
-          </div>
-
-          <!-- Khuyến mãi -->
-          <div class="promotions mt-4">
-            <h6>Khuyến mãi đặc biệt</h6>
-            <ul class="promotion-list">
-              <li><i class="fas fa-gift text-danger"></i> Giảm thêm 500.000đ khi thanh toán qua VNPay</li>
-              <li><i class="fas fa-gift text-danger"></i> Tặng PMH 500.000đ mua các sản phẩm phụ kiện</li>
-            </ul>
-          </div>
-
-          <!-- Nút mua hàng -->
-          <div class="purchase-buttons mt-4">
-            <button class="btn btn-danger btn-lg me-3" @click="buyNow">
-              MUA NGAY
-              <small>Giao hàng miễn phí hoặc nhận tại shop</small>
-            </button>
-            <button class="btn btn-outline-primary btn-lg" @click="addToCart">
-              <i class="fas fa-cart-plus"></i>
-              Thêm vào giỏ
-            </button>
-          </div>
-        </div>
+    <!-- Loading state -->
+    <div v-if="loading" class="text-center py-5">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Đang tải...</span>
       </div>
     </div>
 
-    <!-- Thông tin chi tiết -->
-    <div class="row mt-5">
-      <div class="col-12">
-        <ul class="nav nav-tabs" id="productTabs">
-          <li class="nav-item">
-            <a class="nav-link active" data-bs-toggle="tab" href="#description">Mô tả</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" data-bs-toggle="tab" href="#specs">Thông số kỹ thuật</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" data-bs-toggle="tab" href="#reviews">
-              Đánh giá ({{ product?.review_count }})
-            </a>
-          </li>
-        </ul>
+    <!-- Error state -->
+    <div v-else-if="error" class="alert alert-danger" role="alert">
+      {{ error }}
+    </div>
 
-        <div class="tab-content mt-3">
-          <div class="tab-pane fade show active" id="description">
-            <div v-html="product?.description"></div>
+    <!-- Product content -->
+    <div v-else-if="product">
+      <!-- Breadcrumb -->
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+          <li class="breadcrumb-item"><router-link to="/">Trang chủ</router-link></li>
+          <li class="breadcrumb-item"><router-link to="/products">Sản phẩm</router-link></li>
+          <li class="breadcrumb-item active">{{ product?.name }}</li>
+        </ol>
+      </nav>
+
+      <div class="row">
+        <!-- Hình ảnh sản phẩm -->
+        <div class="col-md-6">
+          <div class="product-image-container">
+            <img :src="product?.image_url" :alt="product?.name" class="img-fluid main-image">
+            <button class="favorite-btn" @click="toggleFavorite">
+              <i class="fas" :class="isFavorited ? 'fa-heart text-danger' : 'fa-heart-o'"></i>
+            </button>
           </div>
-          <div class="tab-pane fade" id="specs">
-            <!-- Thông số kỹ thuật -->
+        </div>
+
+        <!-- Thông tin sản phẩm -->
+        <div class="col-md-6">
+          <div class="product-info">
+            <!-- Tên và đánh giá -->
+            <h1 class="product-title">{{ product?.name }}</h1>
+            <div class="rating-section">
+              <div class="stars">
+                <i v-for="n in 5" :key="n" class="fas fa-star" 
+                   :class="n <= product?.avg_rating ? 'text-warning' : 'text-muted'"></i>
+              </div>
+              <span>{{ product?.review_count }} đánh giá</span>
+            </div>
+
+            <!-- Phiên bản -->
+            <div class="variants-section mt-4">
+              <h6>Chọn phiên bản</h6>
+              <div class="variant-options">
+                <button v-for="variant in product?.variants" 
+                        :key="variant.id"
+                        class="variant-btn"
+                        :class="{ active: selectedVariant?.id === variant.id }"
+                        @click="selectVariant(variant)">
+                  <div class="variant-name">{{ variant.name }}</div>
+                  <div class="variant-price">{{ formatPrice(variant.price) }}</div>
+                </button>
+              </div>
+            </div>
+
+            <!-- Màu sắc -->
+            <div class="colors-section mt-4" v-if="colors.length">
+              <h6>Chọn màu</h6>
+              <div class="color-options">
+                <button v-for="color in colors" 
+                        :key="color"
+                        class="color-btn"
+                        :class="{ active: selectedColor === color }"
+                        @click="selectColor(color)">
+                  {{ color }}
+                </button>
+              </div>
+            </div>
+
+            <!-- Giá -->
+            <div class="price-section mt-4">
+              <div class="current-price">{{ formatPrice(selectedVariant?.price || product?.price) }}</div>
+              <div class="original-price" v-if="hasDiscount">
+                <span class="old-price">{{ formatPrice(product?.original_price) }}</span>
+                <span class="discount">-{{ calculateDiscount }}%</span>
+              </div>
+            </div>
+
+            <!-- Khuyến mãi -->
+            <div class="promotions mt-4">
+              <h6>Khuyến mãi đặc biệt</h6>
+              <ul class="promotion-list">
+                <li><i class="fas fa-gift text-danger"></i> Giảm thêm 500.000đ khi thanh toán qua VNPay</li>
+                <li><i class="fas fa-gift text-danger"></i> Tặng PMH 500.000đ mua các sản phẩm phụ kiện</li>
+              </ul>
+            </div>
+
+            <!-- Nút mua hàng -->
+            <div class="purchase-buttons mt-4">
+              <button class="btn btn-danger btn-lg me-3" @click="buyNow">
+                MUA NGAY
+                <small>Giao hàng miễn phí hoặc nhận tại shop</small>
+              </button>
+              <button class="btn btn-outline-primary btn-lg" @click="addToCart">
+                <i class="fas fa-cart-plus"></i>
+                Thêm vào giỏ
+              </button>
+            </div>
           </div>
-          <div class="tab-pane fade" id="reviews">
-            <div class="reviews-section">
-              <div v-for="review in product?.recent_reviews" 
-                   :key="review.id" 
-                   class="review-item">
-                <div class="reviewer-info">
-                  <img :src="review.avatar_url" class="avatar" />
-                  <div>
-                    <div class="reviewer-name">{{ review.fullname }}</div>
-                    <div class="review-date">{{ formatDate(review.created_at) }}</div>
+        </div>
+      </div>
+
+      <!-- Thông tin chi tiết -->
+      <div class="row mt-5">
+        <div class="col-12">
+          <ul class="nav nav-tabs" id="productTabs">
+            <li class="nav-item">
+              <a class="nav-link active" data-bs-toggle="tab" href="#description">Mô tả</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" data-bs-toggle="tab" href="#specs">Thông số kỹ thuật</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" data-bs-toggle="tab" href="#reviews">
+                Đánh giá ({{ product?.review_count }})
+              </a>
+            </li>
+          </ul>
+
+          <div class="tab-content mt-3">
+            <div class="tab-pane fade show active" id="description">
+              <div v-html="product?.description"></div>
+            </div>
+            <div class="tab-pane fade" id="specs">
+              <!-- Thông số kỹ thuật -->
+            </div>
+            <div class="tab-pane fade" id="reviews">
+              <div class="reviews-section">
+                <div v-for="review in product?.recent_reviews" 
+                     :key="review.id" 
+                     class="review-item">
+                  <div class="reviewer-info">
+                    <img :src="review.avatar_url" class="avatar" />
+                    <div>
+                      <div class="reviewer-name">{{ review.fullname }}</div>
+                      <div class="review-date">{{ formatDate(review.created_at) }}</div>
+                    </div>
                   </div>
+                  <div class="review-rating">
+                    <i v-for="n in 5" :key="n" class="fas fa-star"
+                       :class="n <= review.rating ? 'text-warning' : 'text-muted'"></i>
+                  </div>
+                  <div class="review-content">{{ review.comment }}</div>
                 </div>
-                <div class="review-rating">
-                  <i v-for="n in 5" :key="n" class="fas fa-star"
-                     :class="n <= review.rating ? 'text-warning' : 'text-muted'"></i>
-                </div>
-                <div class="review-content">{{ review.comment }}</div>
               </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- Sản phẩm liên quan -->
-    <div class="related-products mt-5">
-      <h3>Sản phẩm liên quan</h3>
-      <div class="row">
-        <div v-for="product in relatedProducts" 
-             :key="product.id" 
-             class="col-md-3">
-          <ProductCard :product="product" />
+      <!-- Sản phẩm liên quan -->
+      <div class="related-products mt-5">
+        <h3>Sản phẩm liên quan</h3>
+        <div class="row">
+          <div v-for="product in relatedProducts" 
+               :key="product.id" 
+               class="col-md-3">
+            <ProductCard :product="product" />
+          </div>
         </div>
       </div>
     </div>
@@ -158,7 +173,7 @@
 </template>
 
 <script>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import ProductCard from '@/components/Product/ProductCard.vue'
 import axios from 'axios'
@@ -173,27 +188,62 @@ export default {
     const product = ref(null)
     const selectedVariant = ref(null)
     const selectedColor = ref(null)
+    const colors = ref([])
     const isFavorited = ref(false)
     const relatedProducts = ref([])
+    const loading = ref(true)
+    const error = ref(null)
 
+    // Computed properties
+    const hasDiscount = computed(() => {
+      return product.value?.original_price && product.value?.price < product.value?.original_price
+    })
+
+    const calculateDiscount = computed(() => {
+      if (!hasDiscount.value) return 0
+      const discount = ((product.value.original_price - product.value.price) / product.value.original_price) * 100
+      return Math.round(discount)
+    })
+
+    // Methods
     const fetchProductDetail = async () => {
       try {
-        const response = await axios.get(`/api/products/${route.params.id}`)
-        product.value = response.data.data
-        if (product.value.variants?.length) {
+        loading.value = true
+        error.value = null
+        console.log('Fetching product ID:', route.params.id)
+        
+        const response = await axios.get(`http://localhost:3000/api/products/${route.params.id}`)
+        console.log('API Response:', response.data)
+        
+        product.value = response.data
+        
+        if (product.value?.variants?.length > 0) {
           selectedVariant.value = product.value.variants[0]
+          colors.value = [...new Set(product.value.variants
+            .map(v => v.color)
+            .filter(Boolean))]
         }
-      } catch (error) {
-        console.error('Error fetching product:', error)
+      } catch (err) {
+        console.error('Error fetching product:', err)
+        error.value = 'Không thể tải thông tin sản phẩm'
+      } finally {
+        loading.value = false
       }
     }
 
     const selectVariant = (variant) => {
       selectedVariant.value = variant
+      if (variant.color) {
+        selectedColor.value = variant.color
+      }
     }
 
     const selectColor = (color) => {
       selectedColor.value = color
+      const variantWithColor = product.value.variants.find(v => v.color === color)
+      if (variantWithColor) {
+        selectedVariant.value = variantWithColor
+      }
     }
 
     const formatPrice = (price) => {
@@ -209,16 +259,20 @@ export default {
 
     const addToCart = async () => {
       // Implement add to cart logic
+      console.log('Adding to cart:', selectedVariant.value || product.value)
     }
 
     const buyNow = async () => {
       // Implement buy now logic
+      console.log('Buying now:', selectedVariant.value || product.value)
     }
 
     const toggleFavorite = async () => {
       // Implement toggle favorite logic
+      isFavorited.value = !isFavorited.value
     }
 
+    // Lifecycle hooks
     onMounted(() => {
       fetchProductDetail()
     })
@@ -227,8 +281,13 @@ export default {
       product,
       selectedVariant,
       selectedColor,
+      colors,
       isFavorited,
       relatedProducts,
+      loading,
+      error,
+      hasDiscount,
+      calculateDiscount,
       selectVariant,
       selectColor,
       formatPrice,

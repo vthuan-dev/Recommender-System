@@ -11,8 +11,6 @@ const cors = require('cors');
 const { authenticateJWT } = require('../../database/dbconfig');
 dotenv.config();
 
-
-
 router.get('/products/bestsellers', async (req, res) => {
   try {
     console.log('Đang truy vấn sản phẩm bán chạy...');
@@ -39,8 +37,65 @@ router.get('/products/bestsellers', async (req, res) => {
   }
 });
 
-//lấy danh sách sản phẩm
+router.get('/products/:id', async (req, res) => {
+  try {
+    console.log('Đang lấy chi tiết sản phẩm ID:', req.params.id);
+    
+    // Lấy thông tin chi tiết sản phẩm
+    const [product] = await pool.query(`
+      SELECT 
+        p.*,
+        b.name as brand_name,
+        c.name as category_name,
+        (SELECT MIN(price) FROM productvariants WHERE product_id = p.id) as min_price,
+        (SELECT MAX(price) FROM productvariants WHERE product_id = p.id) as max_price,
+        (SELECT AVG(rating) FROM reviews r WHERE r.product_id = p.id) as avg_rating,
+        (SELECT COUNT(*) FROM reviews r WHERE r.product_id = p.id) as review_count,
+        (SELECT SUM(sold_count) FROM productvariants WHERE product_id = p.id) as total_sold
+      FROM products p
+      LEFT JOIN brands b ON p.brand_id = b.id
+      LEFT JOIN categories c ON p.category_id = c.id
+      WHERE p.id = ?
+    `, [req.params.id]);
 
+    if (!product[0]) {
+      console.log('Không tìm thấy sản phẩm với ID:', req.params.id);
+      return res.status(404).json({ message: 'Không tìm thấy sản phẩm' });
+    }
+
+    // Lấy variants của sản phẩm
+    const [variants] = await pool.query(`
+      SELECT * FROM productvariants WHERE product_id = ?
+    `, [req.params.id]);
+
+    // Lấy đánh giá gần đây
+    const [recentReviews] = await pool.query(`
+      SELECT r.*, u.fullname, u.avatar_url
+      FROM reviews r
+      JOIN users u ON r.user_id = u.id
+      WHERE r.product_id = ?
+      ORDER BY r.created_at DESC
+      LIMIT 5
+    `, [req.params.id]);
+
+    // Kết hợp tất cả thông tin
+    const productDetail = {
+      ...product[0],
+      variants,
+      recent_reviews: recentReviews
+    };
+
+    console.log('Chi tiết sản phẩm:', productDetail);
+    res.json(productDetail);
+
+  } catch (error) {
+    console.error('Lỗi khi lấy chi tiết sản phẩm:', error);
+    res.status(500).json({ 
+      message: 'Lỗi khi lấy chi tiết sản phẩm', 
+      error: error.message 
+    });
+  }
+});
 
 router.get('/products', async (req, res) => {
   try {
@@ -148,123 +203,6 @@ router.get('/products/filter', async (req, res) => {
   } catch (error) {
     console.error('Lỗi khi lọc sản phẩm:', error);
     res.status(500).json({ message: 'Lỗi lọc sản phẩm', error: error.message });
-  }
-});
-
-router.get('/products/:id', async (req, res) => {
-  try {
-    // Lấy thông tin cơ bản của sản phẩm và các thông tin liên quan
-    const [products] = await pool.query(`
-      SELECT 
-        p.*,
-        b.name as brand_name,
-        b.logo_url as brand_logo,
-        c.name as category_name,
-        (SELECT AVG(rating) FROM reviews r WHERE r.product_id = p.id) as avg_rating,
-        (SELECT COUNT(*) FROM reviews r WHERE r.product_id = p.id) as review_count,
-        (SELECT COUNT(*) FROM favorites f WHERE f.product_id = p.id) as favorite_count
-      FROM products p
-      LEFT JOIN brands b ON p.brand_id = b.id
-      LEFT JOIN categories c ON p.category_id = c.id
-      WHERE p.id = ?
-    `, [req.params.id]);
-
-    if (products.length === 0) {
-      return res.status(404).json({ 
-        success: false,
-        message: 'Không tìm thấy sản phẩm' 
-      });
-    }
-
-    const product = products[0];
-
-    // Lấy tất cả variants của sản phẩm với số lượng tồn kho
-    const [variants] = await pool.query(`
-      SELECT 
-        pv.*,
-        COALESCE(
-          pv.initial_stock - COALESCE(
-            (SELECT SUM(quantity) FROM orderitems WHERE variant_id = pv.id), 
-            0
-          ),
-          0
-        ) as stock_available
-      FROM productvariants pv
-      WHERE pv.product_id = ?
-    `, [req.params.id]);
-
-    // Lấy đánh giá gần đây nhất
-    const [recentReviews] = await pool.query(`
-      SELECT 
-        r.*,
-        u.fullname,
-        u.avatar_url
-      FROM reviews r
-      JOIN users u ON r.user_id = u.id
-      WHERE r.product_id = ?
-      ORDER BY r.created_at DESC
-      LIMIT 5
-    `, [req.params.id]);
-
-    // Lấy sản phẩm liên quan (cùng danh mục)
-    const [relatedProducts] = await pool.query(`
-      SELECT 
-        p.*,
-        b.name as brand_name,
-        MIN(pv.price) as min_price,
-        MAX(pv.price) as max_price
-      FROM products p
-      LEFT JOIN brands b ON p.brand_id = b.id
-      LEFT JOIN productvariants pv ON p.id = pv.product_id
-      WHERE p.category_id = ? AND p.id != ?
-      GROUP BY p.id
-      LIMIT 6
-    `, [product.category_id, req.params.id]);
-
-    // Tính toán thống kê giá từ variants
-    const priceStats = variants.reduce((stats, variant) => {
-      stats.minPrice = Math.min(stats.minPrice || variant.price, variant.price);
-      stats.maxPrice = Math.max(stats.maxPrice || variant.price, variant.price);
-      return stats;
-    }, {});
-
-    // Tổng hợp thông tin chi tiết sản phẩm
-    const detailedProduct = {
-      ...product,
-      variants: variants.map(variant => ({
-        ...variant,
-        available: variant.stock_available > 0
-      })),
-      price_range: {
-        min: priceStats.minPrice,
-        max: priceStats.maxPrice
-      },
-      recent_reviews: recentReviews,
-      related_products: relatedProducts,
-      stock_status: variants.some(v => v.stock_available > 0) ? 'in_stock' : 'out_of_stock'
-    };
-
-    // Kiểm tra trạng thái yêu thích nếu user đã đăng nhập
-    if (req.user) {
-      const [favoriteCheck] = await pool.query(
-        'SELECT id FROM favorites WHERE user_id = ? AND product_id = ?',
-        [req.user.userId, req.params.id]
-      );
-      detailedProduct.is_favorited = favoriteCheck.length > 0;
-    }
-
-    res.json({
-      success: true,
-      data: detailedProduct
-    });
-
-  } catch (error) {
-    console.error('Lỗi khi lấy chi tiết sản phẩm:', error);
-    res.status(500).json({ 
-      success: false,
-      message: 'Lỗi khi lấy chi tiết sản phẩm', 
-      error: error.message 
-    });
   }
 });
 

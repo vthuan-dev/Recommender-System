@@ -27,17 +27,21 @@ const routes = [
     }
   },
   {
+    path: '/products/:id(\\d+)',
+    name: 'ProductDetail',
+    component: ProductDetail,
+    props: true,
+    meta: {
+      title: 'Chi tiết sản phẩm - T-Store'
+    }
+  },
+  {
     path: '/products/:category',
     name: 'ProductsByCategory',
     component: ProductList,
     meta: {
       title: 'Danh mục sản phẩm - T-Store'
     }
-  },
-  {
-    path: '/product/:id',
-    name: 'ProductDetail',
-    component: ProductDetail
   },
   {
     path: '/cart',
