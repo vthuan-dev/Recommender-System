@@ -222,7 +222,60 @@ export default {
 
     const handleGoogleRegister = () => {
       loading.value = true;
-      window.location.href = 'http://localhost:3000/api/auth/google';
+      
+      const width = 500;
+      const height = 600;
+      const left = window.screenX + (window.outerWidth - width) / 2;
+      const top = window.screenY + (window.outerHeight - height) / 2;
+      
+      const googleWindow = window.open(
+        'http://localhost:3000/api/auth/google',
+        'Google Login',
+        `width=${width},height=${height},left=${left},top=${top}`
+      );
+
+      // Thêm kiểm tra khi cửa sổ bị đóng
+      const checkWindow = setInterval(() => {
+        if (googleWindow.closed) {
+          loading.value = false;
+          clearInterval(checkWindow);
+        }
+      }, 1000);
+
+      // Lắng nghe message từ cửa sổ popup
+      const handleMessage = async (event) => {
+        if (event.origin !== 'http://localhost:3000') return;
+        
+        if (event.data.type === 'google-auth-success') {
+          const { token, user } = event.data;
+          
+          // Cập nhật store
+          await store.commit('setUser', {
+            userId: user.id,
+            fullname: user.fullname,
+            email: user.email,
+            role: user.role_name,
+            token,
+            avatar_url: user.avatar_url
+          });
+
+          await CustomSweetAlert.success(
+            'Đăng ký thành công!',
+            `Chào mừng ${user.fullname}`
+          );
+
+          if (googleWindow) {
+            googleWindow.close();
+          }
+          router.push('/');
+        }
+        loading.value = false;
+        // Xóa event listener sau khi xử lý xong
+        window.removeEventListener('message', handleMessage);
+        clearInterval(checkWindow);
+      };
+
+      window.addEventListener('message', handleMessage);
     };
 
     return {
@@ -339,6 +392,7 @@ export default {
 
 .auth-button {
   width: 100%;
+  height: 48px;
   padding: 12px;
   background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
   color: white;
@@ -347,6 +401,10 @@ export default {
   font-weight: 500;
   cursor: pointer;
   transition: all 0.3s;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .auth-button:hover {

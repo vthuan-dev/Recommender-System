@@ -57,8 +57,8 @@
           </div>
 
           <button type="submit" :disabled="loading" class="auth-button">
-            <span v-if="!loading">Đăng nhập</span>
-            <div v-else class="spinner"></div>
+            <span v-if="!loading" class="button-text">Đăng nhập</span>
+            <span v-else class="loading-spinner"></span>
           </button>
 
           <div class="social-auth">
@@ -174,8 +174,16 @@ export default {
         `width=${width},height=${height},left=${left},top=${top}`
       );
 
+      // Thêm kiểm tra khi cửa sổ bị đóng
+      const checkWindow = setInterval(() => {
+        if (googleWindow.closed) {
+          loading.value = false;
+          clearInterval(checkWindow);
+        }
+      }, 1000);
+
       // Lắng nghe message từ cửa sổ popup
-      window.addEventListener('message', async (event) => {
+      const handleMessage = async (event) => {
         if (event.origin !== 'http://localhost:3000') return;
         
         if (event.data.type === 'google-auth-success') {
@@ -202,7 +210,12 @@ export default {
           router.push('/');
         }
         loading.value = false;
-      });
+        // Xóa event listener sau khi xử lý xong
+        window.removeEventListener('message', handleMessage);
+        clearInterval(checkWindow);
+      };
+
+      window.addEventListener('message', handleMessage);
     };
 
     return {
@@ -350,19 +363,55 @@ export default {
 
 .auth-button {
   width: 100%;
+  height: 48px;
   padding: 12px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
   color: white;
   border: none;
   border-radius: 8px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .auth-button:hover {
-  opacity: 0.9;
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(124, 58, 237, 0.2);
+}
+
+.auth-button:active {
+  transform: translateY(0);
+}
+
+.auth-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.button-text {
+  transition: all 0.3s ease;
+}
+
+.loading-spinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: #ffffff;
+  animation: spin 0.8s linear infinite;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+@keyframes spin {
+  0% { transform: translateX(-50%) rotate(0deg); }
+  100% { transform: translateX(-50%) rotate(360deg); }
 }
 
 .social-auth {
@@ -430,18 +479,5 @@ export default {
   color: #667eea;
   text-decoration: none;
   font-weight: 500;
-}
-
-.spinner {
-  width: 20px;
-  height: 20px;
-  border: 2px solid white;
-  border-top: 2px solid transparent;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
 }
 </style>
