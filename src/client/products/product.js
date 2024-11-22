@@ -753,4 +753,69 @@ router.get('/products/:id/stats', async (req, res) => {
   }
 });
 
+// Kiểm tra xem user đã mua sản phẩm chưa
+router.get('/products/:id/can-review', authenticateJWT, async (req, res) => {
+  try {
+    const [orders] = await pool.query(`
+      SELECT o.id 
+      FROM orders o
+      JOIN order_items oi ON o.id = oi.order_id
+      JOIN productvariants pv ON oi.variant_id = pv.id
+      WHERE o.user_id = ? 
+      AND pv.product_id = ?
+      AND o.status = 'completed'
+      AND NOT EXISTS (
+        SELECT 1 FROM reviews r 
+        WHERE r.user_id = o.user_id 
+        AND r.product_id = pv.product_id
+      )
+    `, [req.user.id, req.params.id]);
+
+    res.json({ canReview: orders.length > 0 });
+  } catch (error) {
+    res.status(500).json({ message: 'Lỗi khi kiểm tra quyền đánh giá', error: error.message });
+  }
+});
+
+// Thêm đánh giá mới
+router.post('/products/:id/reviews', authenticateJWT, async (req, res) => {
+  try {
+    // Kiểm tra xem user đã mua sản phẩm chưa
+    const [canReview] = await pool.query(`
+      SELECT o.id 
+      FROM orders o
+      JOIN order_items oi ON o.id = oi.order_id
+      JOIN productvariants pv ON oi.variant_id = pv.id
+      WHERE o.user_id = ? 
+      AND pv.product_id = ?
+      AND o.status = 'completed'
+      AND NOT EXISTS (
+        SELECT 1 FROM reviews r 
+        WHERE r.user_id = o.user_id 
+        AND r.product_id = pv.product_id
+      )
+    `, [req.user.id, req.params.id]);
+
+    if (canReview.length === 0) {
+      return res.status(403).json({ 
+        message: 'Bạn cần mua sản phẩm và chưa đánh giá trước đó để có thể đánh giá' 
+      });
+    }
+
+    const { rating, content, images } = req.body;
+    
+    const [result] = await pool.query(`
+      INSERT INTO reviews (user_id, product_id, rating, content, images, created_at)
+      VALUES (?, ?, ?, ?, ?, NOW())
+    `, [req.user.id, req.params.id, rating, content, JSON.stringify(images || [])]);
+
+    res.status(201).json({ 
+      message: 'Đánh giá đã được thêm thành công',
+      reviewId: result.insertId 
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Lỗi khi thêm đánh giá', error: error.message });
+  }
+});
+
 module.exports = router;

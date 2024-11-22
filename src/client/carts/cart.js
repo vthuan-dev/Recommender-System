@@ -97,7 +97,7 @@ router.post('/cart/add', authenticateJWT, checkCustomerRole, async (req, res) =>
       
       if (carts.length === 0) {
         // Nếu không có giỏ hàng, trả về mảng rỗng
-        return res.json([]);
+        return res.json({ items: [] });
       }
       
       const cartId = carts[0].id;
@@ -120,12 +120,9 @@ router.post('/cart/add', authenticateJWT, checkCustomerRole, async (req, res) =>
         [cartId]
       );
       
-      // Tính tổng giá trị giỏ hàng
-      const totalCartValue = cartItems.reduce((sum, item) => sum + item.total_price, 0);
-      
-      res.json({
+      res.json({ 
         items: cartItems,
-        total_value: totalCartValue
+        total: cartItems.reduce((sum, item) => sum + item.total_price, 0)
       });
     } catch (error) {
       console.error('Lỗi lấy thông tin giỏ hàng:', error);

@@ -1,8 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/Home.vue'
-import ProductList from '../views/ProductList.vue'
-import ProductDetail from '../views/ProductDetail.vue'
-import Cart from '../views/Cart.vue'
+import ProductList from '../views/Products/ProductList.vue'
+import ProductDetail from '../views/Products/ProductDetail.vue'
+import Cart from '../views/Carts/Cart.vue'
 import Login from '../views/Login.vue'
 import Register from '../views/Register.vue'
 import Profile from '../views/Profile.vue'
@@ -11,6 +11,7 @@ import { h, onMounted } from 'vue'
 import { useStore } from 'vuex'
 import { useRoute, useRouter } from 'vue-router'
 import CustomSweetAlert from '@/components/Common/CustomSweetAlert'
+import Checkout from '../views/Checkout/Checkout.vue'
 
 const routes = [
   {
@@ -69,6 +70,11 @@ const routes = [
     name: 'Orders',
     component: Orders,
     meta: { requiresAuth: true }
+  },
+  {
+    path: '/checkout',
+    name: 'Checkout',
+    component: Checkout
   },
   {
     path: '/auth/callback',
