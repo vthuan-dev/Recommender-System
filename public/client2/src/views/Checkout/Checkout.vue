@@ -3,31 +3,32 @@
       <div class="container py-4">
         <!-- Progress Steps -->
         <div class="checkout-steps mb-4">
-          <div class="step" 
-               :class="{ active: currentStep === 1, completed: currentStep > 1 }"
-               @click="goToStep(1)">
+          <div class="step" :class="{ active: currentStep === 1, completed: currentStep > 1 }">
             <div class="step-icon">
               <i class="material-icons">{{ currentStep > 1 ? 'check' : 'shopping_cart' }}</i>
             </div>
             <span>Xác nhận đơn hàng</span>
           </div>
-          <div class="step-line"></div>
-          <div class="step" 
-               :class="{ active: currentStep === 2, completed: currentStep > 2 }"
-               @click="goToStep(2)">
+          <div class="step-line" :class="{ active: currentStep >= 2 }"></div>
+          <div class="step" :class="{ active: currentStep === 2, completed: currentStep > 2 }">
             <div class="step-icon">
               <i class="material-icons">{{ currentStep > 2 ? 'check' : 'location_on' }}</i>
             </div>
             <span>Địa chỉ giao hàng</span>
           </div>
-          <div class="step-line"></div>
-          <div class="step" 
-               :class="{ active: currentStep === 3 }"
-               @click="goToStep(3)">
+          <div class="step-line" :class="{ active: currentStep >= 3 }"></div>
+          <div class="step" :class="{ active: currentStep === 3, completed: currentStep > 3 }">
             <div class="step-icon">
-              <i class="material-icons">payment</i>
+              <i class="material-icons">{{ currentStep > 3 ? 'check' : 'payment' }}</i>
             </div>
             <span>Thanh toán</span>
+          </div>
+          <div class="step-line" :class="{ active: currentStep >= 4 }"></div>
+          <div class="step" :class="{ active: currentStep === 4 }">
+            <div class="step-icon">
+              <i class="material-icons">fact_check</i>
+            </div>
+            <span>Xác nhận thông tin</span>
           </div>
         </div>
   
@@ -211,7 +212,7 @@
           </div>
         </div>
   
-        <!-- Step 3: Phương thức thanh toán -->
+        <!-- Step 3: Thanh toán -->
         <div v-if="currentStep === 3">
           <div class="row">
             <div class="col-lg-8">
@@ -220,75 +221,66 @@
                   <h5 class="mb-0">Phương thức thanh toán</h5>
                 </div>
                 <div class="card-body">
-                  <div class="payment-methods">
-                    <!-- COD -->
-                    <div class="payment-method" 
-                         :class="{ active: selectedPayment === 'cod' }"
-                         @click="selectPayment('cod')">
-                      <div class="payment-method-content">
-                        <div class="payment-icon">
-                          <i class="fas fa-money-bill-wave"></i>
-                        </div>
-                        <div class="payment-details">
-                          <h6>Thanh toán khi nhận hàng (COD)</h6>
-                          <p class="mb-0">Thanh toán bằng tiền mặt khi nhận hàng</p>
-                        </div>
+                  <!-- COD -->
+                  <div class="payment-method" 
+                       :class="{ active: selectedPaymentMethod === 'cod' }"
+                       @click="selectPayment('cod')">
+                    <div class="d-flex align-items-center">
+                      <div class="payment-icon">
+                        <i class="fas fa-truck"></i>
                       </div>
-                      <div class="form-check">
+                      <div class="payment-details ms-3">
+                        <h6>Thanh toán khi nhận hàng (COD)</h6>
+                        <p class="mb-0">Thanh toán bằng tiền mặt khi nhận được hàng</p>
+                      </div>
+                      <div class="form-check ms-auto">
                         <input type="radio" 
                                class="form-check-input" 
-                               :checked="selectedPayment === 'cod'">
+                               :checked="selectedPaymentMethod === 'cod'"
+                               @click.stop>
                       </div>
                     </div>
+                  </div>
 
-                    <!-- Momo -->
-                    <div class="payment-method" 
-                         :class="{ active: selectedPayment === 'momo' }"
-                         @click="selectPayment('momo')">
-                      <div class="payment-method-content">
-                        <div class="payment-icon momo">
-                          <img src="@/assets/payment/momo.webp" alt="Momo">
-                        </div>
-                        <div class="payment-details">
-                          <h6>Ví MoMo</h6>
-                          <p class="mb-0">Thanh toán qua ví điện tử MoMo</p>
-                        </div>
+                  <!-- MoMo -->
+                  <div class="payment-method mt-3" 
+                       data-method="momo"
+                       :class="{ active: selectedPaymentMethod === 'momo' }"
+                       @click="selectPayment('momo')">
+                    <div class="d-flex align-items-center">
+                      <div class="payment-icon">
+                        <img src="https://cdn.haitrieu.com/wp-content/uploads/2022/10/Logo-MoMo-Circle.png" alt="MoMo">
                       </div>
-                      <div class="form-check">
+                      <div class="payment-details ms-3">
+                        <h6>Ví MoMo</h6>
+                        <p class="mb-0">Thanh toán qua ví điện tử MoMo</p>
+                      </div>
+                      <div class="form-check ms-auto">
                         <input type="radio" 
                                class="form-check-input" 
-                               :checked="selectedPayment === 'momo'">
+                               :checked="selectedPaymentMethod === 'momo'"
+                               @click.stop>
                       </div>
                     </div>
+                  </div>
 
-                    <!-- Bank Transfer -->
-                    <div class="payment-method" 
-                         :class="{ active: selectedPayment === 'bank' }"
-                         @click="selectPayment('bank')">
-                      <div class="payment-method-content">
-                        <div class="payment-icon">
-                          <i class="fas fa-university"></i>
-                        </div>
-                        <div class="payment-details">
-                          <h6>Chuyển khoản ngân hàng</h6>
-                          <p class="mb-0">Thanh toán qua tài khoản ngân hàng</p>
-                        </div>
+                  <!-- Banking -->
+                  <div class="payment-method mt-3" 
+                       :class="{ active: selectedPaymentMethod === 'banking' }"
+                       @click="selectPayment('banking')">
+                    <div class="d-flex align-items-center">
+                      <div class="payment-icon">
+                        <i class="fas fa-university"></i>
                       </div>
-                      <div class="form-check">
+                      <div class="payment-details ms-3">
+                        <h6>Chuyển khoản ngân hàng</h6>
+                        <p class="mb-0">Thực hiện thanh toán qua tài khoản ngân hàng</p>
+                      </div>
+                      <div class="form-check ms-auto">
                         <input type="radio" 
                                class="form-check-input" 
-                               :checked="selectedPayment === 'bank'">
-                      </div>
-                    </div>
-
-                    <!-- Bank Details Panel -->
-                    <div v-if="selectedPayment === 'bank'" class="bank-details mt-3">
-                      <div class="alert alert-info">
-                        <h6 class="mb-2">Thông tin chuyển khoản:</h6>
-                        <p class="mb-1">Ngân hàng: BIDV</p>
-                        <p class="mb-1">Số tài khoản: 123456789</p>
-                        <p class="mb-1">Chủ tài khoản: NGUYEN VAN A</p>
-                        <p class="mb-0">Nội dung: DH[Mã đơn hàng]</p>
+                               :checked="selectedPaymentMethod === 'banking'"
+                               @click.stop>
                       </div>
                     </div>
                   </div>
@@ -296,7 +288,100 @@
               </div>
             </div>
   
-            <!-- Order Summary vẫn giữ nguyên -->
+            <!-- Order Summary -->
+            <div class="col-lg-4">
+              <div class="card shadow-sm order-summary">
+                <div class="card-header bg-white">
+                  <h5 class="mb-0">Tổng đơn hàng</h5>
+                </div>
+                <div class="card-body">
+                  <div class="summary-item">
+                    <span class="summary-label">Tạm tính</span>
+                    <span class="summary-value">{{ formatPrice(subtotal) }}</span>
+                  </div>
+                  <div class="summary-item">
+                    <span class="summary-label">Phí vận chuyển</span>
+                    <span class="summary-value">{{ formatPrice(shippingFee) }}</span>
+                  </div>
+                  <div class="summary-divider">
+                    <hr>
+                  </div>
+                  <div class="summary-item total">
+                    <strong class="summary-label">Tổng cộng</strong>
+                    <strong class="summary-value gradient-text">{{ formatPrice(total) }}</strong>
+                  </div>
+                  <button class="checkout-button" 
+                          @click="handleNextStep" 
+                          :disabled="!selectedPaymentMethod">
+                    <span>Tiếp tục</span>
+                    <i class="material-icons">arrow_forward</i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+  
+        <!-- Step 4: Xác nhận thông tin -->
+        <div v-if="currentStep === 4">
+          <div class="row">
+            <div class="col-lg-8">
+              <!-- Thông tin người nhận -->
+              <div class="confirmation-section mb-4">
+                <div class="section-title">
+                  <i class="material-icons">person</i>
+                  <h5 class="mb-0">Thông tin người nhận</h5>
+                </div>
+                <div class="section-content">
+                  <div class="recipient-info">
+                    <p class="info-item"><strong>Địa chỉ:</strong> {{ selectedAddress?.address_line1 }}</p>
+                    <p class="info-item"><strong>Thành phố:</strong> {{ selectedAddress?.city }}</p>
+                    <p class="info-item mb-0"><strong>Mã bưu điện:</strong> {{ selectedAddress?.postal_code }}</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Danh sách sản phẩm -->
+              <div class="confirmation-section mb-4">
+                <div class="section-title">
+                  <i class="material-icons">shopping_cart</i>
+                  <h5 class="mb-0">Danh sách sản phẩm</h5>
+                </div>
+                <div class="product-list">
+                  <div v-for="item in checkoutItems" :key="item.variantId" class="product-item">
+                    <div class="d-flex align-items-center">
+                      <img :src="item.image" :alt="item.name" class="confirmation-item-image">
+                      <div class="ms-3 flex-grow-1">
+                        <h6 class="product-name">{{ item.name }}</h6>
+                        <p class="variant-name mb-1">Phiên bản: {{ item.variantName }}</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                          <span class="quantity">Số lượng: {{ item.quantity }}</span>
+                          <span class="price">{{ formatPrice(item.price * item.quantity) }}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Phương thức thanh toán -->
+              <div class="confirmation-section">
+                <div class="section-title">
+                  <i class="material-icons">payment</i>
+                  <h5 class="mb-0">Phương thức thanh toán</h5>
+                </div>
+                <div class="section-content">
+                  <div class="payment-info">
+                    <div class="selected-payment">
+                      <i :class="getPaymentIcon"></i>
+                      <span>{{ getPaymentMethod }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Order Summary -->
             <div class="col-lg-4">
               <div class="card shadow-sm order-summary">
                 <div class="card-header bg-white">
@@ -311,17 +396,16 @@
                     <span>Phí vận chuyển</span>
                     <span>{{ formatPrice(shippingFee) }}</span>
                   </div>
-                  <hr>
+                  <div class="summary-divider">
+                    <hr>
+                  </div>
                   <div class="summary-item total">
                     <strong>Tổng cộng</strong>
-                    <strong class="text-danger">{{ formatPrice(total) }}</strong>
+                    <strong class="gradient-text">{{ formatPrice(total) }}</strong>
                   </div>
-                  <button 
-                    @click="nextStep" 
-                    class="btn btn-primary w-100 mt-3"
-                    :disabled="!selectedAddress"
-                  >
-                    Tiếp tục <i class="fas fa-arrow-right"></i>
+                  <button class="checkout-button confirm-button" @click="placeOrder">
+                    <span>Hoàn tất đơn hàng</span>
+                    <i class="material-icons">check_circle</i>
                   </button>
                 </div>
               </div>
@@ -371,7 +455,7 @@
                     @change="handleDistrictChange"
                     :disabled="!selectedProvince"
                   >
-                    <option value="">Chọn Quận/Huyện</option>
+                    <option value="">Chn Quận/Huyện</option>
                     <option 
                       v-for="district in districts" 
                       :key="district.code"
@@ -426,7 +510,7 @@
                     id="address2"
                     placeholder="Căn hộ, tầng, tòa nhà (nếu có)"
                   >
-                  <label for="address2">Địa chỉ bổ sung</label>
+                  <label for="address2">Địa ch bổ sung</label>
                 </div>
 
                 <!-- Mã bưu điện -->
@@ -472,425 +556,395 @@
     </div>
   </template>
   
-  <script>
+  <script setup>
   import { ref, computed, onMounted } from 'vue'
   import { useRouter } from 'vue-router'
   import axios from 'axios'
   import Swal from 'sweetalert2'
   import { Modal } from 'bootstrap'
   
-  export default {
-    name: 'Checkout',
-    setup() {
-      const router = useRouter()
-      const checkoutItems = ref([])
-      const addresses = ref([])
-      const selectedAddress = ref(null)
-      const shippingFee = ref(30000) // Phí ship mặc định
-      const newAddress = ref({
+  const router = useRouter()
+  const checkoutItems = ref([])
+  const addresses = ref([])
+  const selectedAddress = ref(null)
+  const shippingFee = ref(30000) // Phí ship mặc định
+  const newAddress = ref({
+    address_line1: '',
+    address_line2: '',
+    city: '',
+    state: '',
+    postal_code: '',
+    country: '',
+    is_default: false
+  })
+  
+  const submitting = ref(false)
+  const addressModal = ref(null)
+  const closeBtn = ref(null)
+  const provinces = ref([])
+  const districts = ref([])
+  const wards = ref([])
+  const currentStep = ref(1)
+  const selectedPaymentMethod = ref(null)
+  const selectedProvince = ref('')
+  const selectedDistrict = ref('')
+  const selectedWard = ref('')
+  const isExpanded = ref(false)
+  
+  // Load checkout items from localStorage
+  onMounted(() => {
+    // Lấy dữ liệu từ localStorage
+    const savedItems = localStorage.getItem('checkoutItems')
+    if (!savedItems) {
+      // Nếu không có dữ liệu, chuyển về trang giỏ hàng
+      router.push('/cart')
+      return
+    }
+    
+    try {
+      checkoutItems.value = JSON.parse(savedItems)
+    } catch (error) {
+      console.error('Error parsing checkout items:', error)
+      router.push('/cart')
+    }
+    fetchAddresses()
+    addressModal.value = new Modal(document.getElementById('addAddressModal'))
+    loadProvinces()
+  })
+  
+  // Fetch user addresses
+  const fetchAddresses = async () => {
+    try {
+      const token = localStorage.getItem('token')
+      const response = await axios.get('http://localhost:3000/api/addresses', {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      addresses.value = response.data
+      if (response.data.length > 0) {
+        selectedAddress.value = response.data[0].id
+      }
+    } catch (error) {
+      console.error('Error fetching addresses:', error)
+    }
+  }
+  
+  // Computed properties
+  const subtotal = computed(() => {
+    return checkoutItems.value.reduce((sum, item) => {
+      return sum + (Number(item.price) * Number(item.quantity))
+    }, 0)
+  })
+  
+  const total = computed(() => {
+    return subtotal.value + shippingFee.value
+  })
+  
+  const canPlaceOrder = computed(() => {
+    return checkoutItems.value.length > 0 && selectedAddress.value !== null
+  })
+  
+  // Methods
+  const updateQuantity = (item, change) => {
+    const newQuantity = item.quantity + change
+    if (newQuantity >= 1) {
+      item.quantity = newQuantity
+    }
+  }
+  
+  const formatPrice = (price) => {
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND'
+    }).format(price).replace('₫', '').trim() + ' ₫'
+  }
+  
+  const formatAddress = (address) => {
+    return `${address.address_line1}, ${address.city}, ${address.state}`
+  }
+  
+  const placeOrder = async () => {
+    if (submitting.value) return
+    submitting.value = true
+
+    try {
+      const token = localStorage.getItem('token')
+      if (!token) throw new Error('Vui lòng đăng nhập lại')
+
+      const orderData = {
+        addressId: selectedAddress.value,
+        items: checkoutItems.value,
+        paymentMethod: selectedPaymentMethod.value
+      }
+
+      const response = await axios({
+        method: 'POST',
+        url: 'http://localhost:3000/api/orders',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        data: orderData
+      })
+
+      // Xử lý đặt hàng thành công
+      Swal.fire({
+        icon: 'success',
+        title: 'Đặt hàng thành công!',
+        text: 'Cảm ơn bạn đã mua hàng'
+      }).then(() => {
+        // Chuyển đến trang xác nhận đơn hàng
+        router.push(`/order-confirmation/${response.data.orderId}`)
+      })
+
+    } catch (error) {
+      console.error('Error placing order:', error)
+      Swal.fire({
+        icon: 'error',
+        title: 'Lỗi đặt hàng',
+        text: error.response?.data?.message || 'Có lỗi xảy ra, vui lòng thử lại'
+      })
+    } finally {
+      submitting.value = false
+    }
+  }
+  
+  const showAddAddressModal = () => {
+    addressModal.value.show()
+  }
+  
+  const submitNewAddress = async () => {
+    if (submitting.value) return
+    submitting.value = true
+
+    try {
+      const token = localStorage.getItem('token')
+      if (!token) throw new Error('Vui lòng đăng nhập lại')
+
+      // Lấy thông tin địa ch đã chọn
+      const province = provinces.value.find(p => p.code === selectedProvince.value)
+      const district = districts.value.find(d => d.code === selectedDistrict.value)
+      const ward = wards.value.find(w => w.code === selectedWard.value)
+
+      const addressData = {
+        address_line1: newAddress.value.address_line1,
+        address_line2: newAddress.value.address_line2 || '',
+        city: `${ward?.name}, ${district?.name}, ${province?.name}`,
+        postal_code: newAddress.value.postal_code,
+        country: 'Việt Nam',
+        is_default: newAddress.value.is_default
+      }
+
+      const response = await axios({
+        method: 'POST',
+        url: 'http://localhost:3000/api/addresses',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        data: addressData
+      })
+
+      // Reset form
+      newAddress.value = {
         address_line1: '',
         address_line2: '',
-        city: '',
-        state: '',
         postal_code: '',
-        country: '',
         is_default: false
+      }
+      selectedProvince.value = ''
+      selectedDistrict.value = ''
+      selectedWard.value = ''
+
+      // Đóng modal và thông báo thành công
+      const modal = Modal.getInstance(document.getElementById('addAddressModal'))
+      modal.hide()
+
+      Swal.fire({
+        icon: 'success',
+        title: 'Thêm địa chỉ thành công!',
+        showConfirmButton: false,
+        timer: 1500
       })
-      
-      const submitting = ref(false)
-      const addressModal = ref(null)
-      const closeBtn = ref(null)
-      const provinces = ref([])
-      const districts = ref([])
-      const wards = ref([])
-      const currentStep = ref(1)
-      const selectedPaymentMethod = ref(null)
-      const selectedProvince = ref('')
-      const selectedDistrict = ref('')
-      const selectedWard = ref('')
-      const isExpanded = ref(false)
-  
-      // Load checkout items from localStorage
-      onMounted(() => {
-        // Lấy dữ liệu từ localStorage
-        const savedItems = localStorage.getItem('checkoutItems')
-        if (!savedItems) {
-          // Nếu không có dữ liệu, chuyển về trang giỏ hàng
-          router.push('/cart')
-          return
-        }
-        
-        try {
-          checkoutItems.value = JSON.parse(savedItems)
-        } catch (error) {
-          console.error('Error parsing checkout items:', error)
-          router.push('/cart')
-        }
-        fetchAddresses()
-        addressModal.value = new Modal(document.getElementById('addAddressModal'))
-        loadProvinces()
+
+      // Reload danh sách địa chỉ
+      await fetchAddresses()
+
+    } catch (error) {
+      console.error('Error adding address:', error)
+      Swal.fire({
+        icon: 'error',
+        title: 'Lỗi!',
+        text: error.response?.data?.message || 'Không thể thêm địa chỉ mới'
       })
-  
-      // Fetch user addresses
-      const fetchAddresses = async () => {
-        try {
-          const token = localStorage.getItem('token')
-          const response = await axios.get('http://localhost:3000/api/addresses', {
-            headers: { Authorization: `Bearer ${token}` }
-          })
-          addresses.value = response.data
-          if (response.data.length > 0) {
-            selectedAddress.value = response.data[0].id
-          }
-        } catch (error) {
-          console.error('Error fetching addresses:', error)
-        }
-      }
-  
-      // Computed properties
-      const subtotal = computed(() => {
-        return checkoutItems.value.reduce((sum, item) => {
-          return sum + (Number(item.price) * Number(item.quantity))
-        }, 0)
-      })
-  
-      const total = computed(() => {
-        return subtotal.value + shippingFee.value
-      })
-  
-      const canPlaceOrder = computed(() => {
-        return checkoutItems.value.length > 0 && selectedAddress.value !== null
-      })
-  
-      // Methods
-      const updateQuantity = (item, change) => {
-        const newQuantity = item.quantity + change
-        if (newQuantity >= 1) {
-          item.quantity = newQuantity
-        }
-      }
-  
-      const formatPrice = (price) => {
-        return new Intl.NumberFormat('vi-VN', {
-          style: 'currency',
-          currency: 'VND'
-        }).format(price).replace('₫', '').trim() + ' ₫'
-      }
-  
-      const formatAddress = (address) => {
-        return `${address.address_line1}, ${address.city}, ${address.state}`
-      }
-  
-      const placeOrder = async () => {
-        if (submitting.value) return
-        submitting.value = true
-
-        try {
-          const token = localStorage.getItem('token')
-          if (!token) throw new Error('Vui lòng đăng nhập lại')
-
-          const orderData = {
-            addressId: selectedAddress.value,
-            items: checkoutItems.value,
-            paymentMethod: selectedPaymentMethod.value
-          }
-
-          const response = await axios({
-            method: 'POST',
-            url: 'http://localhost:3000/api/orders',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            },
-            data: orderData
-          })
-
-          // Xử lý đặt hàng thành công
-          Swal.fire({
-            icon: 'success',
-            title: 'Đặt hàng thành công!',
-            text: 'Cảm ơn bạn đã mua hàng'
-          }).then(() => {
-            // Chuyển đến trang xác nhận đơn hàng
-            router.push(`/order-confirmation/${response.data.orderId}`)
-          })
-
-        } catch (error) {
-          console.error('Error placing order:', error)
-          Swal.fire({
-            icon: 'error',
-            title: 'Lỗi đặt hàng',
-            text: error.response?.data?.message || 'Có lỗi xảy ra, vui lòng thử lại'
-          })
-        } finally {
-          submitting.value = false
-        }
-      }
-  
-      const showAddAddressModal = () => {
-        addressModal.value.show()
-      }
-  
-      const submitNewAddress = async () => {
-        if (submitting.value) return
-        submitting.value = true
-
-        try {
-          const token = localStorage.getItem('token')
-          if (!token) throw new Error('Vui lòng đăng nhập lại')
-
-          // Lấy thông tin địa chỉ đã chọn
-          const province = provinces.value.find(p => p.code === selectedProvince.value)
-          const district = districts.value.find(d => d.code === selectedDistrict.value)
-          const ward = wards.value.find(w => w.code === selectedWard.value)
-
-          const addressData = {
-            address_line1: newAddress.value.address_line1,
-            address_line2: newAddress.value.address_line2 || '',
-            city: `${ward?.name}, ${district?.name}, ${province?.name}`,
-            postal_code: newAddress.value.postal_code,
-            country: 'Việt Nam',
-            is_default: newAddress.value.is_default
-          }
-
-          const response = await axios({
-            method: 'POST',
-            url: 'http://localhost:3000/api/addresses',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            },
-            data: addressData
-          })
-
-          // Reset form
-          newAddress.value = {
-            address_line1: '',
-            address_line2: '',
-            postal_code: '',
-            is_default: false
-          }
-          selectedProvince.value = ''
-          selectedDistrict.value = ''
-          selectedWard.value = ''
-
-          // Đóng modal và thông báo thành công
-          const modal = Modal.getInstance(document.getElementById('addAddressModal'))
-          modal.hide()
-
-          Swal.fire({
-            icon: 'success',
-            title: 'Thêm địa chỉ thành công!',
-            showConfirmButton: false,
-            timer: 1500
-          })
-
-          // Reload danh sách địa chỉ
-          await fetchAddresses()
-
-        } catch (error) {
-          console.error('Error adding address:', error)
-          Swal.fire({
-            icon: 'error',
-            title: 'Lỗi!',
-            text: error.response?.data?.message || 'Không thể thêm địa chỉ mới'
-          })
-        } finally {
-          submitting.value = false
-        }
-      }
-  
-      // Load tỉnh/thành phố
-      const loadProvinces = async () => {
-        try {
-          const response = await axios.get('https://provinces.open-api.vn/api/p/')
-          provinces.value = response.data
-        } catch (error) {
-          console.error('Error loading provinces:', error)
-          Swal.fire({
-            icon: 'error',
-            title: 'Lỗi',
-            text: 'Không thể tải danh sách tỉnh thành'
-          })
-        }
-      }
-  
-      // Xử lý khi chọn tỉnh/thành phố
-      const handleProvinceChange = async () => {
-        try {
-          selectedDistrict.value = ''
-          selectedWard.value = ''
-          districts.value = []
-          wards.value = []
-          
-          if (selectedProvince.value) {
-            const response = await axios.get(
-              `https://provinces.open-api.vn/api/p/${selectedProvince.value}?depth=2`
-            )
-            districts.value = response.data.districts
-          }
-        } catch (error) {
-          console.error('Error loading districts:', error)
-        }
-      }
-  
-      // Xử lý khi chọn quận/huyện
-      const handleDistrictChange = async () => {
-        try {
-          selectedWard.value = ''
-          wards.value = []
-          
-          if (selectedDistrict.value) {
-            const response = await axios.get(
-              `https://provinces.open-api.vn/api/d/${selectedDistrict.value}?depth=2`
-            )
-            wards.value = response.data.wards
-          }
-        } catch (error) {
-          console.error('Error loading wards:', error)
-        }
-      }
-  
-      const nextStep = () => {
-        if (currentStep.value < 3) {
-          currentStep.value++
-        }
-      }
-  
-      const previousStep = () => {
-        if (currentStep.value > 1) {
-          currentStep.value--
-        }
-      }
-  
-      // Xử lý chuyển sang bước thanh toán
-      const proceedToPayment = async () => {
-        try {
-          if (!selectedAddress.value) {
-            Swal.fire({
-              icon: 'error',
-              title: 'Lỗi',
-              text: 'Vui lòng chọn địa ch giao hàng'
-            })
-            return
-          }
-
-          // Lưu địa chỉ đã chọn vào state hoặc localStorage nếu cần
-          localStorage.setItem('selectedAddressId', selectedAddress.value)
-          
-          // Chuyển sang bước thanh toán
-          currentStep.value = 3
-        } catch (error) {
-          console.error('Error proceeding to payment:', error)
-          Swal.fire({
-            icon: 'error',
-            title: 'Lỗi',
-            text: 'Có lỗi xảy ra, vui lòng thử lại'
-          })
-        }
-      }
-  
-      const toggleAddressDisplay = () => {
-        isExpanded.value = !isExpanded.value
-      }
-  
-      const displayedAddresses = computed(() => {
-        if (isExpanded.value || addresses.value.length <= 3) {
-          return addresses.value
-        }
-        return addresses.value.slice(0, 3)
-      })
-  
-      const canProceed = computed(() => {
-        switch (currentStep.value) {
-          case 1:
-            return checkoutItems.value && checkoutItems.value.length > 0
-          case 2:
-            return selectedAddress.value
-          case 3:
-            return true // Thêm điều kiện cho bước thanh toán nếu cần
-          default:
-            return false
-        }
-      })
-  
-      const buttonText = computed(() => {
-        switch (currentStep.value) {
-          case 1:
-            return 'Tiếp tục'
-          case 2:
-            return 'Đến thanh toán'
-          case 3:
-            return 'Hoàn tất đơn hàng'
-          default:
-            return 'Tiếp tục'
-        }
-      })
-  
-      const handleNextStep = () => {
-        if (currentStep.value < 3) {
-          currentStep.value++
-        } else {
-          // Xử lý hoàn tất đơn hàng
-          handleCompleteOrder()
-        }
-      }
-  
-      const handleCompleteOrder = async () => {
-        try {
-          // Thêm logic xử lý hoàn tất đơn hàng
-          console.log('Hoàn tất đơn hàng')
-        } catch (error) {
-          console.error('Lỗi khi hoàn tất đơn hàng:', error)
-        }
-      }
-  
-      const goToStep = (step) => {
-        // Chỉ cho phép quay lại các step đã hoàn thành
-        if (step < currentStep.value) {
-          currentStep.value = step;
-        }
-      }
-  
-      return {
-        checkoutItems,
-        addresses,
-        selectedAddress,
-        shippingFee,
-        subtotal,
-        total,
-        canPlaceOrder,
-        updateQuantity,
-        formatPrice,
-        formatAddress,
-        placeOrder,
-        newAddress,
-        submitting,
-        closeBtn,
-        showAddAddressModal,
-        submitNewAddress,
-        provinces,
-        districts,
-        wards,
-        handleProvinceChange,
-        handleDistrictChange,
-        currentStep,
-        nextStep,
-        previousStep,
-        proceedToPayment,
-        selectedProvince,
-        selectedDistrict,
-        selectedWard,
-        isExpanded,
-        toggleAddressDisplay,
-        displayedAddresses,
-        canProceed,
-        buttonText,
-        handleNextStep,
-        handleCompleteOrder,
-        goToStep
-      }
+    } finally {
+      submitting.value = false
     }
+  }
+  
+  // Load tỉnh/thành phố
+  const loadProvinces = async () => {
+    try {
+      const response = await axios.get('https://provinces.open-api.vn/api/p/')
+      provinces.value = response.data
+    } catch (error) {
+      console.error('Error loading provinces:', error)
+      Swal.fire({
+        icon: 'error',
+        title: 'Lỗi',
+        text: 'Không thể tải danh sách tỉnh thành'
+      })
+    }
+  }
+  
+  // Xử lý khi chọn tỉnh/thành phố
+  const handleProvinceChange = async () => {
+    try {
+      selectedDistrict.value = ''
+      selectedWard.value = ''
+      districts.value = []
+      wards.value = []
+      
+      if (selectedProvince.value) {
+        const response = await axios.get(
+          `https://provinces.open-api.vn/api/p/${selectedProvince.value}?depth=2`
+        )
+        districts.value = response.data.districts
+      }
+    } catch (error) {
+      console.error('Error loading districts:', error)
+    }
+  }
+  
+  // Xử lý khi chọn quận/huyện
+  const handleDistrictChange = async () => {
+    try {
+      selectedWard.value = ''
+      wards.value = []
+      
+      if (selectedDistrict.value) {
+        const response = await axios.get(
+          `https://provinces.open-api.vn/api/d/${selectedDistrict.value}?depth=2`
+        )
+        wards.value = response.data.wards
+      }
+    } catch (error) {
+      console.error('Error loading wards:', error)
+    }
+  }
+  
+  const nextStep = () => {
+    if (currentStep.value < 3) {
+      currentStep.value++
+    }
+  }
+  
+  const previousStep = () => {
+    if (currentStep.value > 1) {
+      currentStep.value--
+    }
+  }
+  
+  // Xử lý chuyển sang bước thanh toán
+  const proceedToPayment = async () => {
+    try {
+      if (!selectedAddress.value) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Lỗi',
+          text: 'Vui lòng chọn địa ch giao hàng'
+        })
+        return
+      }
+
+      // Lưu địa chỉ đã chọn vào state hoặc localStorage nếu cần
+      localStorage.setItem('selectedAddressId', selectedAddress.value)
+      
+      // Chuyển sang bước thanh toán
+      currentStep.value = 3
+    } catch (error) {
+      console.error('Error proceeding to payment:', error)
+      Swal.fire({
+        icon: 'error',
+        title: 'Lỗi',
+        text: 'Có lỗi xảy ra, vui lòng thử lại'
+      })
+    }
+  }
+  
+  const toggleAddressDisplay = () => {
+    isExpanded.value = !isExpanded.value
+  }
+  
+  const displayedAddresses = computed(() => {
+    if (isExpanded.value || addresses.value.length <= 3) {
+      return addresses.value
+    }
+    return addresses.value.slice(0, 3)
+  })
+  
+  const canProceed = computed(() => {
+    switch (currentStep.value) {
+      case 1:
+        return checkoutItems.value && checkoutItems.value.length > 0
+      case 2:
+        return selectedAddress.value
+      case 3:
+        return true // Thêm điều kiện cho bước thanh toán nếu cần
+      default:
+        return false
+    }
+  })
+  
+  const buttonText = computed(() => {
+    switch (currentStep.value) {
+      case 1:
+        return 'Tiếp tục'
+      case 2:
+        return 'Đến thanh toán'
+      case 3:
+        return 'Hoàn tất đơn hàng'
+      default:
+        return 'Tiếp tục'
+    }
+  })
+  
+  const handleNextStep = () => {
+    if (currentStep.value < 4) { // Cập nhật điều kiện vì có thêm bước mới
+      if (currentStep.value === 2 && !selectedAddress.value) {
+        // Kiểm tra địa chỉ
+        return;
+      }
+      currentStep.value++;
+    } else {
+      // Xử lý thanh toán
+      processPayment();
+    }
+  }
+  
+  const handleCompleteOrder = async () => {
+    try {
+      // Thêm logic xử lý hoàn tất đơn hàng
+      console.log('Hoàn tất đơn hàng')
+    } catch (error) {
+      console.error('Li khi hoàn tất đơn hàng:', error)
+    }
+  }
+  
+  const goToStep = (step) => {
+    // Chỉ cho phép quay lại các step đã hoàn thành
+    if (step < currentStep.value) {
+      currentStep.value = step;
+    }
+  }
+  
+  const selectAddress = (addressId) => {
+    selectedAddress.value = addressId;
+    console.log('Selected address:', addressId);
+  }
+  
+  const selectPayment = (method) => {
+    selectedPaymentMethod.value = method;
+    console.log('Selected payment method:', method);
   }
   </script>
   
@@ -970,9 +1024,9 @@
   }
   
   .step.active .step-icon {
-    background: #0d6efd;
-    box-shadow: 0 0 20px rgba(13, 110, 253, 0.3);
-    animation: pulse 2s infinite;
+    background: #007bff;
+    color: white;
+    box-shadow: 0 0 0 5px rgba(0, 123, 255, 0.2);
   }
   
   .step.active .step-icon .material-icons {
@@ -987,44 +1041,56 @@
     position: relative;
     margin: 0 1rem;
     transition: all 0.5s ease;
+    overflow: hidden;
   }
   
-  .step.active + .step-line {
-    background: linear-gradient(to right, #0d6efd, #e9ecef);
-    animation: progressLine 0.5s ease forwards;
+  .step-line::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    width: 0;
+    background: linear-gradient(to right, #28a745, #40c057);
+    transition: width 0.5s ease-in-out;
   }
   
-  /* Animations */
-  @keyframes pulse {
-    0% {
-      box-shadow: 0 0 0 0 rgba(13, 110, 253, 0.4);
-    }
-    70% {
-      box-shadow: 0 0 0 10px rgba(13, 110, 253, 0);
-    }
-    100% {
-      box-shadow: 0 0 0 0 rgba(13, 110, 253, 0);
-    }
-  }
-  
-  @keyframes bounceIn {
-    0% {
-      transform: scale(0);
-    }
-    50% {
-      transform: scale(1.2);
-    }
-    100% {
-      transform: scale(1);
-    }
+  .step-line.active::before {
+    width: 100%;
+    animation: progressLine 0.5s ease-in-out;
   }
   
   @keyframes progressLine {
     0% {
-      background: #e9ecef;
+      width: 0;
     }
     100% {
-      background: linear-gradient(to right, #0d6efd, #e9ecef);
+      width: 100%;
+    }
+  }
+  
+  /* Animation cho active step-line */
+  .step-line.active {
+    background: #e9ecef;
+  }
+  
+  .step-line.active::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    width: 30%;
+    background: rgba(255, 255, 255, 0.3);
+    animation: shimmer 1.5s infinite;
+  }
+  
+  @keyframes shimmer {
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(400%);
     }
   }
   
@@ -1032,15 +1098,6 @@
   @media (max-width: 768px) {
     .step-line {
       width: 50px;
-    }
-    
-    .step-icon {
-      width: 40px;
-      height: 40px;
-    }
-    
-    .step.active {
-      transform: scale(1.05);
     }
   }
   
@@ -1688,33 +1745,21 @@
   }
 
   .payment-method {
+    padding: 1.5rem;
     border: 1px solid #e2e8f0;
-    border-radius: 12px;
-    padding: 1.25rem;
+    border-radius: 8px;
     cursor: pointer;
     transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    background: #fff;
   }
 
   .payment-method:hover {
-    border-color: #0d6efd;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    border-color: #3b82f6;
+    background: #f8fafc;
   }
 
   .payment-method.active {
-    border-color: #0d6efd;
-    background-color: #f8f9ff;
-  }
-
-  .payment-method-content {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    flex: 1;
+    border-color: #3b82f6;
+    background: #f0f7ff;
   }
 
   .payment-icon {
@@ -1723,68 +1768,46 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 12px;
-    background: #f8f9fa;
-    font-size: 1.5rem;
-    color: #0d6efd;
+    border-radius: 8px;
+    background: transparent;
+    overflow: hidden;
   }
 
+  .payment-icon i {
+    font-size: 24px;
+    color: #3b82f6;
+  }
+
+  /* Specific styles for each payment method */
   .payment-icon.momo {
-    background: #d82d8b;
-    padding: 8px;
+    background: white;
+    padding: 4px;
   }
 
   .payment-icon.momo img {
     width: 100%;
     height: 100%;
     object-fit: contain;
+    border-radius: 50%;
+  }
+
+  .payment-icon.banking i {
+    color: #2563eb;
   }
 
   .payment-details h6 {
     margin-bottom: 0.25rem;
-    font-size: 1rem;
+    font-weight: 600;
   }
 
   .payment-details p {
-    color: #6c757d;
-    font-size: 0.9rem;
+    color: #64748b;
+    font-size: 0.875rem;
   }
 
-  .bank-details {
-    animation: fadeIn 0.3s ease-out;
-  }
-
-  /* Form Check Customization */
-  .payment-method .form-check-input {
-    width: 1.2rem;
-    height: 1.2rem;
-    margin-left: 1rem;
-  }
-
-  .payment-method .form-check-input:checked {
-    background-color: #0d6efd;
-    border-color: #0d6efd;
-  }
-
-  /* Responsive Adjustments */
-  @media (max-width: 768px) {
-    .payment-method {
-      padding: 1rem;
-    }
-
-    .payment-icon {
-      width: 40px;
-      height: 40px;
-      font-size: 1.25rem;
-    }
-
-    .payment-details h6 {
-      font-size: 0.95rem;
-    }
-
-    .payment-details p {
-      font-size: 0.85rem;
-    }
+  .form-check-input:checked {
+    background-color: #3b82f6;
+    border-color: #3b82f6;
   }
   
   /* Điều chỉnh icon trong summary */
@@ -1815,5 +1838,83 @@
     100% {
       box-shadow: 0 0 0 0 rgba(40, 167, 69, 0);
     }
+  }
+  
+  .confirmation-section {
+    padding: 1.5rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background: #fff;
+  }
+  
+  .section-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #2d3748;
+    margin-bottom: 1rem;
+  }
+  
+  .section-title i {
+    font-size: 1.25rem;
+    color: #4a5568;
+  }
+  
+  .confirmation-item-image {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 8px;
+  }
+  
+  .product-item {
+    padding: 1rem 0;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  
+  .product-item:last-child {
+    border-bottom: none;
+  }
+  
+  .total-amount {
+    padding-top: 1rem;
+    border-top: 2px solid #e2e8f0;
+    margin-top: 1rem;
+  }
+  
+  .section-content {
+    background: #f8fafc;
+    padding: 1rem;
+    border-radius: 6px;
+  }
+  
+  /* Specific styles for MoMo payment icon */
+  .payment-icon {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    background: transparent;
+    overflow: hidden;
+  }
+  
+  .payment-method[data-method="momo"] .payment-icon {
+    background: white;
+    padding: 4px;
+  }
+  
+  .payment-method[data-method="momo"] img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border-radius: 50%;
+  }
+  
+  /* Hover effect for MoMo payment method */
+  .payment-method[data-method="momo"]:hover .payment-icon {
+    transform: scale(1.05);
+    transition: transform 0.2s ease;
   }
   </style>
