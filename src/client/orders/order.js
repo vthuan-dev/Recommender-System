@@ -444,4 +444,135 @@ router.post('/orders/:orderId/products/:productId/review', authenticateJWT, asyn
     }
   });
 
+  // Thêm route xử lý địa chỉ
+  router.post('/addresses', authenticateJWT, async (req, res) => {
+    const connection = await pool.getConnection();
+    try {
+      await connection.beginTransaction();
+
+      const {
+        address_line1,
+        address_line2,
+        city,
+        state,
+        postal_code,
+        country,
+        is_default
+      } = req.body;
+      
+      // Log để debug
+      console.log('Received data:', req.body);
+      console.log('User ID:', req.user.userId);
+
+      const userId = req.user.userId;
+
+      // Validate dữ liệu bắt buộc
+      if (!address_line1 || !city || !postal_code || !country) {
+        throw new Error('Thiếu thông tin bắt buộc');
+      }
+
+      // Nếu là địa chỉ mặc định, cập nhật các địa chỉ khác
+      if (is_default) {
+        await connection.query(
+          'UPDATE addresses SET is_default = 0 WHERE user_id = ?',
+          [userId]
+        );
+      }
+
+      // Thêm địa chỉ mới
+      const [result] = await connection.query(
+        `INSERT INTO addresses (
+          user_id,
+          address_line1,
+          address_line2,
+          city,
+          state,
+          postal_code,
+          country,
+          is_default
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          userId,
+          address_line1,
+          address_line2 || null,
+          city,
+          state || null,
+          postal_code,
+          country,
+          is_default ? 1 : 0
+        ]
+      );
+
+      await connection.commit();
+
+      // Trả về địa chỉ vừa tạo
+      const [newAddress] = await connection.query(
+        'SELECT * FROM addresses WHERE id = ?',
+        [result.insertId]
+      );
+
+      res.status(201).json(newAddress[0]);
+
+    } catch (error) {
+      await connection.rollback();
+      console.error('Error creating address:', error);
+      res.status(500).json({ 
+        message: 'Lỗi khi thêm địa chỉ: ' + error.message
+      });
+    } finally {
+      connection.release();
+    }
+  });
+
+  // Lấy danh sách địa chỉ
+  router.get('/addresses', authenticateJWT, async (req, res) => {
+    try {
+      const userId = req.user.userId;
+      const [addresses] = await pool.query(
+        'SELECT * FROM addresses WHERE user_id = ? ORDER BY is_default DESC',
+        [userId]
+      );
+      res.json(addresses);
+    } catch (error) {
+      console.error('Error fetching addresses:', error);
+      res.status(500).json({ 
+        message: 'Lỗi khi lấy danh sách địa chỉ', 
+        error: error.message 
+      });
+    }
+  });
+
+  // Xóa địa chỉ
+  router.delete('/addresses/:id', authenticateJWT, async (req, res) => {
+    const connection = await pool.getConnection();
+    try {
+      await connection.beginTransaction();
+
+      const { id } = req.params;
+      const userId = req.user.userId;
+
+      const [result] = await connection.query(
+        'DELETE FROM addresses WHERE id = ? AND user_id = ?',
+        [id, userId]
+      );
+
+      if (result.affectedRows === 0) {
+        throw new Error('Địa chỉ không tồn tại hoặc không có quyền xóa');
+      }
+
+      await connection.commit();
+      res.json({ message: 'Xóa địa chỉ thành công' });
+
+    } catch (error) {
+      await connection.rollback();
+      console.error('Error deleting address:', error);
+      res.status(500).json({ 
+        message: 'Lỗi khi xóa địa chỉ', 
+        error: error.message 
+      });
+    } finally {
+      connection.release();
+    }
+  });
+
   module.exports = router;

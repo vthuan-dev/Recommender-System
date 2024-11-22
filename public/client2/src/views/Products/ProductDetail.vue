@@ -345,6 +345,12 @@ export default {
     })
     const isAuthenticated = computed(() => !!localStorage.getItem('token'))
     const quantity = ref(1)
+    const selectedProvince = ref('')
+    const selectedDistrict = ref('')
+    const selectedWard = ref('')
+    const provinces = ref([])
+    const districts = ref([])
+    const wards = ref([])
 
     // Computed properties
     const hasDiscount = computed(() => {
@@ -438,44 +444,64 @@ export default {
       isFavorited.value = !isFavorited.value
     }
 
-    const addToCart = async () => {
-      if (!selectedVariant.value) {
-        Swal.fire({
-          title: 'Thông báo',
-          text: 'Vui lòng chọn phiên bản sản phẩm',
-          icon: 'warning',
-          confirmButtonText: 'Đã hiểu'
-        });
-        return;
-      }
-
-      const token = localStorage.getItem('token');
+    const checkLogin = () => {
+      const token = localStorage.getItem('token')
       if (!token) {
         Swal.fire({
-          title: 'Đăng nhập để tiếp tục',
-          html: `
-            <div class="text-left">
-              <p>Vui lòng đăng nhập để:</p>
-              <ul class="list-unstyled text-left">
-                <li><i class="fas fa-check text-success"></i> Thêm sản phẩm vào giỏ hàng</li>
-                <li><i class="fas fa-check text-success"></i> Lưu sản phẩm yêu thích</li>
-                <li><i class="fas fa-check text-success"></i> Theo dõi đơn hàng</li>
-                <li><i class="fas fa-check text-success"></i> Đánh giá sản phẩm</li>
-              </ul>
-            </div>
-          `,
-          icon: 'info',
+          title: 'Bạn chưa đăng nhập',
+          text: 'Vui lòng đăng nhập để tiếp tục mua hàng',
+          icon: 'warning',
           showCancelButton: true,
-          confirmButtonColor: '#3085d6',
-          cancelButtonColor: '#d33',
           confirmButtonText: 'Đăng nhập ngay',
-          cancelButtonText: 'Để sau'
+          cancelButtonText: 'Để sau',
+          reverseButtons: true
         }).then((result) => {
           if (result.isConfirmed) {
-            router.push('/login');
+            // Lưu URL hiện tại để sau khi đăng nhập xong quay lại
+            localStorage.setItem('redirectUrl', router.currentRoute.value.fullPath)
+            router.push('/login')
           }
-        });
-        return;
+        })
+        return false
+      }
+      return true
+    }
+
+    const buyNow = async () => {
+      if (!checkLogin()) return
+      
+      if (!selectedVariant.value) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Vui lòng chọn phiên bản',
+          text: 'Hãy chọn phiên bản sản phẩm trước khi mua hàng'
+        })
+        return
+      }
+
+      try {
+        await addToCart()
+        router.push('/checkout')
+      } catch (error) {
+        console.error('Error buying now:', error)
+        Swal.fire({
+          icon: 'error',
+          title: 'Lỗi',
+          text: 'Có lỗi xảy ra. Vui lòng thử lại sau.'
+        })
+      }
+    }
+
+    const addToCart = async () => {
+      if (!checkLogin()) return
+      
+      if (!selectedVariant.value) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Vui lòng chọn phiên bản',
+          text: 'Hãy chọn phiên bản sản phẩm trước khi thêm vào giỏ hàng'
+        })
+        return
       }
 
       try {
@@ -484,9 +510,9 @@ export default {
           title: 'Đang xử lý...',
           allowOutsideClick: false,
           didOpen: () => {
-            Swal.showLoading();
+            Swal.showLoading()
           }
-        });
+        })
 
         const response = await axios.post(
           'http://localhost:3000/api/cart/add',
@@ -497,10 +523,10 @@ export default {
           },
           {
             headers: {
-              Authorization: `Bearer ${token}`
+              Authorization: `Bearer ${localStorage.getItem('token')}`
             }
           }
-        );
+        )
 
         if (response.status === 200) {
           Swal.fire({
@@ -514,54 +540,17 @@ export default {
             cancelButtonText: 'Tiếp tục mua sắm'
           }).then((result) => {
             if (result.isConfirmed) {
-              router.push('/cart');
+              router.push('/cart')
             }
-          });
+          })
         }
       } catch (error) {
-        console.error('Lỗi khi thêm vào giỏ hàng:', error);
+        console.error('Lỗi khi thêm vào giỏ hàng:', error)
         Swal.fire({
           title: 'Lỗi!',
           text: error.response?.data?.message || 'Có lỗi xảy ra khi thêm vào giỏ hàng',
           icon: 'error',
           confirmButtonText: 'Đóng'
-        });
-      }
-    };
-
-    const buyNow = async () => {
-      try {
-        if (!selectedVariant.value) {
-          Swal.fire({
-            icon: 'warning',
-            title: 'Vui lòng chọn phiên bản',
-            text: 'Hãy chọn phiên bản sản phẩm trước khi mua hàng'
-          })
-          return
-        }
-
-        // Tạo object chứa thông tin mua hàng
-        const orderItem = {
-          productId: product.value.id,
-          variantId: selectedVariant.value.id,
-          quantity: quantity.value,
-          price: selectedVariant.value.price,
-          name: product.value.name,
-          image: product.value.image_url,
-          variantName: selectedVariant.value.name
-        }
-
-        // Lưu thông tin vào localStorage để dùng ở trang checkout
-        localStorage.setItem('checkoutItems', JSON.stringify([orderItem]))
-        
-        // Chuyển đến trang checkout
-        router.push('/checkout')
-      } catch (error) {
-        console.error('Lỗi khi xử lý mua ngay:', error)
-        Swal.fire({
-          icon: 'error',
-          title: 'Có lỗi xảy ra',
-          text: 'Không thể xử lý yêu cầu mua hàng. Vui lòng thử lại sau.'
         })
       }
     }
@@ -631,7 +620,38 @@ export default {
       fetchProductDetail()
       fetchReviews()
       checkCanReview()
+      loadProvinces()
     })
+
+    const loadProvinces = async () => {
+      try {
+        const response = await axios.get('https://provinces.open-api.vn/api/p/')
+        provinces.value = response.data
+      } catch (error) {
+        console.error('Error loading provinces:', error)
+      }
+    }
+
+    const handleProvinceChange = async () => {
+      try {
+        selectedDistrict.value = ''
+        selectedWard.value = ''
+        districts.value = []
+        const response = await axios.get(`https://provinces.open-api.vn/api/d/p/${selectedProvince.value}`)
+        districts.value = response.data
+      } catch (error) {
+        console.error('Error loading districts:', error)
+      }
+    }
+
+    const handleDistrictChange = async () => {
+      try {
+        const response = await axios.get(`https://provinces.open-api.vn/api/w/d/${selectedDistrict.value}`)
+        wards.value = response.data
+      } catch (error) {
+        console.error('Error loading wards:', error)
+      }
+    }
 
     return {
       product,
@@ -663,7 +683,16 @@ export default {
       removeImage,
       submitReview,
       addToCart,
-      quantity
+      quantity,
+      checkLogin,
+      selectedProvince,
+      selectedDistrict,
+      selectedWard,
+      provinces,
+      districts,
+      wards,
+      handleProvinceChange,
+      handleDistrictChange
     }
   }
 }

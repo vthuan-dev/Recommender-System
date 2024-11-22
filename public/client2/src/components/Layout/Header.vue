@@ -537,6 +537,7 @@ export default {
   opacity: 1;
   visibility: visible;
   transform: translateY(0);
+  z-index: 2000;
 }
 
 .profile-header {
@@ -732,7 +733,7 @@ export default {
   position: fixed;
   top: 15px;
   left: 15px;
-  z-index: 1000;
+  z-index: 2000;
   background: none;
   border: none;
   font-size: 1.5rem;

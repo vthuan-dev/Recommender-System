@@ -74,7 +74,11 @@ const routes = [
   {
     path: '/checkout',
     name: 'Checkout',
-    component: Checkout
+    component: Checkout,
+    meta: { 
+      requiresAuth: true,
+      title: 'Thanh toán - T-Store'
+    }
   },
   {
     path: '/auth/callback',
