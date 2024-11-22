@@ -53,36 +53,14 @@
                :key="product.id" 
                class="col-6 col-md-3">
             <div class="flash-card">
-              <div class="discount-badge">
+              <div class="discount-badge" v-if="product.discount">
                 -{{ product.discount }}%
               </div>
-              <div class="product-card">
-                <div class="card border-0 rounded-4 shadow-hover h-100">
-                  <div class="product-image">
-                    <img :src="product.image_url" :alt="product.name">
-                    <div class="product-actions">
-                      <button class="action-btn" @click="addToWishlist(product)">
-                        <i class="fas fa-heart"></i>
-                      </button>
-                      <button class="action-btn" @click="addToCart(product)">
-                        <i class="fas fa-shopping-cart"></i>
-                      </button>
-                    </div>
-                  </div>
-                  <div class="card-body">
-                    <h5 class="product-title">{{ product.name }}</h5>
-                    <div class="product-price">
-                      <span class="new-price">{{ formatPrice(product.min_price) }}</span>
-                      <span class="old-price text-muted text-decoration-line-through ms-2">
-                        {{ formatPrice(product.max_price) }}
-                      </span>
-                    </div>
-                    <div class="brand-name text-muted small">
-                      {{ product.brand_name }}
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <ProductCard 
+                :product="product"
+                @add-to-wishlist="addToWishlist"
+                @add-to-cart="addToCart"
+              />
             </div>
           </div>
         </div>
@@ -137,33 +115,11 @@
                 <div class="trend-badge">
                   <i class="fas fa-fire"></i> Hot
                 </div>
-                <div class="product-card">
-                  <div class="card border-0 rounded-4 shadow-hover h-100">
-                    <div class="product-image">
-                      <img :src="product.image_url" :alt="product.name">
-                      <div class="product-actions">
-                        <button class="action-btn" @click="addToWishlist(product)">
-                          <i class="fas fa-heart"></i>
-                        </button>
-                        <button class="action-btn" @click="addToCart(product)">
-                          <i class="fas fa-shopping-cart"></i>
-                        </button>
-                      </div>
-                    </div>
-                    <div class="card-body">
-                      <h5 class="product-title">{{ product.name }}</h5>
-                      <div class="product-price">
-                        <span class="new-price">{{ formatPrice(product.min_price) }}</span>
-                        <span class="old-price text-muted text-decoration-line-through ms-2">
-                          {{ formatPrice(product.max_price) }}
-                        </span>
-                      </div>
-                      <div class="brand-name text-muted small">
-                        {{ product.brand_name }}
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <ProductCard 
+                  :product="product"
+                  @add-to-wishlist="addToWishlist"
+                  @add-to-cart="addToCart"
+                />
               </div>
             </div>
           </div>
@@ -253,9 +209,13 @@
 import { ref, onMounted, computed } from 'vue'
 import { useStore } from 'vuex'
 import axiosInstance from '@/utils/axios'
+import ProductCard from '@/components/Product/ProductCard.vue'
 
 export default {
   name: 'HomeComponent',
+  components: {
+    ProductCard
+  },
   setup() {
     const store = useStore()
 
@@ -565,5 +525,115 @@ export default {
   .product-price {
     font-size: 0.85rem;
   }
+}
+
+.product-link {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+
+.product-card {
+  transition: transform 0.3s ease;
+}
+
+.product-link:hover .product-card {
+  transform: translateY(-5px);
+}
+
+.product-title {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  height: 2.4em;
+  color: #333;
+  margin-bottom: 0.5rem;
+}
+
+.product-price {
+  margin-bottom: 0.5rem;
+}
+
+.new-price {
+  font-weight: bold;
+  color: #dc3545;
+  font-size: 1.1rem;
+}
+
+.old-price {
+  font-size: 0.9rem;
+}
+
+.brand-name {
+  color: #6c757d;
+}
+
+/* Giữ nguyên các styles khác */
+.product-actions {
+  position: absolute;
+  right: 1rem;
+  top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  opacity: 0;
+  transform: translateX(20px);
+  transition: all 0.3s ease;
+  z-index: 2;
+}
+
+.product-link:hover .product-actions {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.action-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: white;
+  color: #333;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.action-btn:hover {
+  background: #0061f2;
+  color: white;
+  transform: scale(1.1);
+}
+
+.flash-card, .trending-card {
+  position: relative;
+}
+
+.discount-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: #dc3545;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-weight: bold;
+  z-index: 1;
+}
+
+.trend-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: #ffc107;
+  color: #000;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-weight: bold;
+  z-index: 1;
 }
 </style>
