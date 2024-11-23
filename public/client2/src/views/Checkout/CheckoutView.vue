@@ -498,7 +498,7 @@
                     pattern="[0-9]{10}"
                   >
                   <label for="recipientPhone">Số điện thoại <span class="text-danger">*</span></label>
-                  <small class="text-muted">Vui lòng nhập số điện thoại 10 số</small>
+                  <small class="text-muted">Vui lòng nhập số điện thoại 10 s������������</small>
                 </div>
 
                 <!-- Tỉnh/Thành phố -->
@@ -675,19 +675,27 @@
   
   // Load checkout items from localStorage
   onMounted(() => {
-    // Lấy dữ liệu từ localStorage
-    const savedItems = localStorage.getItem('checkoutItems')
-    if (!savedItems) {
-      // Nếu không có dữ liệu, chuyển về trang giỏ hàng
-      router.push('/cart')
-      return
-    }
-    
     try {
-      checkoutItems.value = JSON.parse(savedItems)
+      const savedItems = localStorage.getItem('checkoutItems')
+      if (savedItems) {
+        const parsedItems = JSON.parse(savedItems)
+        checkoutItems.value = parsedItems.map(item => ({
+          product_id: parseInt(item.product_id),
+          variant_id: parseInt(item.variant_id),
+          quantity: parseInt(item.quantity),
+          price: parseFloat(item.price),
+          name: item.name,
+          variantName: item.variantName,
+          image: item.image
+        }))
+      }
     } catch (error) {
-      console.error('Error parsing checkout items:', error)
-      router.push('/cart')
+      console.error('Error loading checkout items:', error)
+      Swal.fire({
+        icon: 'error',
+        title: 'Lỗi',
+        text: 'Không thể tải thông tin đơn hàng'
+      })
     }
     fetchAddresses()
     addressModal.value = new Modal(document.getElementById('addAddressModal'))
@@ -712,18 +720,39 @@
   }
   
   // Computed properties
-  const subtotal = computed(() => {
-    return checkoutItems.value.reduce((sum, item) => {
-      return sum + (Number(item.price) * Number(item.quantity))
-    }, 0)
-  })
-  
-  const orderTotal = ref(null)
-  
-  const total = computed(() => {
-    return subtotal.value + shippingFee.value
-  })
-  
+  const subtotal = ref(0)
+  const total = ref(0)
+
+  const calculateOrderTotal = () => {
+    if (!checkoutItems.value || checkoutItems.value.length === 0) {
+      return {
+        subtotal: 0,
+        shipping_fee: shippingFee.value,
+        total: 0
+      }
+    }
+
+    const calculatedSubtotal = checkoutItems.value.reduce((sum, item) => 
+      sum + (item.price * item.quantity), 0
+    )
+    
+    return {
+      subtotal: calculatedSubtotal,
+      shipping_fee: shippingFee.value,
+      total: calculatedSubtotal + shippingFee.value
+    }
+  }
+
+  // Computed property để theo dõi thay đổi
+  const orderTotals = computed(() => calculateOrderTotal())
+
+  // Watch để cập nhật khi có thay đổi
+  watch(orderTotals, (newTotals) => {
+    subtotal.value = newTotals.subtotal
+    shippingFee.value = newTotals.shipping_fee
+    total.value = newTotals.total
+  }, { immediate: true })
+
   // Methods
   const updateQuantity = (item, change) => {
     const newQuantity = item.quantity + change
@@ -739,52 +768,74 @@
     }).format(price).replace('₫', '').trim() + ' ₫'
   }
   
-  const placeOrder = async () => {
-    if (isSubmitting.value) return
-    isSubmitting.value = true
+  const validateOrderData = () => {
+    if (!selectedAddress.value) {
+      throw new Error('Vui lòng chọn địa chỉ giao hàng');
+    }
 
+    if (!checkoutItems.value || checkoutItems.value.length === 0) {
+      throw new Error('Giỏ hàng trống');
+    }
+
+    checkoutItems.value.forEach(item => {
+      console.log('Validating item:', item);
+      if (!item.product_id || !item.variant_id || !item.quantity) {
+        console.error('Invalid item data:', {
+          product_id: item.product_id,
+          variant_id: item.variant_id,
+          quantity: item.quantity,
+          name: item.name
+        });
+        throw new Error(`Thông tin sản phẩm không hợp lệ: ${item.name}`);
+      }
+    });
+  };
+
+  const placeOrder = async () => {
     try {
-      const token = localStorage.getItem('token')
-      if (!token) throw new Error('Vui lòng đăng nhập lại')
+      validateOrderData();
 
       const orderData = {
-        addressId: selectedAddress.value,
-        items: checkoutItems.value,
-        paymentMethod: selectedPaymentMethod.value,
-        note: orderNote.value
-      }
+        addressId: parseInt(selectedAddress.value),
+        items: checkoutItems.value.map(item => ({
+          productId: parseInt(item.product_id),
+          variantId: parseInt(item.variant_id),
+          quantity: parseInt(item.quantity),
+          price: parseFloat(item.price)
+        }))
+      };
+
+      console.log('Sending order data:', orderData);
 
       const response = await axios({
         method: 'POST',
         url: 'http://localhost:3000/api/orders',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
           'Content-Type': 'application/json'
         },
         data: orderData
-      })
+      });
 
-      // Xử lý đặt hàng thành công
-      Swal.fire({
-        icon: 'success',
-        title: 'Đặt hàng thành công!',
-        text: 'Cảm ơn bạn đã mua hàng'
-      }).then(() => {
-        // Chuyển đến trang xác nhận đơn hàng
-        router.push(`/orders/${response.data.orderId}`)
-      })
-
+      if (response.data.orderId) {
+        localStorage.removeItem('cartItems');
+        localStorage.removeItem('checkoutItems'); // Thêm dòng này
+        await Swal.fire({
+          icon: 'success',
+          title: 'Đặt hàng thành công',
+          text: 'Cảm ơn bạn đã mua hàng!'
+        });
+        router.push('/orders');
+      }
     } catch (error) {
-      console.error('Error placing order:', error)
+      console.error('Error placing order:', error);
       Swal.fire({
         icon: 'error',
-        title: 'Lỗi đặt hàng',
-        text: error.response?.data?.message || 'Có lỗi xảy ra, vui lòng thử lại'
-      })
-    } finally {
-      isSubmitting.value = false
+        title: 'Lỗi',
+        text: error.message || 'Không thể đặt hàng. Vui lòng thử lại.'
+      });
     }
-  }
+  };
   
   const showAddAddressModal = () => {
     if (addresses.value.length >= 4) {
@@ -1000,6 +1051,7 @@
     return addresses.value.slice(0, 3)
   })
   
+  // Computed property để kiểm tra có thể tiếp tục không
   const canProceed = computed(() => {
     switch (currentStep.value) {
       case 1:
@@ -1007,7 +1059,9 @@
       case 2:
         return selectedAddress.value
       case 3:
-        return true // Thêm điều kiện cho bước thanh toán nếu cần
+        return selectedPaymentMethod.value
+      case 4:
+        return true
       default:
         return false
     }
@@ -1032,14 +1086,16 @@
         return
       }
       
-      // Thay vì dùng calculateTotal, sử dụng computed property total
       if (currentStep.value === 3) {
-        orderTotal.value = total.value; // Sử dụng computed total
+        const totals = orderTotals.value  // Sử dụng orderTotals thay vì orderTotal
+        subtotal.value = totals.subtotal
+        shippingFee.value = totals.shipping_fee
+        total.value = totals.total
       }
       
       currentStep.value++
     } else {
-      processPayment()
+      await placeOrder()
     }
   }
   
@@ -1051,21 +1107,6 @@
   const selectPayment = (method) => {
     selectedPaymentMethod.value = method;
     console.log('Selected payment method:', method);
-  }
-  
-  // Thêm hàm processPayment
-  const processPayment = async () => {
-    try {
-      // Xử lý thanh toán
-      await placeOrder()
-    } catch (error) {
-      console.error('Lỗi xử lý thanh toán:', error)
-      Swal.fire({
-        icon: 'error',
-        title: 'Lỗi thanh toán',
-        text: 'Có lỗi xảy ra trong quá trình thanh toán. Vui lòng thử lại.'
-      })
-    }
   }
   
   const deleteAddress = async (addressId) => {
@@ -1212,43 +1253,44 @@
     return addresses.value.find(addr => addr.id === selectedAddress.value);
   });
 
-  // Thêm computed property để tính tổng
-  const calculateTotal = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) throw new Error('Vui lòng đăng nhập lại');
+  // // Thêm computed property để tính tổng
+  // const calculateTotal = async () => {
+  //   try {
+  //     const token = localStorage.getItem('token');
+  //     if (!token) throw new Error('Vui lòng đăng nhập lại');
 
-      const response = await axios({
-        method: 'GET',
-        url: 'http://localhost:3000/api/orders/calculate-total',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        params: {
-          items: JSON.stringify(checkoutItems.value)
-        }
-      });
+  //     const response = await axios({
+  //       method: 'GET',
+  //       url: 'http://localhost:3000/api/orders/calculate-total',
+  //       headers: {
+  //         'Authorization': `Bearer ${token}`
+  //       },
+  //       params: {
+  //         items: JSON.stringify(checkoutItems.value)
+  //       }
+  //     });
 
-      return response.data;
-    } catch (error) {
-      console.error('Error calculating total:', error);
-      Swal.fire({
-        icon: 'error',
-        title: 'Lỗi',
-        text: 'Không thể tính tổng đơn hàng. Vui lòng thử lại.'
-      });
-      return null;
-    }
-  };
+  //     return response.data;
+  //   } catch (error) {
+  //     console.error('Error calculating total:', error);
+  //     Swal.fire({
+  //       icon: 'error',
+  //       title: 'Lỗi',
+  //       text: 'Không thể tính tổng đơn hàng. Vui lòng thử lại.'
+  //     });
+  //     return null;
+  //   }
+  // };
 
   // Hoặc thêm watch để tự động tính lại tổng khi items thay đổi
-  watch(checkoutItems, async () => {
-    orderTotal.value = await calculateTotal()
+// Thay thế watch cũ bằng watch mới
+watch(checkoutItems, (items) => {
+    console.log('Checkout items changed:', items);
   }, { deep: true })
   </script>
   
   <style scoped>
-  .checkout-page {
+  .checkout-page {  
     background-color: #f8f9fa;
     min-height: 100vh;
   }

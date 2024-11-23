@@ -392,18 +392,17 @@ export default {
       const selectedProducts = cartItems.value
         .filter(item => selectedItems.value.includes(item.id))
         .map(item => ({
-          variantId: item.variant_id,
+          product_id: parseInt(item.product_id),
+          variant_id: parseInt(item.variant_id),
           name: item.product_name,
           image: item.image_url,
           variantName: item.variant_name,
-          price: item.price,
-          quantity: item.quantity
+          price: parseFloat(item.price),
+          quantity: parseInt(item.quantity)
         }))
 
-      // Lưu vào localStorage - chỉ lưu mảng sản phẩm
+      // Lưu vào localStorage
       localStorage.setItem('checkoutItems', JSON.stringify(selectedProducts))
-      
-      // Chuyển hướng đến trang checkout
       router.push('/checkout')
     }
 

@@ -182,13 +182,13 @@ const orderSteps = [
     label: 'Đã giao', 
     icon: 'fas fa-check-circle',
     color: '#10b981'
-  },
-  { 
-    status: 'cancelled', 
-    label: 'Đã hủy', 
-    icon: 'fas fa-times-circle',
-    color: '#ef4444'
   }
+  // { 
+  //   status: 'cancelled', 
+  //   label: 'Đã hủy', 
+  //   icon: 'fas fa-times-circle',
+  //   color: '#ef4444'
+  // }
 ];
 
 const statusDescriptions = {
@@ -349,19 +349,18 @@ const goToReview = (productId) => {
 
 .progress-container {
   background: #ffffff;
-  padding: 2.5rem 2rem;
+  padding: 2rem 1.5rem;
   border-radius: 16px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
   margin: 2rem 0;
-  transition: all 0.3s ease;
 }
 
 .progress-bar {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 1rem;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem;
   position: relative;
-  padding: 0 2rem;
+  padding: 0 1rem;
 }
 
 /* Background line */
@@ -369,11 +368,12 @@ const goToReview = (productId) => {
   content: '';
   position: absolute;
   top: 28px;
-  left: 50px;
-  right: 50px;
-  height: 2px;
-  background: #f1f5f9;
-  border-radius: 2px;
+  left: 40px;
+  right: 40px;
+  height: 4px;
+  background: #e2e8f0;
+  border-radius: 4px;
+  z-index: 1;
 }
 
 /* Progress line */
@@ -381,125 +381,152 @@ const goToReview = (productId) => {
   content: '';
   position: absolute;
   top: 28px;
-  left: 50px;
-  height: 2px;
-  background: var(--step-color, #3b82f6);
-  border-radius: 2px;
-  width: v-bind(progressWidth + '%');
-  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  left: 40px;
+  height: 4px;
+  background: linear-gradient(to right, var(--step-color), #10b981);
+  border-radius: 4px;
+  width: v-bind('progressWidth + "%"');
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 1;
 }
 
-/* Step styles */
 .progress-step {
   display: flex;
   flex-direction: column;
   align-items: center;
+  text-align: center;
   gap: 0.75rem;
+  position: relative;
+  z-index: 2;
+  opacity: 0.5;
+  filter: grayscale(0.8);
+  transform: scale(0.95);
+  transition: all 0.3s ease;
+}
+
+/* Step đang active */
+.progress-step.active {
+  opacity: 1;
+  filter: grayscale(0);
+  transform: scale(1.1);
+  z-index: 4;
+}
+
+.progress-step.active .step-icon {
+  box-shadow: 0 0 20px rgba(var(--step-color), 0.3);
+  transform: scale(1.1);
+  animation: pulseIcon 2s infinite;
+}
+
+.progress-step.active .step-label {
+  font-weight: 700;
+  color: var(--step-color);
+  transform: scale(1.05);
+}
+
+/* Hiệu ứng hover cho các step không active */
+.progress-step:not(.active):hover {
+  opacity: 0.8;
+  filter: grayscale(0.4);
+  transform: scale(1);
+}
+
+@keyframes pulseIcon {
+  0% { transform: scale(1.1); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1.1); }
+}
+
+.step-icon {
+  width: 56px;
+  height: 56px;
+  background: white;
+  border: 4px solid var(--step-color, #3b82f6);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--step-color, #3b82f6);
+  font-size: 1.25rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
   position: relative;
   z-index: 3;
 }
 
-.step-icon {
-  width: 45px;
-  height: 45px;
-  border-radius: 50%;
-  background: white;
-  border: 2px solid #e2e8f0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+/* Animation cho step active */
+.progress-step.active .step-icon {
+  animation: pulseIcon 2s infinite;
+  box-shadow: 0 4px 15px var(--step-color);
 }
 
-.step-icon i {
-  font-size: 1.25rem;
-  color: #94a3b8;
-  transition: all 0.3s ease;
+/* Hiệu ứng hover cho step không active */
+.progress-step:not(.active):hover {
+  opacity: 0.7;
+  filter: grayscale(0.4);
+  transform: scale(1.02);
+}
+
+@keyframes pulseIcon {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
 }
 
 .step-label {
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #64748b;
+  font-weight: 600;
+  color: #1e293b;
   transition: all 0.3s ease;
 }
 
 .step-date {
-  font-size: 0.75rem;
-  color: #94a3b8;
-  opacity: 0.5;
-  transform: translateY(-5px);
-  transition: all 0.3s ease;
+  font-size: 0.875rem;
+  color: #64748b;
 }
 
-/* Active step */
-.progress-step.active .step-icon {
-  border-color: var(--step-color);
-  transform: scale(1.1);
-  box-shadow: 0 0 0 4px rgba(var(--step-color-rgb), 0.1);
-}
-
-.progress-step.active .step-icon i {
-  color: var(--step-color);
-}
-
-.progress-step.active .step-label {
-  color: var(--step-color);
-  font-weight: 600;
-}
-
-.progress-step.active .step-date {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-/* Completed step */
-.progress-step.completed .step-icon {
-  background: var(--step-color);
-  border-color: var(--step-color);
-}
-
-.progress-step.completed .step-icon i {
-  color: white;
-}
-
-/* Status colors */
-:root {
-  --pending-color: #3b82f6;
-  --pending-color-rgb: 59, 130, 246;
-  --processing-color: #8b5cf6;
-  --processing-color-rgb: 139, 92, 246;
-  --shipped-color: #f59e0b;
-  --shipped-color-rgb: 245, 158, 11;
-  --delivered-color: #10b981;
-  --delivered-color-rgb: 16, 185, 129;
-  --cancelled-color: #ef4444;
-  --cancelled-color-rgb: 239, 68, 68;
-}
-
-/* Responsive Design */
+/* Responsive adjustments */
 @media (max-width: 768px) {
-  .progress-container {
-    padding: 2rem 1rem;
-  }
-  
   .progress-bar {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  .progress-bar::before,
+  .progress-bar::after {
+    left: 28px;
+    width: 4px;
+    height: calc(100% - 50px);
+    top: 25px;
+  }
+
+  .progress-bar::after {
+    height: v-bind('progressWidth + "%"');
+  }
+
+  .progress-step {
+    flex-direction: row;
+    justify-content: flex-start;
     gap: 1rem;
-    padding: 0 1rem;
+    padding-left: 60px;
   }
-  
-  .step-icon {
-    width: 45px;
-    height: 45px;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .progress-container {
+    background: #1e293b;
   }
-  
-  .step-icon i {
-    font-size: 1.2rem;
+
+  .progress-bar::before {
+    background: #334155;
   }
-  
+
   .step-label {
-    font-size: 0.75rem;
+    color: #e2e8f0;
+  }
+
+  .step-date {
+    color: #94a3b8;
   }
 }
 

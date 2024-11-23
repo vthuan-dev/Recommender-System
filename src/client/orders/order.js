@@ -28,14 +28,21 @@ router.post('/orders', authenticateJWT, async (req, res) => {
       const { addressId, items } = req.body;
       const userId = req.user.userId;
   
-      console.log(`Attempting to create order for userId: ${userId}, addressId: ${addressId}`);
+      console.log('Request body:', req.body);
+      console.log('User ID:', userId);
+  
+      // Validate input
+      if (!addressId || !Array.isArray(items) || items.length === 0) {
+        throw new Error('Dữ liệu đơn hàng không hợp lệ');
+      }
   
       // Kiểm tra địa chỉ
       const [addressResult] = await connection.query(
         'SELECT id FROM addresses WHERE id = ? AND user_id = ?',
         [addressId, userId]
       );
-      console.log(`Address check result:`, addressResult);
+      
+      console.log('Address check result:', addressResult);
       
       if (addressResult.length === 0) {
         throw new Error('Địa chỉ không hợp lệ');
@@ -93,7 +100,19 @@ router.post('/orders', authenticateJWT, async (req, res) => {
     } catch (error) {
       await connection.rollback();
       console.error('Error in order creation:', error);
-      res.status(500).json({ message: 'Lỗi tạo đơn hàng', error: error.message });
+      // Log chi tiết lỗi để debug
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack,
+        sql: error.sql,
+        sqlMessage: error.sqlMessage
+      });
+      
+      res.status(500).json({ 
+        message: 'Lỗi tạo đơn hàng', 
+        error: error.message,
+        details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      });
     } finally {
       connection.release();
     }
@@ -1029,56 +1048,28 @@ router.post('/orders/:orderId/products/:productId/review', authenticateJWT, asyn
     }
   };
 
-  // Thêm route tính tổng đơn hàng
-  router.get('/orders/calculate-total', authenticateJWT, checkCustomerRole, async (req, res) => {
+  // Sửa route tính tổng đơn hàng
+  
+  router.get('/calculate-total', authenticateJWT, async (req, res) => {
     try {
       const items = JSON.parse(req.query.items);
-      if (!items || !Array.isArray(items)) {
+      
+      if (!Array.isArray(items)) {
         return res.status(400).json({
           message: 'Dữ liệu sản phẩm không hợp lệ'
         });
       }
 
-      let subtotal = 0;
+      // Tính toán tổng tiền
+      const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
       const shippingFee = 30000;
-      const processedItems = [];
-
-      // Tính tổng tiền từ các sản phẩm
-      for (const item of items) {
-        const [variants] = await pool.query(
-          `SELECT pv.price, p.name,
-            (pv.initial_stock - COALESCE(pv.sold_count, 0)) as available_quantity 
-           FROM productvariants pv 
-           JOIN products p ON p.id = pv.product_id
-           WHERE pv.id = ? AND pv.product_id = ?`,
-          [item.variantId, item.productId]
-        );
-
-        if (variants.length === 0) {
-          return res.status(404).json({
-            message: `Không tìm thấy sản phẩm với ID ${item.productId} và variant ID ${item.variantId}`
-          });
-        }
-
-        const variant = variants[0];
-        const itemTotal = variant.price * item.quantity;
-        subtotal += itemTotal;
-
-        processedItems.push({
-          ...item,
-          name: variant.name,
-          price: variant.price,
-          total_price: itemTotal
-        });
-      }
-
       const total = subtotal + shippingFee;
 
       res.json({
         subtotal,
-        shippingFee,
+        shipping_fee: shippingFee,
         total,
-        items: processedItems
+        items: items
       });
 
     } catch (error) {
