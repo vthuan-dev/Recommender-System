@@ -409,7 +409,7 @@ router.post('/orders/:orderId/products/:productId/review', authenticateJWT, asyn
       );
   
       await connection.commit();
-      res.json({ message: 'Đánh giá đã được cập nhật thành công' });
+      res.json({ message: 'Đánh giá đã được cp nhật thành công' });
     } catch (error) {
       await connection.rollback();
       console.error('Error updating review:', error);
@@ -965,6 +965,58 @@ router.post('/orders/:orderId/products/:productId/review', authenticateJWT, asyn
       });
     } finally {
       connection.release();
+    }
+  });
+
+  // Kiểm tra quyền đánh giá sản phẩm
+  router.get('/products/:productId/can-review', authenticateJWT, async (req, res) => {
+    try {
+      const { productId } = req.params;
+      const userId = req.user.userId;
+      
+      console.log('Checking review permission:', { userId, productId });
+
+      // Kiểm tra đơn hàng đã giao
+      const [orderCheck] = await pool.query(
+        `SELECT o.id, o.status
+         FROM orders o
+         JOIN orderitems oi ON o.id = oi.order_id
+         WHERE o.user_id = ? 
+         AND oi.product_id = ?
+         AND o.status = 'delivered'
+         LIMIT 1`,
+        [userId, productId]
+      );
+      
+      console.log('Order check result:', orderCheck);
+
+      // Kiểm tra đánh giá hiện có
+      const [reviewCheck] = await pool.query(
+        'SELECT id FROM reviews WHERE user_id = ? AND product_id = ?',
+        [userId, productId]
+      );
+
+      console.log('Review check result:', reviewCheck);
+
+      const canReview = orderCheck.length > 0 && reviewCheck.length === 0;
+
+      res.json({
+        canReview,
+        orderStatus: orderCheck[0]?.status,
+        hasReviewed: reviewCheck.length > 0,
+        message: canReview ? 
+          'Bạn có thể đánh giá sản phẩm này' : 
+          reviewCheck.length > 0 ? 
+            'Bạn đã đánh giá sản phẩm này rồi' :
+            'Bạn cần mua và nhận sản phẩm này để có thể đánh giá'
+      });
+
+    } catch (error) {
+      console.error('Error checking review permission:', error);
+      res.status(500).json({
+        message: 'Lỗi kiểm tra quyền đánh giá', 
+        error: error.message
+      });
     }
   });
 

@@ -101,6 +101,13 @@
                 <span class="quantity">x{{ item.quantity }}</span>
                 <span class="price">{{ formatPrice(item.item_price) }}</span>
               </div>
+              <div class="actions mt-2" v-if="canReview">
+                <button @click="goToReview(item.product_id)" 
+                        class="btn btn-primary btn-sm">
+                  <i class="fas fa-star me-1"></i>
+                  Đánh giá sản phẩm
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -124,8 +131,10 @@
       <div class="order-actions" v-if="canCancel || canReview">
         <button v-if="canCancel" 
                 @click="cancelOrder" 
-                class="btn btn-danger">
-          <i class="fas fa-times me-2"></i>Hủy đơn hàng
+                class="btn btn-danger cancel-btn"
+                :disabled="loading">
+          <i class="fas fa-times me-2"></i>
+          {{ loading ? 'Đang xử lý...' : 'Hủy đơn hàng' }}
         </button>
         <button v-if="canReview" 
                 class="btn btn-primary">
@@ -138,10 +147,12 @@
 
 <script setup>
 import { ref, onMounted, computed, onUnmounted } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import api from '@/api';
+import Swal from 'sweetalert2';
 
 const route = useRoute();
+const router = useRouter();
 const order = ref(null);
 const loading = ref(true);
 const error = ref(null);
@@ -209,10 +220,6 @@ const formatAddress = computed(() => {
   const info = order.value.order_info;
   return `${info.address_line1}, ${info.city}, ${info.state}, ${info.postal_code}`;
 });
-
-const getStatusDescription = (status) => {
-  return statusDescriptions[status] || 'Không xác định';
-};
 
 const formatDate = (date) => {
   return new Date(date).toLocaleString('vi-VN');
@@ -287,11 +294,49 @@ const fetchOrderDetails = async () => {
 
 const cancelOrder = async () => {
   try {
-    await api.post(`/api/orders/${route.params.id}/cancel`);
-    await fetchOrderDetails();
+    // Hiển thị dialog xác nhận
+    const result = await Swal.fire({
+      title: 'Xác nhận hủy đơn',
+      text: 'Bạn có chắc chắn muốn hủy đơn hàng này?',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc3545',
+      cancelButtonColor: '#6c757d',
+      confirmButtonText: 'Đồng ý hủy',
+      cancelButtonText: 'Không'
+    });
+
+    if (result.isConfirmed) {
+      await api.post(`/api/orders/${route.params.id}/cancel`);
+      
+      // Cập nhật lại thông tin đơn hàng
+      await fetchOrderDetails();
+      
+      // Thông báo thành công
+      Swal.fire({
+        title: 'Đã hủy đơn hàng',
+        text: 'Đơn hàng đã được hủy thành công',
+        icon: 'success',
+        timer: 2000,
+        showConfirmButton: false
+      });
+    }
   } catch (err) {
-    error.value = err.response?.data?.message || 'Không thể hủy đơn hàng';
+    // Thông báo lỗi
+    Swal.fire({
+      title: 'Lỗi',
+      text: err.response?.data?.message || 'Không thể hủy đơn hàng',
+      icon: 'error'
+    });
   }
+};
+
+const goToReview = (productId) => {
+  router.push({
+    name: 'ProductDetail',
+    params: { id: productId },
+    query: { tab: 'reviews', showReviewForm: 'true' }
+  });
 };
 </script>
 
@@ -1072,5 +1117,61 @@ const cancelOrder = async () => {
     transform: scale(1);
     opacity: 1;
   }
+}
+
+.cancel-btn {
+  background: #dc3545;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.cancel-btn:hover {
+  background: #bb2d3b;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(220, 53, 69, 0.2);
+}
+
+.cancel-btn:disabled {
+  background: #e4606d;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Hiệu ứng ripple khi click */
+.cancel-btn::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: width 0.3s, height 0.3s;
+}
+
+.cancel-btn:active::after {
+  width: 200px;
+  height: 200px;
+}
+
+/* Animation khi loading */
+.cancel-btn i {
+  transition: transform 0.3s ease;
+}
+
+.cancel-btn:disabled i {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 </style>

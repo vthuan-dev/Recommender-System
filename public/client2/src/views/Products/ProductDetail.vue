@@ -114,149 +114,80 @@
         <ul class="nav nav-tabs" id="productTabs" role="tablist">
           <li class="nav-item" role="presentation">
             <a class="nav-link" 
-               data-bs-toggle="tab" 
+               :class="{ active: activeTab === 'description' }"
+               @click="activeTab = 'description'"
                href="#description" 
-               role="tab" 
-               aria-selected="false">
+               role="tab">
               Mô tả
             </a>
           </li>
           <li class="nav-item" role="presentation">
-            <a class="nav-link" 
-               data-bs-toggle="tab" 
-               href="#specs" 
-               role="tab" 
-               aria-selected="false">
-              Thông số kỹ thuật
-            </a>
-          </li>
-          <li class="nav-item" role="presentation">
-            <a class="nav-link active" 
-               data-bs-toggle="tab" 
-               href="#reviews" 
-               role="tab" 
-               aria-selected="true">
-              Đánh giá ({{ product?.review_count || 0 }})
+            <a class="nav-link"
+               :class="{ active: activeTab === 'reviews' }"
+               @click="activeTab = 'reviews'"
+               href="#reviews"
+               role="tab">
+              Đánh giá
             </a>
           </li>
         </ul>
         
         <div class="tab-content" id="productTabsContent">
-          <!-- Tab mô tả -->
           <div class="tab-pane fade" 
+               :class="{ 'show active': activeTab === 'description' }"
                id="description" 
                role="tabpanel">
             <div v-html="product?.description"></div>
           </div>
 
-          <!-- Tab thông số kỹ thuật -->
-          <div class="tab-pane fade" 
-               id="specs" 
-               role="tabpanel">
-            <table class="table table-striped">
-              <tbody>
-                <tr v-for="(spec, index) in product?.specifications" 
-                    :key="index">
-                  <td class="fw-bold" style="width: 200px">{{ spec.name }}</td>
-                  <td>{{ spec.value }}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <!-- Tab đánh giá -->
-          <div class="tab-pane fade show active" 
-               id="reviews" 
+          <div class="tab-pane fade"
+               :class="{ 'show active': activeTab === 'reviews' }"
+               id="reviews"
                role="tabpanel">
             <!-- Form đánh giá -->
-            <div v-if="canReview" class="review-form mb-4">
-              <h5>Viết đánh giá của bạn</h5>
-              <div class="rating-input mb-3">
-                <span>Đánh giá của bạn:</span>
-                <div class="stars-input">
-                  <i v-for="n in 5" 
-                     :key="n" 
-                     class="fas fa-star" 
-                     :class="{ 'text-warning': n <= newReview.rating }"
-                     @click="newReview.rating = n"
-                     style="cursor: pointer">
-                  </i>
+            <div v-if="isAuthenticated">
+              <div v-if="canReview" class="review-form mb-4">
+                <h5>Viết đánh giá của bạn</h5>
+                <div class="rating-input mb-3">
+                  <span>Đánh giá của bạn:</span>
+                  <div class="stars-input">
+                    <i v-for="n in 5" 
+                       :key="n" 
+                       class="fas fa-star" 
+                       :class="{ 'text-warning': n <= newReview.rating }"
+                       @click="newReview.rating = n"
+                       style="cursor: pointer">
+                    </i>
+                  </div>
                 </div>
-              </div>
-              <div class="mb-3">
-                <textarea 
-                  v-model="newReview.content"
-                  class="form-control" 
-                  rows="3" 
-                  placeholder="Nhập nhận xét của bạn về sản phẩm">
-                </textarea>
-              </div>
-              <div class="mb-3">
-                <label class="form-label">Thêm hình ảnh (tối đa 5 ảnh)</label>
-                <input 
-                  type="file" 
-                  class="form-control" 
-                  accept="image/*" 
-                  multiple 
-                  @change="handleImageUpload"
-                >
-                <div class="preview-images mt-2" v-if="newReview.images.length">
-                  <img 
-                    v-for="(img, index) in newReview.images" 
-                    :key="index" 
-                    :src="img" 
-                    class="review-image me-2"
-                    @click="removeImage(index)"
-                  >
+                <div class="mb-3">
+                  <textarea 
+                    v-model="newReview.content"
+                    class="form-control" 
+                    rows="3" 
+                    placeholder="Nhập nhận xét của bạn về sản phẩm">
+                  </textarea>
                 </div>
+                <button 
+                  class="btn btn-primary" 
+                  @click="submitReview"
+                  :disabled="!newReview.rating || !newReview.content">
+                  Gửi đánh giá
+                </button>
               </div>
-              <button 
-                class="btn btn-primary" 
-                @click="submitReview"
-                :disabled="!newReview.rating || !newReview.content">
-                Gửi đánh giá
-              </button>
+              <div v-else class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>
+                Bạn cần mua và nhận sản phẩm này để có thể đánh giá. 
+                Vui lòng đợi đơn hàng được giao thành công.
+              </div>
             </div>
-
-            <div v-else-if="isAuthenticated" class="alert alert-warning">
-              Bạn cần mua sản phẩm này để có thể đánh giá
-            </div>
-
             <div v-else class="alert alert-info">
+              <i class="fas fa-info-circle me-2"></i>
               Vui lòng <router-link to="/login">đăng nhập</router-link> để đánh giá sản phẩm
             </div>
 
-            <!-- Tổng quan đánh giá -->
-            <div class="review-overview row mb-4">
-              <div class="col-md-4 text-center border-end">
-                <h2 class="display-4 mb-0">{{ (product?.avg_rating || 0).toFixed(1) }}</h2>
-                <div class="stars mb-2">
-                  <i v-for="n in 5" :key="n" 
-                     class="fas fa-star"
-                     :class="n <= (product?.avg_rating || 0) ? 'text-warning' : 'text-muted'">
-                  </i>
-                </div>
-                <p class="text-muted">{{ product?.review_count || 0 }} đánh giá</p>
-              </div>
-              <div class="col-md-8">
-                <div v-for="n in 5" :key="n" class="rating-bar mb-2">
-                  <div class="d-flex align-items-center">
-                    <div style="width: 60px">{{ 6-n }} sao</div>
-                    <div class="progress flex-grow-1" style="height: 8px">
-                      <div class="progress-bar bg-warning" 
-                           :style="{ width: calculateRatingPercentage(6-n) + '%' }">
-                      </div>
-                    </div>
-                    <div style="width: 60px" class="text-end">
-                      {{ getRatingCount(6-n) }}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Danh sách đánh giá -->
-            <div class="reviews-list">
+            <!-- Phần hiển thị đánh giá -->
+            <div class="reviews-list mt-4">
               <div v-if="reviews && reviews.length > 0">
                 <div v-for="review in reviews" 
                      :key="review.id" 
@@ -351,6 +282,8 @@ export default {
     const provinces = ref([])
     const districts = ref([])
     const wards = ref([])
+    const activeTab = ref('description')
+    const showReviewForm = ref(false)
 
     // Computed properties
     const hasDiscount = computed(() => {
@@ -560,19 +493,23 @@ export default {
     }
 
     const checkCanReview = async () => {
-      if (!isAuthenticated.value) return
       try {
+        console.log('Checking review permission for product:', route.params.id);
         const response = await axios.get(
           `http://localhost:3000/api/products/${route.params.id}/can-review`,
           {
-            headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('token')}`
+            }
           }
-        )
-        canReview.value = response.data.canReview
+        );
+        console.log('Can review response:', response.data);
+        showReviewForm.value = response.data.canReview;
       } catch (error) {
-        console.error('Error checking review permission:', error)
+        console.error('Error checking review permission:', error);
+        showReviewForm.value = false;
       }
-    }
+    };
 
     const handleImageUpload = (event) => {
       const files = Array.from(event.target.files)
@@ -621,6 +558,20 @@ export default {
       fetchReviews()
       checkCanReview()
       loadProvinces()
+      // Kiểm tra query parameters
+      if (route.query.tab === 'reviews') {
+        activeTab.value = 'reviews'
+        if (route.query.showReviewForm === 'true') {
+          showReviewForm.value = true
+          // Scroll đến form đánh giá
+          setTimeout(() => {
+            const reviewForm = document.querySelector('.review-form')
+            if (reviewForm) {
+              reviewForm.scrollIntoView({ behavior: 'smooth' })
+            }
+          }, 100)
+        }
+      }
     })
 
     const loadProvinces = async () => {
@@ -692,7 +643,9 @@ export default {
       districts,
       wards,
       handleProvinceChange,
-      handleDistrictChange
+      handleDistrictChange,
+      activeTab,
+      showReviewForm
     }
   }
 }
@@ -890,5 +843,42 @@ export default {
 
 .swal2-html-container ul li i {
   margin-right: 8px;
+}
+
+.tab-pane {
+  transition: opacity 0.3s ease-in-out;
+}
+
+.tab-pane.fade {
+  opacity: 0;
+}
+
+.tab-pane.fade.show {
+  opacity: 1;
+}
+
+.review-form {
+  scroll-margin-top: 100px;
+}
+
+.alert {
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.alert-info {
+  background-color: #f8f9fa;
+  border-left: 4px solid #17a2b8;
+}
+
+.stars-input i {
+  font-size: 1.5rem;
+  margin-right: 0.5rem;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.stars-input i:hover {
+  color: #ffc107 !important;
 }
 </style>

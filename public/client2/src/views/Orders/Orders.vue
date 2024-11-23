@@ -78,9 +78,10 @@
                   v-if="order.status === 'pending'"
                   class="btn btn-outline-danger btn-sm"
                   @click="cancelOrder(order.id)"
+                  :disabled="loading"
                 >
                   <i class="fas fa-times me-1"></i>
-                  Hủy đơn
+                  {{ loading ? 'Đang xử lý...' : 'Hủy đơn' }}
                 </button>
               </div>
             </div>
@@ -202,18 +203,37 @@ export default {
           icon: 'warning',
           showCancelButton: true,
           confirmButtonText: 'Hủy đơn',
-          cancelButtonText: 'Không'
-        })
+          cancelButtonText: 'Không',
+          confirmButtonColor: '#dc3545',
+        });
 
         if (result.isConfirmed) {
-          await axios.post(`/api/orders/${orderId}/cancel`)
-          await fetchOrders()
-          Swal.fire('Thành công', 'Đã hủy đơn hàng', 'success')
+          const token = localStorage.getItem('token');
+          await api.post(`/api/orders/${orderId}/cancel`, {}, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          
+          // Cập nhật lại danh sách đơn hàng
+          await fetchOrders();
+          
+          Swal.fire({
+            title: 'Thành công',
+            text: 'Đã hủy đơn hàng thành công',
+            icon: 'success',
+            timer: 2000,
+            showConfirmButton: false
+          });
         }
       } catch (error) {
-        Swal.fire('Lỗi', error.response?.data?.message || 'Không thể hủy đơn hàng', 'error')
+        Swal.fire({
+          title: 'Lỗi',
+          text: error.response?.data?.message || 'Không thể hủy đơn hàng',
+          icon: 'error'
+        });
       }
-    }
+    };
 
     const formatDate = (date) => {
       return new Date(date).toLocaleDateString('vi-VN', {
