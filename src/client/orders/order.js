@@ -584,4 +584,89 @@ router.post('/orders/:orderId/products/:productId/review', authenticateJWT, asyn
     }
   });
 
+  // Thêm route để đặt địa chỉ mặc định
+  router.put('/addresses/:id/default', authenticateJWT, async (req, res) => {
+    const connection = await pool.getConnection();
+    try {
+      await connection.beginTransaction();
+
+      const { id } = req.params;
+      const userId = req.user.userId;
+
+      // Kiểm tra địa chỉ tồn tại và thuộc về user
+      const [addressCheck] = await connection.query(
+        'SELECT id FROM addresses WHERE id = ? AND user_id = ?',
+        [id, userId]
+      );
+
+      if (addressCheck.length === 0) {
+        throw new Error('Địa chỉ không tồn tại hoặc không có quyền truy cập');
+      }
+
+      // Reset tất cả địa chỉ mặc định của user này
+      await connection.query(
+        'UPDATE addresses SET is_default = 0 WHERE user_id = ?',
+        [userId]
+      );
+
+      // Đặt địa chỉ được chọn làm mặc định
+      await connection.query(
+        'UPDATE addresses SET is_default = 1 WHERE id = ?',
+        [id]
+      );
+
+      await connection.commit();
+      res.json({ 
+        message: 'Cập nhật địa chỉ mặc định thành công',
+        addressId: id
+      });
+
+    } catch (error) {
+      await connection.rollback();
+      console.error('Error setting default address:', error);
+      res.status(500).json({ 
+        message: 'Lỗi khi cập nhật địa chỉ mặc định', 
+        error: error.message 
+      });
+    } finally {
+      connection.release();
+    }
+  });
+
+  // Thêm route để lấy thông tin người dùng
+  router.get('/user/profile', authenticateJWT, async (req, res) => {
+    try {
+      const userId = req.user.userId;
+      const [userInfo] = await pool.query(
+        `SELECT u.id, u.fullname, u.email, u.phone, u.avatar_url
+         FROM users u 
+         WHERE u.id = ?`,
+        [userId]
+      );
+
+      if (userInfo.length === 0) {
+        return res.status(404).json({ 
+          message: 'Không tìm thấy thông tin người dùng' 
+        });
+      }
+
+      // Loại bỏ các thông tin nhạy cảm trước khi gửi về client
+      const sanitizedUserInfo = {
+        id: userInfo[0].id,
+        fullname: userInfo[0].fullname,
+        email: userInfo[0].email,
+        phone: userInfo[0].phone,
+        avatar_url: userInfo[0].avatar_url
+      };
+
+      res.json(sanitizedUserInfo);
+    } catch (error) {
+      console.error('Error fetching user info:', error);
+      res.status(500).json({ 
+        message: 'Lỗi lấy thông tin người dùng',
+        error: error.message 
+      });
+    }
+  });
+
   module.exports = router;

@@ -120,7 +120,8 @@
                          :key="address.id" 
                          class="address-item" 
                          :class="{ active: selectedAddress === address.id }"
-                         @click="selectAddress(address.id)">
+                         @click="selectAddress(address.id)"
+                         @dblclick="!isMobile && !address.is_default && setDefaultAddress(address.id)">
                       <div class="address-content">
                         <div class="d-flex align-items-start">
                           <div class="flex-grow-1">
@@ -138,13 +139,13 @@
                           </div>
                         </div>
                       </div>
-                      <div class="form-check">
-                        <input 
-                          type="radio" 
-                          class="form-check-input" 
-                          :checked="selectedAddress === address.id"
-                          @click.stop
-                        >
+                      <div class="address-actions">
+                        <button 
+                          class="btn btn-sm btn-outline-danger"
+                          @click.stop="deleteAddress(address.id)"
+                          v-if="!address.is_default">
+                          <i class="fas fa-trash-alt"></i>
+                        </button>
                       </div>
                     </div>
                     
@@ -331,14 +332,39 @@
               <!-- Thông tin người nhận -->
               <div class="confirmation-section mb-4">
                 <div class="section-title">
-                  <i class="material-icons">person</i>
+                  <i class="material-icons">local_shipping</i>
                   <h5 class="mb-0">Thông tin người nhận</h5>
                 </div>
                 <div class="section-content">
                   <div class="recipient-info">
-                    <p class="info-item"><strong>Địa chỉ:</strong> {{ selectedAddress?.address_line1 }}</p>
-                    <p class="info-item"><strong>Thành phố:</strong> {{ selectedAddress?.city }}</p>
-                    <p class="info-item mb-0"><strong>Mã bưu điện:</strong> {{ selectedAddress?.postal_code }}</p>
+                    <p class="info-item">
+                      <strong>Họ tên:</strong> 
+                      {{ getSelectedAddress?.recipient_name || 'Chưa có thông tin' }}
+                    </p>
+                    <p class="info-item">
+                      <strong>Số điện thoại:</strong>
+                      {{ getSelectedAddress?.recipient_phone || 'Chưa có thông tin' }}
+                    </p>
+                    <p class="info-item">
+                      <strong>Địa chỉ:</strong>
+                      {{ getSelectedAddress?.address_line1 || 'Chưa có thông tin' }}
+                    </p>
+                    <p class="info-item" v-if="getSelectedAddress?.address_line2">
+                      <strong>Địa chỉ 2:</strong>
+                      {{ getSelectedAddress?.address_line2 }}
+                    </p>
+                    <p class="info-item">
+                      <strong>Thành phố:</strong>
+                      {{ getSelectedAddress?.city || 'Chưa có thông tin' }}
+                    </p>
+                    <p class="info-item">
+                      <strong>Quận/Huyện:</strong>
+                      {{ getSelectedAddress?.state || 'Chưa có thông tin' }}
+                    </p>
+                    <p class="info-item mb-0">
+                      <strong>Mã bưu điện:</strong>
+                      {{ getSelectedAddress?.postal_code || 'Chưa có thông tin' }}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -367,7 +393,7 @@
               </div>
 
               <!-- Phương thức thanh toán -->
-              <div class="confirmation-section">
+              <div class="confirmation-section mb-4">
                 <div class="section-title">
                   <i class="material-icons">payment</i>
                   <h5 class="mb-0">Phương thức thanh toán</h5>
@@ -378,7 +404,29 @@
                       <i :class="getPaymentIcon"></i>
                       <span>{{ getPaymentMethod }}</span>
                     </div>
+                    <!-- Thêm thông tin chi tiết thanh toán nếu cần -->
+                    <div class="payment-details mt-2" v-if="selectedPaymentMethod === 'banking'">
+                      <p class="mb-1"><strong>Ngân hàng:</strong> Vietcombank</p>
+                      <p class="mb-1"><strong>Số tài khoản:</strong> 1234567890</p>
+                      <p class="mb-0"><strong>Chủ tài khoản:</strong> NGUYEN VAN A</p>
+                    </div>
                   </div>
+                </div>
+              </div>
+
+              <!-- Ghi chú đơn hàng -->
+              <div class="confirmation-section">
+                <div class="section-title">
+                  <i class="material-icons">note</i>
+                  <h5 class="mb-0">Ghi chú đơn hàng</h5>
+                </div>
+                <div class="section-content">
+                  <textarea 
+                    v-model="orderNote"
+                    class="form-control"
+                    rows="3"
+                    placeholder="Nhập ghi chú cho đơn hàng (không bắt buộc)">
+                  </textarea>
                 </div>
               </div>
             </div>
@@ -517,7 +565,7 @@
                   <label for="ward">Phường/Xã <span class="text-danger">*</span></label>
                 </div>
 
-                <!-- Địa ch�� chi tiết -->
+                <!-- Địa ch chi tiết -->
                 <div class="form-floating mb-3 fade-in" style="animation-delay: 0.3s">
                   <input 
                     v-model="newAddress.address_line1"
@@ -622,6 +670,8 @@
   const selectedDistrict = ref('')
   const selectedWard = ref('')
   const isExpanded = ref(false)
+  const orderNote = ref('')
+  // const userInfo = ref(null)
   
   // Load checkout items from localStorage
   onMounted(() => {
@@ -642,6 +692,7 @@
     fetchAddresses()
     addressModal.value = new Modal(document.getElementById('addAddressModal'))
     loadProvinces()
+    // fetchUserInfo()
   })
   
   // Fetch user addresses
@@ -697,7 +748,8 @@
       const orderData = {
         addressId: selectedAddress.value,
         items: checkoutItems.value,
-        paymentMethod: selectedPaymentMethod.value
+        paymentMethod: selectedPaymentMethod.value,
+        note: orderNote.value
       }
 
       const response = await axios({
@@ -733,11 +785,38 @@
   }
   
   const showAddAddressModal = () => {
-    addressModal.value.show()
-  }
+    if (addresses.value.length >= 4) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Đã đạt giới hạn địa chỉ',
+        text: 'Bạn chỉ có thể lưu tối đa 4 địa chỉ. Vui lòng xóa một địa chỉ trước khi thêm địa chỉ mới.',
+        showCancelButton: true,
+        confirmButtonText: 'Quản lý địa chỉ',
+        cancelButtonText: 'Đóng'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          // Có thể thêm logic để mở modal quản lý địa chỉ ở đây
+          // hoặc chuyển đến trang quản lý địa chỉ
+        }
+      });
+      return;
+    }
+    addressModal.value.show();
+  };
   
   const submitNewAddress = async () => {
     if (isSubmitting.value) return;
+    
+    // Kiểm tra giới hạn địa chỉ
+    if (addresses.value.length >= 4) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Không thể thêm địa chỉ',
+        text: 'Bạn đã đạt giới hạn 4 địa chỉ. Vui lòng xóa một địa chỉ trước khi thêm mới.',
+      });
+      return;
+    }
+
     isSubmitting.value = true;
     
     try {
@@ -982,6 +1061,150 @@
       })
     }
   }
+  
+  const deleteAddress = async (addressId) => {
+    try {
+      const result = await Swal.fire({
+        title: 'Xác nhận xóa',
+        text: 'Bạn có chắc chắn muốn xóa địa chỉ này?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Xóa',
+        cancelButtonText: 'Hủy',
+        confirmButtonColor: '#d33'
+      });
+
+      if (result.isConfirmed) {
+        const token = localStorage.getItem('token');
+        await axios({
+          method: 'DELETE',
+          url: `http://localhost:3000/api/addresses/${addressId}`,
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        // Refresh danh sách địa chỉ
+        await fetchAddresses();
+        
+        Swal.fire({
+          icon: 'success',
+          title: 'Đã xóa',
+          text: 'Địa chỉ đã được xóa thành công'
+        });
+      }
+    } catch (error) {
+      console.error('Error deleting address:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Lỗi',
+        text: 'Không thể xóa địa chỉ. Vui lòng thử lại.'
+      });
+    }
+  };
+  
+  // Thêm biến để theo dõi thiết bị  <div v-for="address in displayedAddresses" 
+
+  const isMobile = ref(window.innerWidth <= 768);
+
+  // Thêm event listener để cập nhật isMobile khi resize window
+  onMounted(() => {
+    window.addEventListener('resize', () => {
+      isMobile.value = window.innerWidth <= 768;
+    });
+  });
+
+  // Hàm xử lý set địa chỉ mặc định
+  const setDefaultAddress = async (addressId) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('Vui lòng đăng nhập lại');
+      }
+
+      // Hiển thị confirm dialog
+      const result = await Swal.fire({
+        title: 'Xác nhận',
+        text: 'Bạn có muốn đặt địa chỉ này làm mặc định?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Đồng ý',
+        cancelButtonText: 'Hủy'
+      });
+
+      if (!result.isConfirmed) return;
+
+      await axios({
+        method: 'PUT',
+        url: `http://localhost:3000/api/addresses/${addressId}/default`,
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      // Refresh danh sách địa chỉ
+      await fetchAddresses();
+      
+      Swal.fire({
+        icon: 'success',
+        title: 'Thành công',
+        text: 'Đã cập nhật địa chỉ mặc định',
+        showConfirmButton: false,
+        timer: 1500
+      });
+
+    } catch (error) {
+      console.error('Error setting default address:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Lỗi',
+        text: 'Không thể cập nhật địa chỉ mặc định. Vui lòng thử lại.'
+      });
+    }
+  };
+
+  // // Thêm hàm để lấy thông tin người dùng
+  // const fetchUserInfo = async () => {
+  //   try {
+  //     const token = localStorage.getItem('token')
+  //     if (!token) {
+  //       throw new Error('Vui lòng đăng nhập lại')
+  //     }
+
+  //     const response = await axios({
+  //       method: 'GET',
+  //       url: 'http://localhost:3000/api/user/profile',
+  //       headers: {
+  //         'Authorization': `Bearer ${token}`
+  //       }
+  //     })
+
+  //     userInfo.value = response.data
+  //   } catch (error) {
+  //     console.error('Error fetching user info:', error)
+  //     if (error.response?.status === 401) {
+  //       // Token hết hạn hoặc không hợp lệ
+  //       localStorage.removeItem('token')
+  //       router.push('/login')
+  //     } else {
+  //       Swal.fire({
+  //         icon: 'error',
+  //         title: 'Lỗi',
+  //         text: 'Không thể lấy thông tin người dùng. Vui lòng thử lại sau.'
+  //       })
+  //     }
+  //   }
+  // }
+
+  // // Gọi fetchUserInfo khi component được tạo
+  // onMounted(async () => {
+  //   await fetchUserInfo()
+  // })
+
+  // Thêm computed property để lấy địa chỉ đã chọn
+  const getSelectedAddress = computed(() => {
+    return addresses.value.find(addr => addr.id === selectedAddress.value);
+  });
   </script>
   
   <style scoped>
@@ -1180,7 +1403,7 @@
   
   .address-item.active {
     border-color: #0d6efd;
-    background-color: #f8f9ff;
+    background-color: #f8f9fa;
   }
   
   .address-content {
@@ -1952,5 +2175,121 @@
   .payment-method[data-method="momo"]:hover .payment-icon {
     transform: scale(1.05);
     transition: transform 0.2s ease;
+  }
+  
+  .address-actions {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    display: flex;
+    gap: 8px;
+  }
+  
+  .address-item {
+    position: relative;
+  }
+  
+  .address-item:hover .address-actions {
+    opacity: 1;
+  }
+  
+  .address-actions .btn {
+    padding: 4px 8px;
+    font-size: 12px;
+  }
+  
+  /* Chỉ hiển thị trên desktop */
+  @media (min-width: 769px) {
+    .address-item:not(.active):not(:has(.badge)) {
+      position: relative;
+    }
+
+    .address-item:not(.active):not(:has(.badge)):hover::after {
+      content: 'Nhấp đúp để đặt làm mặc định';
+      position: absolute;
+      bottom: 5px;
+      right: 10px;
+      font-size: 0.75rem;
+      color: #6c757d;
+      opacity: 0.7;
+    }
+  }
+  
+  .recipient-info {
+    display: grid;
+    gap: 0.5rem;
+  }
+  
+  .info-item {
+    display: flex;
+    align-items: baseline;
+    margin-bottom: 0.5rem;
+    color: #4a5568;
+  }
+  
+  .info-item strong {
+    min-width: 120px;
+    color: #2d3748;
+  }
+  
+  .payment-details {
+    padding: 1rem;
+    background: #fff;
+    border-radius: 4px;
+    border: 1px dashed #e2e8f0;
+  }
+  
+  .payment-details p {
+    color: #4a5568;
+  }
+  
+  .payment-details strong {
+    color: #2d3748;
+    margin-right: 0.5rem;
+  }
+  
+  textarea.form-control {
+    border-color: #e2e8f0;
+    resize: vertical;
+  }
+  
+  textarea.form-control:focus {
+    border-color: #4299e1;
+    box-shadow: 0 0 0 2px rgba(66, 153, 225, 0.2);
+  }
+
+  .customer-info {
+    display: grid;
+    gap: 0.5rem;
+  }
+
+  .customer-info .info-item {
+    display: flex;
+    align-items: baseline;
+    margin-bottom: 0.5rem;
+    color: #4a5568;
+  }
+
+  .customer-info .info-item strong {
+    min-width: 120px;
+    color: #2d3748;
+  }
+
+  .section-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .section-title i {
+    color: #3b82f6;
+  }
+
+  .section-content {
+    background: #f8fafc;
+    padding: 1.25rem;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
   }
   </style>
