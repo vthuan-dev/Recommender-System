@@ -42,7 +42,7 @@
         </div>
 
         <!-- Order items -->
-        <div class="order-item card mb-3" v-else v-for="order in filteredOrders" :key="order.id">
+        <div class="order-item card mb-3" v-else v-for="order in filteredOrders" :key="order.id" @click="goToOrderDetail(order.id)" :class="{ 'clickable-card': true }">
           <div class="card-header d-flex justify-content-between align-items-center">
             <div>
               <span class="order-id">Đơn hàng #{{ order.id }}</span>
@@ -73,17 +73,7 @@
                 <span class="h5 mb-0 ms-2">{{ formatPrice(order.total) }}</span>
               </div>
               
-              <div class="order-actions">
-                <!-- Nút xem chi tiết -->
-                <router-link 
-                  :to="`/orders/${order.id}`"
-                  class="btn btn-outline-primary btn-sm me-2"
-                >
-                  <i class="fas fa-eye me-1"></i>
-                  Chi tiết
-                </router-link>
-
-                <!-- Nút hủy đơn - chỉ hiện khi trạng thái là pending -->
+              <div class="order-actions" @click.stop>
                 <button 
                   v-if="order.status === 'pending'"
                   class="btn btn-outline-danger btn-sm"
@@ -91,16 +81,6 @@
                 >
                   <i class="fas fa-times me-1"></i>
                   Hủy đơn
-                </button>
-
-                <!-- Nút đánh giá - chỉ hiện khi đơn hàng đã giao -->
-                <button 
-                  v-if="order.status === 'delivered' && !order.isReviewed"
-                  class="btn btn-outline-success btn-sm"
-                  @click="openReviewModal(order)"
-                >
-                  <i class="fas fa-star me-1"></i>
-                  Đánh giá
                 </button>
               </div>
             </div>
@@ -268,6 +248,24 @@ export default {
       return orders.value.filter(order => order.status === status).length
     }
 
+    const filterOrders = (status) => {
+      currentTab.value = status
+      // Thêm animation khi chuyển tab
+      const orderList = document.querySelector('.order-list')
+      if (orderList) {
+        orderList.style.opacity = '0'
+        orderList.style.transform = 'translateY(10px)'
+        setTimeout(() => {
+          orderList.style.opacity = '1'
+          orderList.style.transform = 'translateY(0)'
+        }, 100)
+      }
+    }
+
+    const goToOrderDetail = (orderId) => {
+      router.push(`/orders/${orderId}`);
+    };
+
     onMounted(() => {
       fetchOrders()
     })
@@ -284,7 +282,9 @@ export default {
       formatDate,
       formatPrice,
       getStatusClass,
-      getOrderCount
+      getOrderCount,
+      filterOrders,
+      goToOrderDetail
     }
   }
 }
@@ -297,110 +297,409 @@ export default {
 
 .order-tabs {
   background: white;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-  margin-bottom: 1rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  transition: all 0.3s ease;
 }
 
 .nav-tabs {
   border: none;
-  padding: 1rem 0;
+  padding: 1rem;
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.nav-tabs::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+.nav-tabs .nav-item {
+  margin: 0;
 }
 
 .nav-tabs .nav-link {
   border: none;
-  color: #6c757d;
-  padding: 0.5rem 1rem;
-  margin-right: 1rem;
-  border-radius: 20px;
+  color: #64748b;
+  padding: 0.75rem 1.25rem;
+  border-radius: 12px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  background: transparent;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  white-space: nowrap;
+}
+
+.nav-tabs .nav-link:hover {
+  color: #3b82f6;
+  background: #f1f5f9;
+  transform: translateY(-1px);
 }
 
 .nav-tabs .nav-link.active {
-  background-color: #e9ecef;
-  color: #0d6efd;
+  color: #3b82f6;
+  background: #eff6ff;
+  font-weight: 600;
 }
 
 .nav-tabs .nav-link i {
-  margin-right: 0.5rem;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.nav-tabs .nav-link:hover i {
+  transform: scale(1.1);
+}
+
+.nav-tabs .nav-link .badge {
+  padding: 0.35em 0.65em;
+  font-size: 0.75em;
+  font-weight: 600;
+  border-radius: 20px;
+  background: #e2e8f0;
+  color: #64748b;
+  transition: all 0.3s ease;
+}
+
+.nav-tabs .nav-link.active .badge {
+  background: #3b82f6;
+  color: white;
+}
+
+/* Animation cho active tab */
+.nav-tabs .nav-link::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 0;
+  height: 2px;
+  background: #3b82f6;
+  transition: all 0.3s ease;
+  transform: translateX(-50%);
+}
+
+.nav-tabs .nav-link.active::after {
+  width: 80%;
+}
+
+/* Animation cho icons trong processing tab */
+.nav-tabs .nav-link .fa-cog {
+  animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .nav-tabs {
+    padding: 0.75rem;
+    gap: 0.25rem;
+  }
+
+  .nav-tabs .nav-link {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+  }
+  
+  .nav-tabs .nav-link i {
+    font-size: 0.875rem;
+  }
+}
+
+/* Smooth scroll behavior */
+.nav-tabs {
+  scroll-behavior: smooth;
+}
+
+/* Hover effect */
+.nav-link {
+  position: relative;
+  overflow: hidden;
+}
+
+.nav-link::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 100%;
+  background: rgba(59, 130, 246, 0.1);
+  border-radius: 12px;
+  transform: translate(-50%, -50%) scale(0);
+  transition: transform 0.3s ease;
+}
+
+.nav-link:hover::before {
+  transform: translate(-50%, -50%) scale(1);
 }
 
 .order-item {
   background: white;
   border: none;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  border-radius: 16px;
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+  transition: all 0.3s ease;
+  transform: translateY(0);
+  overflow: hidden;
+}
+
+.order-item:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 20px -8px rgba(0,0,0,0.15);
+}
+
+.card-header {
+  background: linear-gradient(45deg, #f8f9fa, #ffffff);
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+  padding: 1rem 1.5rem;
 }
 
 .order-id {
-  font-weight: 600;
+  font-weight: 700;
+  color: #2563eb;
+  position: relative;
+  padding-left: 20px;
+}
+
+.order-id::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  background: #2563eb;
+  border-radius: 50%;
+  transform: translateY(-50%);
 }
 
 .status-badge {
-  padding: 0.25rem 0.75rem;
+  padding: 0.5rem 1rem;
   border-radius: 20px;
-  color: white;
+  font-weight: 600;
   font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: all 0.3s ease;
+  animation: badgePulse 2s infinite;
+}
+
+@keyframes badgePulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
 }
 
 .product-item {
   display: flex;
   align-items: center;
-  padding: 1rem 0;
-  border-bottom: 1px solid #dee2e6;
+  padding: 1rem;
+  border-radius: 12px;
+  background: #f8fafc;
+  margin-bottom: 1rem;
+  transition: all 0.3s ease;
 }
 
-.product-item:last-child {
-  border-bottom: none;
+.product-item:hover {
+  background: #f1f5f9;
+  transform: translateX(8px);
 }
 
 .product-image {
   width: 80px;
   height: 80px;
   object-fit: cover;
-  border-radius: 8px;
-  margin-right: 1rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  transition: all 0.3s ease;
 }
 
-.product-info {
-  flex: 1;
+.product-item:hover .product-image {
+  transform: scale(1.1) rotate(3deg);
 }
 
 .product-info h6 {
-  margin-bottom: 0.25rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 0.5rem;
+  transition: color 0.3s ease;
+}
+
+.product-item:hover .product-info h6 {
+  color: #2563eb;
 }
 
 .price {
-  color: #dc3545;
-  font-weight: 600;
+  background: linear-gradient(45deg, #ef4444, #dc2626);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-weight: 700;
+  font-size: 1.1rem;
   margin-top: 0.5rem;
 }
 
-.rating {
+.order-footer {
+  background: #f8fafc;
+  padding: 1.5rem;
+  border-radius: 0 0 16px 16px;
+}
+
+.order-total {
   display: flex;
-  gap: 0.5rem;
+  align-items: center;
 }
 
-.rating i {
-  cursor: pointer;
-  color: #dee2e6;
+.order-total .h5 {
+  color: #2563eb;
+  font-weight: 700;
+  animation: totalPulse 2s infinite;
 }
 
-.rating i.active {
-  color: #ffc107;
+@keyframes totalPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+.btn {
+  padding: 0.5rem 1.25rem;
+  border-radius: 12px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: rgba(255,255,255,0.2);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: width 0.6s ease, height 0.6s ease;
+}
+
+.btn:hover::before {
+  width: 300px;
+  height: 300px;
+}
+
+.spinner-border {
+  animation: spinner 1s linear infinite, pulse 2s infinite;
+}
+
+@keyframes spinner {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+  0% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.2); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+.fa-box-open {
+  animation: bounce 2s infinite;
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-20px); }
 }
 
 @media (max-width: 768px) {
-  .nav-tabs {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    padding-bottom: 0.5rem;
+  .order-item {
+    margin: 0.5rem;
   }
-
-  .nav-tabs .nav-link {
-    white-space: nowrap;
-  }
-
-  .order-actions {
+  
+  .product-item {
     flex-direction: column;
-    gap: 0.5rem;
+    text-align: center;
+  }
+  
+  .product-image {
+    margin-bottom: 1rem;
+    margin-right: 0;
+  }
+  
+  .order-footer {
+    flex-direction: column;
+    gap: 1rem;
+    text-align: center;
+  }
+}
+
+.clickable-card {
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.clickable-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+}
+
+.clickable-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    45deg,
+    rgba(255,255,255,0.1) 0%,
+    rgba(255,255,255,0.2) 50%,
+    rgba(255,255,255,0.1) 100%
+  );
+  transform: translateX(-100%);
+  transition: transform 0.6s ease;
+}
+
+.clickable-card:hover::after {
+  transform: translateX(100%);
+}
+
+/* Prevent text selection when clicking */
+.clickable-card {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Make sure buttons remain clickable */
+.order-actions {
+  position: relative;
+  z-index: 2;
+}
+
+/* Add ripple effect on mobile */
+@media (max-width: 768px) {
+  .clickable-card:active {
+    transform: scale(0.98);
+    background-color: rgba(0,0,0,0.02);
   }
 }
 </style>

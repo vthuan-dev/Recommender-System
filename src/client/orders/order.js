@@ -776,4 +776,140 @@ router.post('/orders/:orderId/products/:productId/review', authenticateJWT, asyn
   //   }
   // });
 
+  // Get order details with all related information
+  router.get('/orders/:id/details', authenticateJWT, async (req, res) => {
+    const connection = await pool.getConnection();
+    try {
+      const orderId = req.params.id;
+      const userId = req.user.userId;
+
+      // Get order basic information and address
+      const [orderDetails] = await connection.query(`
+        SELECT 
+          o.id as order_id,
+          o.total,
+          o.status,
+          o.created_at,
+          o.updated_at,
+          
+          -- Address information
+          a.address_line1,
+          a.address_line2,
+          a.city,
+          a.state,
+          a.postal_code,
+          a.country,
+          
+          -- User information
+          u.fullname as customer_name,
+          u.email as customer_email,
+          u.phonenumber as customer_phone,
+          
+          -- Payment information
+          p.payment_date,
+          p.amount as payment_amount,
+          p.method as payment_method,
+          p.status as payment_status
+        FROM orders o
+        JOIN addresses a ON o.address_id = a.id
+        JOIN users u ON o.user_id = u.id
+        LEFT JOIN payments p ON o.id = p.order_id
+        WHERE o.id = ? AND o.user_id = ?
+      `, [orderId, userId]);
+
+      if (!orderDetails.length) {
+        return res.status(404).json({ message: 'Không tìm thấy đơn hàng' });
+      }
+
+      // Get order items with product details
+      const [orderItems] = await connection.query(`
+        SELECT 
+          oi.id as order_item_id,
+          oi.quantity,
+          oi.price as item_price,
+          
+          -- Product information
+          p.id as product_id,
+          p.name as product_name,
+          p.image_url as product_image,
+          p.description as product_description,
+          
+          -- Brand information
+          b.name as brand_name,
+          b.logo_url as brand_logo,
+          
+          -- Variant information
+          pv.name as variant_name,
+          
+          -- Category information
+          c.name as category_name,
+          
+          -- Review status
+          CASE 
+            WHEN r.id IS NOT NULL THEN true 
+            ELSE false 
+          END as has_review,
+          r.rating,
+          r.comment
+        FROM orderitems oi
+        JOIN products p ON oi.product_id = p.id
+        JOIN productvariants pv ON oi.variant_id = pv.id
+        JOIN brands b ON p.brand_id = b.id
+        JOIN categories c ON p.category_id = c.id
+        LEFT JOIN reviews r ON p.id = r.product_id AND r.user_id = ?
+        WHERE oi.order_id = ?
+      `, [userId, orderId]);
+
+      // Get order timeline/history
+      const [orderTimeline] = await connection.query(`
+        SELECT 
+          status,
+          created_at as timestamp,
+          CASE status
+            WHEN 'pending' THEN 'Đơn hàng được tạo'
+            WHEN 'processing' THEN 'Đang xử lý đơn hàng'
+            WHEN 'shipped' THEN 'Đơn hàng đang được giao'
+            WHEN 'delivered' THEN 'Đơn hàng đã giao thành công'
+            WHEN 'cancelled' THEN 'Đơn hàng đã hủy'
+          END as description
+        FROM orders
+        WHERE id = ?
+        UNION
+        SELECT 
+          'payment' as status,
+          payment_date as timestamp,
+          CONCAT('Thanh toán ', LOWER(status)) as description
+        FROM payments
+        WHERE order_id = ?
+        ORDER BY timestamp DESC
+      `, [orderId, orderId]);
+
+      // Calculate order summary
+      const orderSummary = {
+        subtotal: orderItems.reduce((sum, item) => sum + (item.item_price * item.quantity), 0),
+        total_items: orderItems.length,
+        total_quantity: orderItems.reduce((sum, item) => sum + item.quantity, 0),
+        status_description: getStatusDescription(orderDetails[0].status),
+        can_cancel: orderDetails[0].status === 'pending',
+        can_review: orderDetails[0].status === 'delivered'
+      };
+
+      res.json({
+        order_info: orderDetails[0],
+        order_items: orderItems,
+        order_timeline: orderTimeline,
+        order_summary: orderSummary
+      });
+
+    } catch (error) {
+      console.error('Error fetching order details:', error);
+      res.status(500).json({ 
+        message: 'Lỗi khi lấy thông tin đơn hàng', 
+        error: error.message 
+      });
+    } finally {
+      connection.release();
+    }
+  });
+
   module.exports = router;

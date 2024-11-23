@@ -12,6 +12,7 @@ import { useStore } from 'vuex'
 import { useRoute, useRouter } from 'vue-router'
 import CustomSweetAlert from '@/components/Common/CustomSweetAlert'
 import CheckoutView from '../views/Checkout/CheckoutView.vue'
+import OrderDetail from '../views/Orders/OrderDetail.vue'
 
 const routes = [
   {
@@ -69,6 +70,12 @@ const routes = [
     path: '/orders',
     name: 'Orders',
     component: Orders,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/orders/:id(\\d+)',
+    name: 'OrderDetail',
+    component: OrderDetail,
     meta: { requiresAuth: true }
   },
   {
