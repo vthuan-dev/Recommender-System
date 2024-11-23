@@ -67,15 +67,15 @@ router.post('/cart/add', authenticateJWT, checkCustomerRole, async (req, res) =>
       );
   
       if (existingItem.length > 0) {
-        // Nếu sản phẩm đã có, cập nhật số lượng
+        // Nếu sản phẩm đã có, cập nhật số lượng và thời gian
         await pool.query(
-          'UPDATE cartitems SET quantity = quantity + ? WHERE id = ?',
+          'UPDATE cartitems SET quantity = quantity + ?, created_at = CURRENT_TIMESTAMP WHERE id = ?',
           [quantity, existingItem[0].id]
         );
       } else {
-        // Nếu sản phẩm chưa có, thêm mới
+        // Nếu sản phẩm chưa có, thêm mới với thời gian hiện tại
         await pool.query(
-          'INSERT INTO cartitems (cart_id, product_id, variant_id, quantity) VALUES (?, ?, ?, ?)',
+          'INSERT INTO cartitems (cart_id, product_id, variant_id, quantity, created_at) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)',
           [cartId, productId, variantId, quantity]
         );
       }
@@ -92,11 +92,9 @@ router.post('/cart/add', authenticateJWT, checkCustomerRole, async (req, res) =>
     try {
       const userId = req.user.userId;
       
-      // Kiểm tra xem người dùng có giỏ hàng hay không
       const [carts] = await pool.query('SELECT id FROM carts WHERE user_id = ?', [userId]);
       
       if (carts.length === 0) {
-        // Nếu không có giỏ hàng, trả về mảng rỗng
         return res.json({ items: [] });
       }
       
@@ -106,6 +104,7 @@ router.post('/cart/add', authenticateJWT, checkCustomerRole, async (req, res) =>
         `SELECT 
           ci.id, 
           ci.quantity, 
+          ci.created_at,
           p.id AS product_id,
           p.name AS product_name, 
           p.image_url, 
@@ -116,7 +115,8 @@ router.post('/cart/add', authenticateJWT, checkCustomerRole, async (req, res) =>
          FROM cartitems ci 
          JOIN products p ON ci.product_id = p.id 
          JOIN productvariants pv ON ci.variant_id = pv.id 
-         WHERE ci.cart_id = ?`,
+         WHERE ci.cart_id = ?
+         ORDER BY ci.created_at DESC`,
         [cartId]
       );
       

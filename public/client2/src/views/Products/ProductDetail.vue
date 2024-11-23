@@ -401,29 +401,46 @@ export default {
     }
 
     const buyNow = async () => {
-      if (!checkLogin()) return
-      
-      if (!selectedVariant.value) {
-        Swal.fire({
-          icon: 'warning',
-          title: 'Vui lòng chọn phiên bản',
-          text: 'Hãy chọn phiên bản sản phẩm trước khi mua hàng'
-        })
-        return
-      }
-
       try {
-        await addToCart()
-        router.push('/checkout')
+        // Thêm vào giỏ hàng trước
+        await addToCart();
+        
+        // Đợi một chút để đảm bảo sản phẩm đã được thêm vào giỏ hàng
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Lấy thông tin giỏ hàng mới nhất
+        const token = localStorage.getItem('token');
+        const response = await axios.get('http://localhost:3000/api/cart', {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+
+        // Tìm cart item mới thêm vào
+        const cartItem = response.data.items.find(item => 
+          item.product_id === product.value.id && 
+          (!selectedVariant.value || item.variant_id === selectedVariant.value?.id)
+        );
+
+        if (cartItem) {
+          // Lưu ID cart item đã chọn
+          localStorage.setItem('preSelectedCartItem', cartItem.id.toString());
+          
+          // Chuyển đến trang giỏ hàng
+          router.push('/cart');
+        } else {
+          throw new Error('Không tìm thấy sản phẩm trong giỏ hàng');
+        }
+
       } catch (error) {
-        console.error('Error buying now:', error)
+        console.error('Buy now error:', error);
         Swal.fire({
           icon: 'error',
           title: 'Lỗi',
-          text: 'Có lỗi xảy ra. Vui lòng thử lại sau.'
-        })
+          text: error.response?.data?.message || error.message || 'Có lỗi xảy ra'
+        });
       }
-    }
+    };
 
     const addToCart = async () => {
       if (!checkLogin()) return

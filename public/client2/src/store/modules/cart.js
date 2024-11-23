@@ -2,7 +2,8 @@ export default {
     namespaced: true,
     
     state: {
-      items: []
+      items: [],
+      selectedItems: []
     },
   
     mutations: {
@@ -16,6 +17,10 @@ export default {
         } else {
           state.items.push(item);
         }
+      },
+      
+      SET_SELECTED_ITEMS(state, itemIds) {
+        state.selectedItems = itemIds;
       }
     },
   
@@ -28,6 +33,10 @@ export default {
           console.error('Add to cart error:', error);
           throw error;
         }
+      },
+      
+      selectItems({ commit }, itemIds) {
+        commit('SET_SELECTED_ITEMS', itemIds);
       }
     }
   };

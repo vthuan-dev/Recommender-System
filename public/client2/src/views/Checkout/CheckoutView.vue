@@ -73,7 +73,7 @@
                 <div class="card-body order-summary-content">
                   <div class="summary-item">
                     <span class="summary-label">Tạm tính</span>
-                    <span class="summary-value">11.253.818 ₫</span>
+                    <span class="summary-value">{{ formatPrice(subtotal) }}</span>
                   </div>
                   
                   <div class="summary-item">
@@ -81,7 +81,7 @@
                       <i class="material-icons">local_shipping</i>
                       Phí vận chuyển
                     </span>
-                    <span class="summary-value">30.000 ₫</span>
+                    <span class="summary-value">{{ formatPrice(shippingFee) }}</span>
                   </div>
 
                   <div class="summary-divider">
@@ -90,7 +90,7 @@
 
                   <div class="summary-item total">
                     <strong class="summary-label">Tổng cộng</strong>
-                    <strong class="summary-value gradient-text">11.283.818 ₫</strong>
+                    <strong class="summary-value gradient-text">{{ formatPrice(total) }}</strong>
                   </div>
 
                   <button class="checkout-button" @click="handleNextStep" :disabled="!canProceed">
@@ -638,7 +638,7 @@
   </template>
   
   <script setup>
-  import { ref, computed, onMounted } from 'vue'
+  import { ref, computed, onMounted, watch } from 'vue'
   import { useRouter } from 'vue-router'
   import axios from 'axios'
   import Swal from 'sweetalert2'
@@ -648,7 +648,7 @@
   const checkoutItems = ref([])
   const addresses = ref([])
   const selectedAddress = ref(null)
-  const shippingFee = ref(30000) // Phí ship mặc định
+  const shippingFee = ref(30000) // Phí ship cố định
   const newAddress = ref({
     address_line1: '',
     address_line2: '',
@@ -718,6 +718,8 @@
     }, 0)
   })
   
+  const orderTotal = ref(null)
+  
   const total = computed(() => {
     return subtotal.value + shippingFee.value
   })
@@ -769,7 +771,7 @@
         text: 'Cảm ơn bạn đã mua hàng'
       }).then(() => {
         // Chuyển đến trang xác nhận đơn hàng
-        router.push(`/order-confirmation/${response.data.orderId}`)
+        router.push(`/orders/${response.data.orderId}`)
       })
 
     } catch (error) {
@@ -1024,16 +1026,20 @@
     }
   })
   
-  const handleNextStep = () => {
-    if (currentStep.value < 4) { // Cập nhật điều kiện vì có thêm bước mới
+  const handleNextStep = async () => {
+    if (currentStep.value < 4) {
       if (currentStep.value === 2 && !selectedAddress.value) {
-        // Kiểm tra địa chỉ
-        return;
+        return
       }
-      currentStep.value++;
+      
+      // Thay vì dùng calculateTotal, sử dụng computed property total
+      if (currentStep.value === 3) {
+        orderTotal.value = total.value; // Sử dụng computed total
+      }
+      
+      currentStep.value++
     } else {
-      // Xử lý thanh toán
-      processPayment();
+      processPayment()
     }
   }
   
@@ -1205,6 +1211,40 @@
   const getSelectedAddress = computed(() => {
     return addresses.value.find(addr => addr.id === selectedAddress.value);
   });
+
+  // Thêm computed property để tính tổng
+  const calculateTotal = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) throw new Error('Vui lòng đăng nhập lại');
+
+      const response = await axios({
+        method: 'GET',
+        url: 'http://localhost:3000/api/orders/calculate-total',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        params: {
+          items: JSON.stringify(checkoutItems.value)
+        }
+      });
+
+      return response.data;
+    } catch (error) {
+      console.error('Error calculating total:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Lỗi',
+        text: 'Không thể tính tổng đơn hàng. Vui lòng thử lại.'
+      });
+      return null;
+    }
+  };
+
+  // Hoặc thêm watch để tự động tính lại tổng khi items thay đổi
+  watch(checkoutItems, async () => {
+    orderTotal.value = await calculateTotal()
+  }, { deep: true })
   </script>
   
   <style scoped>

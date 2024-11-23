@@ -164,26 +164,24 @@
             </div>
 
             <!-- Summary Items -->
-            <div class="summary-item d-flex justify-content-between mb-3">
-              <span>Tạm tính ({{ selectedItems.length }} sản phẩm)</span>
-              <span class="fw-bold">{{ formatPrice(selectedSubtotal) }}</span>
+            <div class="summary-item">
+              <span class="summary-label">Tạm tính ({{ selectedItems.length }} sản phẩm)</span>
+              <span class="summary-value">{{ formatPrice(selectedSubtotal) }}</span>
             </div>
-            <div class="summary-item d-flex justify-content-between mb-3">
-              <span>Phí vận chuyển</span>
-              <span>{{ formatPrice(shippingFee) }}</span>
+            <div class="summary-item">
+              <span class="summary-label">Phí vận chuyển</span>
+              <span class="summary-value">{{ formatPrice(shippingFee) }}</span>
             </div>
-            <div class="summary-item d-flex justify-content-between mb-3">
-              <span>Giảm giá</span>
-              <span :class="{'text-success': discount > 0}">
-                -{{ formatPrice(discount) }}
-              </span>
+            <div class="summary-item">
+              <span class="summary-label">Giảm giá</span>
+              <span class="summary-value">-{{ formatPrice(discount) }}</span>
             </div>
             
             <hr class="my-4">
             
-            <div class="summary-total d-flex justify-content-between mb-4">
-              <span class="fw-bold">Tổng cộng</span>
-              <span class="total-amount">{{ formatPrice(total) }}</span>
+            <div class="summary-item total">
+              <strong class="summary-label">Tổng cộng</strong>
+              <strong class="summary-value gradient-text">{{ formatPrice(total) }}</strong>
             </div>
 
             <button 
@@ -239,7 +237,7 @@ export default {
     })
 
     const total = computed(() => {
-      return subtotal.value + shippingFee.value - discount.value
+      return selectedSubtotal.value + shippingFee.value - discount.value
     })
 
     const totalItems = computed(() => {
@@ -380,8 +378,6 @@ export default {
     const checkout = () => {
       // Implement checkout logic
     }
-
-    // Sửa lại hàm handleCheckout
     const handleCheckout = () => {
       if (selectedItems.value.length === 0) {
         Swal.fire({
@@ -393,23 +389,21 @@ export default {
       }
 
       // Lọc và format dữ liệu sản phẩm được chọn
-      const checkoutItems = cartItems.value
+      const selectedProducts = cartItems.value
         .filter(item => selectedItems.value.includes(item.id))
         .map(item => ({
-          id: item.id,
-          productId: item.product_id,
           variantId: item.variant_id,
           name: item.product_name,
           image: item.image_url,
           variantName: item.variant_name,
           price: item.price,
-          quantity: item.quantity,
-          total_price: item.total_price
+          quantity: item.quantity
         }))
 
-      // Lưu vào localStorage
-      localStorage.setItem('checkoutItems', JSON.stringify(checkoutItems))
+      // Lưu vào localStorage - chỉ lưu mảng sản phẩm
+      localStorage.setItem('checkoutItems', JSON.stringify(selectedProducts))
       
+      // Chuyển hướng đến trang checkout
       router.push('/checkout')
     }
 
@@ -431,9 +425,21 @@ export default {
     }
 
     // Lifecycle hooks
-    onMounted(() => {
-      fetchCartItems()
-    })
+    onMounted(async () => {
+      await fetchCartItems();
+      
+      // Check for pre-selected item
+      const preSelectedItemId = localStorage.getItem('preSelectedCartItem');
+      if (preSelectedItemId) {
+        // Find and select the pre-selected item
+        const itemToSelect = cartItems.value.find(item => item.id === parseInt(preSelectedItemId));
+        if (itemToSelect) {
+          selectedItems.value = [itemToSelect.id];
+        }
+        // Clear the pre-selection
+        localStorage.removeItem('preSelectedCartItem');
+      }
+    });
 
     // Add these if they're missing
     const discountError = ref(null)
@@ -1617,5 +1623,182 @@ export default {
 .discount-success {
   color: #10b981;
   background-color: rgba(16, 185, 129, 0.1);
+}
+
+.card-body {
+  padding: 1.5rem;
+  background: #ffffff;
+  border-radius: 0 0 16px 16px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+/* Phần mã giảm giá */
+.discount-section {
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 1.25rem;
+  border: 1px solid #e2e8f0;
+}
+
+.discount-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 1rem;
+  color: #1e293b;
+  font-weight: 500;
+}
+
+.discount-header i {
+  color: #3b82f6;
+}
+
+.discount-input-group {
+  display: flex;
+  gap: 8px;
+}
+
+.discount-input {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+}
+
+.discount-input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  outline: none;
+}
+
+.apply-discount-btn {
+  padding: 0.75rem 1.5rem;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.apply-discount-btn:disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
+}
+
+/* Phần tổng đơn hàng */
+.summary-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  color: #64748b;
+}
+
+.summary-label {
+  font-size: 0.95rem;
+}
+
+.summary-value {
+  font-weight: 500;
+  color: #1e293b;
+}
+
+.summary-item.total {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.summary-item.total .summary-value {
+  font-size: 1.25rem;
+  font-weight: 600;
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Nút thanh toán */
+.checkout-button {
+  width: 100%;
+  padding: 1rem;
+  margin: 1.5rem 0;
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.checkout-button:disabled {
+  background: linear-gradient(135deg, #94a3b8, #64748b);
+  cursor: not-allowed;
+}
+
+.button-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+/* Nút tiếp tục mua sắm */
+.continue-shopping-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0.75rem 1.5rem;
+  color: #3b82f6;
+  text-decoration: none;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.continue-shopping-link:hover {
+  background: #f1f5f9;
+}
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+  .card-body {
+    background: #1e293b;
+  }
+  
+  .discount-section {
+    background: #1a1f36;
+    border-color: #334155;
+  }
+  
+  .discount-input {
+    background: #1a1f36;
+    border-color: #334155;
+    color: #f1f5f9;
+  }
+  
+  .summary-item {
+    color: #94a3b8;
+  }
+  
+  .summary-value {
+    color: #f1f5f9;
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .card-body {
+    padding: 1rem;
+  }
+  
+  .discount-input-group {
+    flex-direction: column;
+  }
+  
+  .apply-discount-btn {
+    width: 100%;
+  }
 }
 </style>

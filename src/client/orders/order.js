@@ -499,7 +499,7 @@ router.post('/orders/:orderId/products/:productId/review', authenticateJWT, asyn
       // Lấy userId từ token thông qua middleware authenticateJWT
       const userId = req.user.userId;
 
-      // Validate dữ liệu bắt buộc
+      // Validate dữ liệu bt buộc
       if (!address_line1 || !city || !postal_code || !country || !recipient_name || !recipient_phone) {
         throw new Error('Thiếu thông tin bắt buộc');
       }
@@ -1015,6 +1015,76 @@ router.post('/orders/:orderId/products/:productId/review', authenticateJWT, asyn
       console.error('Error checking review permission:', error);
       res.status(500).json({
         message: 'Lỗi kiểm tra quyền đánh giá', 
+        error: error.message
+      });
+    }
+  });
+
+  // Thêm middleware kiểm tra vai trò
+  const checkCustomerRole = (req, res, next) => {
+    if (req.user && req.user.role === 'customer') {
+      next();
+    } else {
+      res.status(403).json({ message: 'Chỉ khách hàng mới có thể thực hiện thao tác này' });
+    }
+  };
+
+  // Thêm route tính tổng đơn hàng
+  router.get('/orders/calculate-total', authenticateJWT, checkCustomerRole, async (req, res) => {
+    try {
+      const items = JSON.parse(req.query.items);
+      if (!items || !Array.isArray(items)) {
+        return res.status(400).json({
+          message: 'Dữ liệu sản phẩm không hợp lệ'
+        });
+      }
+
+      let subtotal = 0;
+      const shippingFee = 30000;
+      const processedItems = [];
+
+      // Tính tổng tiền từ các sản phẩm
+      for (const item of items) {
+        const [variants] = await pool.query(
+          `SELECT pv.price, p.name,
+            (pv.initial_stock - COALESCE(pv.sold_count, 0)) as available_quantity 
+           FROM productvariants pv 
+           JOIN products p ON p.id = pv.product_id
+           WHERE pv.id = ? AND pv.product_id = ?`,
+          [item.variantId, item.productId]
+        );
+
+        if (variants.length === 0) {
+          return res.status(404).json({
+            message: `Không tìm thấy sản phẩm với ID ${item.productId} và variant ID ${item.variantId}`
+          });
+        }
+
+        const variant = variants[0];
+        const itemTotal = variant.price * item.quantity;
+        subtotal += itemTotal;
+
+        processedItems.push({
+          ...item,
+          name: variant.name,
+          price: variant.price,
+          total_price: itemTotal
+        });
+      }
+
+      const total = subtotal + shippingFee;
+
+      res.json({
+        subtotal,
+        shippingFee,
+        total,
+        items: processedItems
+      });
+
+    } catch (error) {
+      console.error('Error calculating order total:', error);
+      res.status(500).json({
+        message: 'Lỗi tính tổng đơn hàng',
         error: error.message
       });
     }
