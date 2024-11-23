@@ -15,14 +15,8 @@
           <div v-for="(step, index) in orderSteps" 
                :key="index"
                class="progress-step"
-               :class="{ 
-                 'completed': isCompleted(step.status),
-                 'active': step.status === currentStatus
-               }"
-               :data-status="step.status"
-               :style="{
-                 '--step-color': step.color
-               }">
+               :class="{ active: step.status === currentStatus }"
+               :style="getStepStyle(step)">
             <div class="step-icon">
               <i :class="step.icon"></i>
             </div>
@@ -208,8 +202,9 @@ const currentStatusDescription = computed(() => {
 
 const progressWidth = computed(() => {
   if (!currentStatus.value) return 0;
-  const currentIndex = orderSteps.findIndex(step => step.status === currentStatus.value);
-  return ((currentIndex + 1) / orderSteps.length) * 100;
+  const statusOrder = ['pending', 'processing', 'shipped', 'delivered'];
+  const currentIdx = statusOrder.indexOf(currentStatus.value);
+  return ((currentIdx + 1) / statusOrder.length) * 100;
 });
 
 const canCancel = computed(() => currentStatus.value === 'pending');
@@ -338,6 +333,25 @@ const goToReview = (productId) => {
     query: { tab: 'reviews', showReviewForm: 'true' }
   });
 };
+
+const getStepStyle = (step) => {
+  const isDelivered = currentStatus.value === 'delivered';
+  const isCurrentStep = step.status === currentStatus.value;
+  const isStepCompleted = isCompleted(step.status);
+  
+  return {
+    '--step-color': step.color,
+    opacity: isDelivered 
+      ? (step.status === 'delivered' ? 1 : 0.4)
+      : (isStepCompleted ? 1 : 0.4),
+    filter: isDelivered
+      ? (step.status === 'delivered' ? 'none' : 'grayscale(0.8)')
+      : (isStepCompleted ? 'none' : 'grayscale(0.8)'),
+    transform: isDelivered
+      ? (step.status === 'delivered' ? 'scale(1.1)' : 'scale(0.95)')
+      : (isCurrentStep ? 'scale(1.1)' : 'scale(0.95)')
+  };
+};
 </script>
 
 <style scoped>
@@ -383,11 +397,12 @@ const goToReview = (productId) => {
   top: 28px;
   left: 40px;
   height: 4px;
-  background: linear-gradient(to right, var(--step-color), #10b981);
+  background: linear-gradient(to right, var(--step-color), #e2e8f0);
   border-radius: 4px;
-  width: v-bind('progressWidth + "%"');
-  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  width: v-bind(progressWidth + '%');
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 1;
+  opacity: v-bind(currentStatus === 'delivered' ? 0.4 : 1);
 }
 
 .progress-step {
@@ -398,30 +413,31 @@ const goToReview = (productId) => {
   gap: 0.75rem;
   position: relative;
   z-index: 2;
-  opacity: 0.5;
-  filter: grayscale(0.8);
-  transform: scale(0.95);
+}
+
+.step-icon {
+  width: 56px;
+  height: 56px;
+  background: white;
+  border: 4px solid var(--step-color);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--step-color);
+  font-size: 1.25rem;
   transition: all 0.3s ease;
 }
 
-/* Step đang active */
-.progress-step.active {
-  opacity: 1;
-  filter: grayscale(0);
-  transform: scale(1.1);
-  z-index: 4;
-}
-
+/* Cập nhật class active */
 .progress-step.active .step-icon {
   box-shadow: 0 0 20px rgba(var(--step-color), 0.3);
-  transform: scale(1.1);
   animation: pulseIcon 2s infinite;
 }
 
 .progress-step.active .step-label {
   font-weight: 700;
   color: var(--step-color);
-  transform: scale(1.05);
 }
 
 /* Hiệu ứng hover cho các step không active */
@@ -435,42 +451,6 @@ const goToReview = (productId) => {
   0% { transform: scale(1.1); }
   50% { transform: scale(1.2); }
   100% { transform: scale(1.1); }
-}
-
-.step-icon {
-  width: 56px;
-  height: 56px;
-  background: white;
-  border: 4px solid var(--step-color, #3b82f6);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--step-color, #3b82f6);
-  font-size: 1.25rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s ease;
-  position: relative;
-  z-index: 3;
-}
-
-/* Animation cho step active */
-.progress-step.active .step-icon {
-  animation: pulseIcon 2s infinite;
-  box-shadow: 0 4px 15px var(--step-color);
-}
-
-/* Hiệu ứng hover cho step không active */
-.progress-step:not(.active):hover {
-  opacity: 0.7;
-  filter: grayscale(0.4);
-  transform: scale(1.02);
-}
-
-@keyframes pulseIcon {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.1); }
-  100% { transform: scale(1); }
 }
 
 .step-label {
