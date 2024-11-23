@@ -124,7 +124,9 @@
                       <div class="address-content">
                         <div class="d-flex align-items-start">
                           <div class="flex-grow-1">
-                            <h6 class="mb-1">{{ address.address_line1 }}</h6>
+                            <h6 class="mb-1">{{ address.recipient_name }}</h6>
+                            <p class="mb-1">{{ address.recipient_phone }}</p>
+                            <p class="mb-1">{{ address.address_line1 }}</p>
                             <p class="mb-1" v-if="address.address_line2">
                               {{ address.address_line2 }}
                             </p>
@@ -424,6 +426,33 @@
             </div>
             <div class="modal-body">
               <form @submit.prevent="submitNewAddress" class="address-form">
+                <!-- Thông tin người nhận -->
+                <div class="form-floating mb-3 fade-in">
+                  <input 
+                    v-model="newAddress.recipient_name"
+                    type="text"
+                    class="form-control custom-input"
+                    id="recipientName"
+                    required
+                    placeholder="Tên người nhận"
+                  >
+                  <label for="recipientName">Tên người nhận <span class="text-danger">*</span></label>
+                </div>
+
+                <div class="form-floating mb-3 fade-in">
+                  <input 
+                    v-model="newAddress.recipient_phone"
+                    type="tel"
+                    class="form-control custom-input"
+                    id="recipientPhone"
+                    required
+                    placeholder="Số điện thoại người nhận"
+                    pattern="[0-9]{10}"
+                  >
+                  <label for="recipientPhone">Số điện thoại <span class="text-danger">*</span></label>
+                  <small class="text-muted">Vui lòng nhập số điện thoại 10 số</small>
+                </div>
+
                 <!-- Tỉnh/Thành phố -->
                 <div class="form-floating mb-3 fade-in">
                   <select 
@@ -488,7 +517,7 @@
                   <label for="ward">Phường/Xã <span class="text-danger">*</span></label>
                 </div>
 
-                <!-- Địa chỉ chi tiết -->
+                <!-- Địa ch�� chi tiết -->
                 <div class="form-floating mb-3 fade-in" style="animation-delay: 0.3s">
                   <input 
                     v-model="newAddress.address_line1"
@@ -510,7 +539,7 @@
                     id="address2"
                     placeholder="Căn hộ, tầng, tòa nhà (nếu có)"
                   >
-                  <label for="address2">Địa ch bổ sung</label>
+                  <label for="address2">Địa chỉ bổ sung</label>
                 </div>
 
                 <!-- Mã bưu điện -->
@@ -543,9 +572,13 @@
                   <button type="button" class="btn btn-light" data-bs-dismiss="modal">
                     Hủy
                   </button>
-                  <button type="submit" class="btn btn-primary" :disabled="submitting">
-                    <span v-if="submitting" class="spinner-border spinner-border-sm me-1"></span>
-                    Thêm địa chỉ
+                  <button 
+                    type="submit" 
+                    class="btn btn-primary" 
+                    :disabled="isSubmitting"
+                  >
+                    <span v-if="isSubmitting" class="spinner-border spinner-border-sm me-2"></span>
+                    {{ isSubmitting ? 'Đang xử lý...' : 'Thêm địa chỉ' }}
                   </button>
                 </div>
               </form>
@@ -578,9 +611,8 @@
     is_default: false
   })
   
-  const submitting = ref(false)
+  const isSubmitting = ref(false)
   const addressModal = ref(null)
-  const closeBtn = ref(null)
   const provinces = ref([])
   const districts = ref([])
   const wards = ref([])
@@ -639,10 +671,6 @@
     return subtotal.value + shippingFee.value
   })
   
-  const canPlaceOrder = computed(() => {
-    return checkoutItems.value.length > 0 && selectedAddress.value !== null
-  })
-  
   // Methods
   const updateQuantity = (item, change) => {
     const newQuantity = item.quantity + change
@@ -658,13 +686,9 @@
     }).format(price).replace('₫', '').trim() + ' ₫'
   }
   
-  const formatAddress = (address) => {
-    return `${address.address_line1}, ${address.city}, ${address.state}`
-  }
-  
   const placeOrder = async () => {
-    if (submitting.value) return
-    submitting.value = true
+    if (isSubmitting.value) return
+    isSubmitting.value = true
 
     try {
       const token = localStorage.getItem('token')
@@ -704,7 +728,7 @@
         text: error.response?.data?.message || 'Có lỗi xảy ra, vui lòng thử lại'
       })
     } finally {
-      submitting.value = false
+      isSubmitting.value = false
     }
   }
   
@@ -713,26 +737,28 @@
   }
   
   const submitNewAddress = async () => {
-    if (submitting.value) return
-    submitting.value = true
-
+    if (isSubmitting.value) return;
+    isSubmitting.value = true;
+    
     try {
-      const token = localStorage.getItem('token')
-      if (!token) throw new Error('Vui lòng đăng nhập lại')
-
-      // Lấy thông tin địa ch đã chọn
-      const province = provinces.value.find(p => p.code === selectedProvince.value)
-      const district = districts.value.find(d => d.code === selectedDistrict.value)
-      const ward = wards.value.find(w => w.code === selectedWard.value)
-
-      const addressData = {
-        address_line1: newAddress.value.address_line1,
-        address_line2: newAddress.value.address_line2 || '',
-        city: `${ward?.name}, ${district?.name}, ${province?.name}`,
-        postal_code: newAddress.value.postal_code,
-        country: 'Việt Nam',
-        is_default: newAddress.value.is_default
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('Vui lòng đăng nhập lại');
       }
+
+      // Log để debug
+      console.log('Token:', token);
+      console.log('Address data:', {
+        recipient_name: newAddress.value.recipient_name,
+        recipient_phone: newAddress.value.recipient_phone,
+        address_line1: newAddress.value.address_line1,
+        address_line2: newAddress.value.address_line2,
+        city: provinces.value.find(p => p.code === selectedProvince.value)?.name, // Lấy tên tỉnh/thành phố
+        state: districts.value.find(d => d.code === selectedDistrict.value)?.name, // Lấy tên quận/huyện
+        postal_code: newAddress.value.postal_code,
+        country: 'VN',
+        is_default: newAddress.value.is_default
+      });
 
       const response = await axios({
         method: 'POST',
@@ -741,45 +767,56 @@
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        data: addressData
-      })
+        data: {
+          recipient_name: newAddress.value.recipient_name,
+          recipient_phone: newAddress.value.recipient_phone,
+          address_line1: newAddress.value.address_line1,
+          address_line2: newAddress.value.address_line2,
+          city: provinces.value.find(p => p.code === selectedProvince.value)?.name, // Sửa lại để lấy tên thay vì code
+          state: districts.value.find(d => d.code === selectedDistrict.value)?.name, // Sửa lại để lấy tên thay vì code
+          postal_code: newAddress.value.postal_code,
+          country: 'VN',
+          is_default: newAddress.value.is_default
+        }
+      });
 
-      // Reset form
-      newAddress.value = {
-        address_line1: '',
-        address_line2: '',
-        postal_code: '',
-        is_default: false
+      if (response.data) {
+        await fetchAddresses(); // Refresh danh sách địa chỉ
+        addressModal.value.hide(); // Đóng modal
+        
+        // Hiển thị thông báo thành công
+        Swal.fire({
+          icon: 'success',
+          title: 'Thành công',
+          text: 'Thêm địa chỉ mới thành công'
+        });
+        
+        // Reset form
+        newAddress.value = {
+          recipient_name: '',
+          recipient_phone: '',
+          address_line1: '',
+          address_line2: '',
+          postal_code: '',
+          is_default: false
+        };
+        selectedProvince.value = '';
+        selectedDistrict.value = '';
+        selectedWard.value = '';
       }
-      selectedProvince.value = ''
-      selectedDistrict.value = ''
-      selectedWard.value = ''
-
-      // Đóng modal và thông báo thành công
-      const modal = Modal.getInstance(document.getElementById('addAddressModal'))
-      modal.hide()
-
-      Swal.fire({
-        icon: 'success',
-        title: 'Thêm địa chỉ thành công!',
-        showConfirmButton: false,
-        timer: 1500
-      })
-
-      // Reload danh sách địa chỉ
-      await fetchAddresses()
 
     } catch (error) {
-      console.error('Error adding address:', error)
+      console.error('Error submitting address:', error);
+      // Hiển thị thông báo lỗi chi tiết hơn
       Swal.fire({
         icon: 'error',
-        title: 'Lỗi!',
-        text: error.response?.data?.message || 'Không thể thêm địa chỉ mới'
-      })
+        title: 'Lỗi',
+        text: error.response?.data?.message || 'Có lỗi xảy ra khi thêm địa chỉ. Vui lòng thử lại'
+      });
     } finally {
-      submitting.value = false
+      isSubmitting.value = false;
     }
-  }
+  };
   
   // Load tỉnh/thành phố
   const loadProvinces = async () => {
@@ -921,22 +958,6 @@
     }
   }
   
-  const handleCompleteOrder = async () => {
-    try {
-      // Thêm logic xử lý hoàn tất đơn hàng
-      console.log('Hoàn tất đơn hàng')
-    } catch (error) {
-      console.error('Li khi hoàn tất đơn hàng:', error)
-    }
-  }
-  
-  const goToStep = (step) => {
-    // Chỉ cho phép quay lại các step đã hoàn thành
-    if (step < currentStep.value) {
-      currentStep.value = step;
-    }
-  }
-  
   const selectAddress = (addressId) => {
     selectedAddress.value = addressId;
     console.log('Selected address:', addressId);
@@ -945,6 +966,21 @@
   const selectPayment = (method) => {
     selectedPaymentMethod.value = method;
     console.log('Selected payment method:', method);
+  }
+  
+  // Thêm hàm processPayment
+  const processPayment = async () => {
+    try {
+      // Xử lý thanh toán
+      await placeOrder()
+    } catch (error) {
+      console.error('Lỗi xử lý thanh toán:', error)
+      Swal.fire({
+        icon: 'error',
+        title: 'Lỗi thanh toán',
+        text: 'Có lỗi xảy ra trong quá trình thanh toán. Vui lòng thử lại.'
+      })
+    }
   }
   </script>
   

@@ -8,6 +8,7 @@ import ProductManager from '../components/products/ProductManager.vue';
 import Orders from '../views/Orders.vue';
 // import Customers from '../components/users/Customers.vue';
 import UserManagement from '../components/users/UserManagement.vue';
+// import CheckoutView from '../views/Checkout/CheckoutView.vue';
 
 const routes = [
   {

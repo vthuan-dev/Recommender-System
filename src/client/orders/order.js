@@ -451,6 +451,8 @@ router.post('/orders/:orderId/products/:productId/review', authenticateJWT, asyn
       await connection.beginTransaction();
 
       const {
+        recipient_name,
+        recipient_phone,
         address_line1,
         address_line2,
         city,
@@ -460,18 +462,21 @@ router.post('/orders/:orderId/products/:productId/review', authenticateJWT, asyn
         is_default
       } = req.body;
       
-      // Log để debug
-      console.log('Received data:', req.body);
-      console.log('User ID:', req.user.userId);
-
+      // Lấy userId từ token thông qua middleware authenticateJWT
       const userId = req.user.userId;
 
       // Validate dữ liệu bắt buộc
-      if (!address_line1 || !city || !postal_code || !country) {
+      if (!address_line1 || !city || !postal_code || !country || !recipient_name || !recipient_phone) {
         throw new Error('Thiếu thông tin bắt buộc');
       }
 
-      // Nếu là địa chỉ mặc định, cập nhật các địa chỉ khác
+      // Validate số điện thoại
+      const phoneRegex = /^[0-9]{10}$/;  // Định dạng 10 số
+      if (!phoneRegex.test(recipient_phone)) {
+        throw new Error('Số điện thoại không hợp lệ');
+      }
+
+      // Nếu là địa chỉ mặc định
       if (is_default) {
         await connection.query(
           'UPDATE addresses SET is_default = 0 WHERE user_id = ?',
@@ -483,6 +488,8 @@ router.post('/orders/:orderId/products/:productId/review', authenticateJWT, asyn
       const [result] = await connection.query(
         `INSERT INTO addresses (
           user_id,
+          recipient_name,
+          recipient_phone,
           address_line1,
           address_line2,
           city,
@@ -490,9 +497,11 @@ router.post('/orders/:orderId/products/:productId/review', authenticateJWT, asyn
           postal_code,
           country,
           is_default
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           userId,
+          recipient_name,
+          recipient_phone,
           address_line1,
           address_line2 || null,
           city,

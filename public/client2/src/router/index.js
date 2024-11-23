@@ -11,7 +11,7 @@ import { h, onMounted } from 'vue'
 import { useStore } from 'vuex'
 import { useRoute, useRouter } from 'vue-router'
 import CustomSweetAlert from '@/components/Common/CustomSweetAlert'
-import Checkout from '../views/Checkout/Checkout.vue'
+import CheckoutView from '../views/Checkout/CheckoutView.vue'
 
 const routes = [
   {
@@ -74,7 +74,7 @@ const routes = [
   {
     path: '/checkout',
     name: 'Checkout',
-    component: Checkout,
+    component: CheckoutView,
     meta: { 
       requiresAuth: true,
       title: 'Thanh toán - T-Store'

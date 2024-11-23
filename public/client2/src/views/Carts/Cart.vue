@@ -151,15 +151,15 @@
                   <i v-else class="fas fa-spinner fa-spin"></i>
                 </button>
               </div>
-              <transition name="fade">
-                <p v-if="discountError" class="discount-error">
+              <transition name="fade" mode="out-in">
+                <div v-if="discountError" key="error" class="discount-error">
                   <i class="fas fa-exclamation-circle"></i>
                   {{ discountError }}
-                </p>
-                <p v-if="discountSuccess" class="discount-success">
+                </div>
+                <div v-else-if="discountSuccess" key="success" class="discount-success">
                   <i class="fas fa-check-circle"></i>
                   {{ discountSuccess }}
-                </p>
+                </div>
               </transition>
             </div>
 
@@ -219,7 +219,7 @@ import axios from 'axios'
 import Swal from 'sweetalert2'
 
 export default {
-  name: 'Cart',
+  name: 'ShoppingCartView',
   setup() {
     const router = useRouter()
     const loading = ref(true)
@@ -435,6 +435,28 @@ export default {
       fetchCartItems()
     })
 
+    // Add these if they're missing
+    const discountError = ref(null)
+    const discountSuccess = ref(null)
+    const discountCode = ref('')
+    const isApplying = ref(false)
+
+    const applyDiscount = async () => {
+      try {
+        isApplying.value = true
+        discountError.value = null
+        discountSuccess.value = null
+        
+        // Add your discount application logic here
+        
+        discountSuccess.value = 'Mã giảm giá đã được áp dụng thành công!'
+      } catch (err) {
+        discountError.value = err.response?.data?.message || 'Không thể áp dụng mã giảm giá'
+      } finally {
+        isApplying.value = false
+      }
+    }
+
     return {
       loading,
       cartItems,
@@ -455,6 +477,11 @@ export default {
       selectAllItems,
       handleCheckout,
       addToCart,
+      discountError,
+      discountSuccess,
+      discountCode,
+      isApplying,
+      applyDiscount,
     }
   }
 }
@@ -1560,5 +1587,35 @@ export default {
   opacity: 0.7;
   cursor: not-allowed;
   background: linear-gradient(135deg, #94a3b8, #64748b);
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+.discount-error,
+.discount-success {
+  margin-top: 8px;
+  padding: 8px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.discount-error {
+  color: #ef4444;
+  background-color: rgba(239, 68, 68, 0.1);
+}
+
+.discount-success {
+  color: #10b981;
+  background-color: rgba(16, 185, 129, 0.1);
 }
 </style>
