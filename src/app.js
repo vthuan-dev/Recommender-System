@@ -53,8 +53,10 @@ const corsOptions = {
   origin: ['http://localhost:5173', 'http://localhost:8080', 'http://localhost:3000'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  exposedHeaders: ['Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'Accept'],
+  exposedHeaders: ['Authorization'],
+  preflightContinue: false,
+  optionsSuccessStatus: 204
 };
 
 app.use(cors(corsOptions));
@@ -161,6 +163,13 @@ app.use((req, res, next) => {
   if (req.url.match(/\.(jpg|jpeg|png|gif|webp)$/)) {
     res.type(`image/${path.extname(req.url).slice(1)}`);
   }
+  next();
+});
+
+// Thêm middleware để log requests (để debug)
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.url}`);
+  console.log('Headers:', req.headers);
   next();
 });
 

@@ -14,9 +14,10 @@ dotenv.config();
 const app = express();
 const { authenticateJWT } = require('../../database/dbconfig');
 
-app.use(cors());
-app.use(bodyParser.json());
-app.use(express.static(path.join(__dirname, '..', 'public', 'order')));
+// Xóa phần app.use() vì đã có router
+// app.use(cors());
+// app.use(bodyParser.json());
+// app.use(express.static(...));
 
 router.post('/orders', authenticateJWT, async (req, res) => {
     const connection = await pool.getConnection();
@@ -178,38 +179,70 @@ router.post('/orders', authenticateJWT, async (req, res) => {
 
   //lấy danh sách đơn hàng của người dùng
   router.get('/orders', authenticateJWT, async (req, res) => {
+    console.log('Auth Header:', req.headers.authorization);
     try {
       const userId = req.user.userId;
-      const { status } = req.query; // Lấy trạng thái từ query parameter
-  
-      let query = 'SELECT id, total, status, created_at FROM orders WHERE user_id = ?';
-      let queryParams = [userId];
-  
-      // Nếu có trạng thái được chỉ định, thêm điều kiện vào query
-      if (status) {
-        const validStatuses = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
-        if (validStatuses.includes(status)) {
-          query += ' AND status = ?';
-          queryParams.push(status);
+      console.log('User ID:', userId);
+      
+      const [orders] = await pool.query(`
+        SELECT 
+          o.id, o.total, o.status, o.created_at,
+          oi.product_id, oi.variant_id, oi.quantity, oi.price,
+          p.name as product_name, p.image_url,
+          pv.name as variant_name,
+          b.name as brand_name
+        FROM orders o
+        LEFT JOIN orderitems oi ON o.id = oi.order_id
+        LEFT JOIN products p ON oi.product_id = p.id
+        LEFT JOIN productvariants pv ON oi.variant_id = pv.id
+        LEFT JOIN brands b ON p.brand_id = b.id
+        WHERE o.user_id = ?
+        ORDER BY o.created_at DESC`,
+        [userId]
+      );
+
+      // Format lại dữ liệu
+      const formattedOrders = orders.reduce((acc, curr) => {
+        const existingOrder = acc.find(o => o.id === curr.id);
+        if (existingOrder) {
+          if (curr.product_id) {
+            existingOrder.items.push({
+              product_id: curr.product_id,
+              product_name: curr.product_name,
+              variant_name: curr.variant_name,
+              brand_name: curr.brand_name,
+              quantity: curr.quantity,
+              price: curr.price,
+              image_url: curr.image_url
+            });
+          }
         } else {
-          return res.status(400).json({ message: 'Trạng thái không hợp lệ' });
+          acc.push({
+            id: curr.id,
+            total: curr.total,
+            status: curr.status,
+            created_at: curr.created_at,
+            items: curr.product_id ? [{
+              product_id: curr.product_id,
+              product_name: curr.product_name,
+              variant_name: curr.variant_name,
+              brand_name: curr.brand_name,
+              quantity: curr.quantity,
+              price: curr.price,
+              image_url: curr.image_url
+            }] : []
+          });
         }
-      }
-  
-      query += ' ORDER BY created_at DESC';
-  
-      const [orders] = await pool.query(query, queryParams);
-  
-      // Thêm mô tả trạng thái cho mỗi đơn hàng
-      const ordersWithDescription = orders.map(order => ({
-        ...order,
-        statusDescription: getStatusDescription(order.status)
-      }));
-  
-      res.json(ordersWithDescription);
+        return acc;
+      }, []);
+
+      res.json(formattedOrders);
     } catch (error) {
-      console.error('Error fetching user orders:', error);
-      res.status(500).json({ message: 'Lỗi lấy danh sách đơn hàng', error: error.message });
+      console.error('Error fetching orders:', error);
+      res.status(500).json({ 
+        message: 'Lỗi lấy danh sách đơn hàng',
+        error: error.message 
+      });
     }
   });
   
@@ -633,40 +666,114 @@ router.post('/orders/:orderId/products/:productId/review', authenticateJWT, asyn
     }
   });
 
-  // Thêm route để lấy thông tin người dùng
-  router.get('/user/profile', authenticateJWT, async (req, res) => {
-    try {
-      const userId = req.user.userId;
-      const [userInfo] = await pool.query(
-        `SELECT u.id, u.fullname, u.email, u.phone, u.avatar_url
-         FROM users u 
-         WHERE u.id = ?`,
-        [userId]
-      );
+  // // Thêm route để lấy thông tin người dùng
+  // router.get('/user/profile', authenticateJWT, async (req, res) => {
+  //   try {
+  //     const userId = req.user.userId;
+  //     const [userInfo] = await pool.query(
+  //       `SELECT u.id, u.fullname, u.email, u.phone, u.avatar_url
+  //        FROM users u 
+  //        WHERE u.id = ?`,
+  //       [userId]
+  //     );
 
-      if (userInfo.length === 0) {
-        return res.status(404).json({ 
-          message: 'Không tìm thấy thông tin người dùng' 
-        });
-      }
+  //     if (userInfo.length === 0) {
+  //       return res.status(404).json({ 
+  //         message: 'Không tìm thấy thông tin người dùng' 
+  //       });
+  //     }
 
-      // Loại bỏ các thông tin nhạy cảm trước khi gửi về client
-      const sanitizedUserInfo = {
-        id: userInfo[0].id,
-        fullname: userInfo[0].fullname,
-        email: userInfo[0].email,
-        phone: userInfo[0].phone,
-        avatar_url: userInfo[0].avatar_url
-      };
+  //     // Loại bỏ các thông tin nhạy cảm trước khi gửi về client
+  //     const sanitizedUserInfo = {
+  //       id: userInfo[0].id,
+  //       fullname: userInfo[0].fullname,
+  //       email: userInfo[0].email,
+  //       phone: userInfo[0].phone,
+  //       avatar_url: userInfo[0].avatar_url
+  //     };
 
-      res.json(sanitizedUserInfo);
-    } catch (error) {
-      console.error('Error fetching user info:', error);
-      res.status(500).json({ 
-        message: 'Lỗi lấy thông tin người dùng',
-        error: error.message 
-      });
-    }
-  });
+  //     res.json(sanitizedUserInfo);
+  //   } catch (error) {
+  //     console.error('Error fetching user info:', error);
+  //     res.status(500).json({ 
+  //       message: 'Lỗi lấy thông tin người dùng',
+  //       error: error.message 
+  //     });
+  //   }
+  // });
+
+  // Thêm prefix cho tất cả các routes
+  // router.use('/api', router);
+
+  // Sửa lại route để match với client request
+  
+  // router.get('/api/orders', authenticateJWT, async (req, res) => {
+  //   try {
+  //     const userId = req.user.userId;
+  //     const { status } = req.query;
+
+  //     let query = `
+  //       SELECT o.*, 
+  //         oi.product_id, oi.variant_id, oi.quantity, oi.price,
+  //         p.name as product_name, p.image_url,
+  //         pv.name as variant_name
+  //       FROM orders o
+  //       LEFT JOIN orderitems oi ON o.id = oi.order_id
+  //       LEFT JOIN products p ON oi.product_id = p.id
+  //       LEFT JOIN productvariants pv ON oi.variant_id = pv.id
+  //       WHERE o.user_id = ?
+  //     `;
+  //     let queryParams = [userId];
+
+  //     if (status && status !== 'all') {
+  //       query += ' AND o.status = ?';
+  //       queryParams.push(status);
+  //     }
+
+  //     query += ' ORDER BY o.created_at DESC';
+
+  //     const [orders] = await pool.query(query, queryParams);
+
+  //     // Group items by order
+  //     const formattedOrders = orders.reduce((acc, curr) => {
+  //       const order = acc.find(o => o.id === curr.id);
+  //       if (order) {
+  //         order.items.push({
+  //           id: curr.product_id,
+  //           name: curr.product_name,
+  //           variant_name: curr.variant_name,
+  //           quantity: curr.quantity,
+  //           price: curr.price,
+  //           image_url: curr.image_url
+  //         });
+  //       } else {
+  //         acc.push({
+  //           id: curr.id,
+  //           total: curr.total,
+  //           status: curr.status,
+  //           statusDescription: getStatusDescription(curr.status),
+  //           created_at: curr.created_at,
+  //           items: curr.product_id ? [{
+  //             id: curr.product_id,
+  //             name: curr.product_name,
+  //             variant_name: curr.variant_name,
+  //             quantity: curr.quantity,
+  //             price: curr.price,
+  //             image_url: curr.image_url
+  //           }] : []
+  //         });
+  //       }
+  //       return acc;
+  //     }, []);
+
+  //     res.json(formattedOrders);
+  //   } catch (error) {
+  //     console.error('Error fetching orders:', error);
+  //     res.status(500).json({ 
+  //       message: 'Lỗi lấy danh sách đơn hàng',
+  //       error: error.message 
+  //     });
+  //   }
+  // });
 
   module.exports = router;

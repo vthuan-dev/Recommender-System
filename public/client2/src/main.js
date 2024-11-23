@@ -3,6 +3,7 @@ import App from './App.vue'
 import router from './router'
 import store from './store'
 import vue3GoogleLogin from 'vue3-google-login'
+import axios from 'axios'
 
 // Import styles
 import 'bootstrap/dist/css/bootstrap.min.css'
@@ -39,5 +40,29 @@ app.config.globalProperties.$gapi = {
 
 // Khôi phục trạng thái auth từ localStorage
 store.commit('initializeAuth');
+
+axios.interceptors.request.use(
+  config => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  error => {
+    return Promise.reject(error);
+  }
+);
+
+axios.interceptors.response.use(
+  response => response,
+  error => {
+    if (error.response?.status === 401) {
+      // Redirect to login if unauthorized
+      router.push('/login');
+    }
+    return Promise.reject(error);
+  }
+);
 
 app.mount('#app')
