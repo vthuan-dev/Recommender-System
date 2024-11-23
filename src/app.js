@@ -7,9 +7,16 @@ const { testFirebaseConnection } = require('./firebaseConfig.js');
 const session = require('express-session');
 const passport = require('./config/passport');
 const { initUploadDirs } = require('./utils/init');
+const { initializeWebSocket } = require('./websocket');
+const http = require('http');
+
+const app = express();
 
 
+const server = http.createServer(app);
 
+// Khởi tạo WebSocket server
+initializeWebSocket(server);
 
 //client
 const productRoutes = require('./client/products/product.js');
@@ -34,7 +41,6 @@ dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 
 
-const app = express();
 
 
 
@@ -103,13 +109,13 @@ app.use((err, req, res, next) => {
 // Thêm đoạn code này vào cuối file app.js
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, async () => {
+server.listen(PORT, async () => {
     console.log(`Server đang chạy trên cổng ${PORT}`);
     const isFirebaseConnected = await testFirebaseConnection();
     if (isFirebaseConnected) {
         console.log('Kết nối Firebase thành công.');
     } else {
-        console.log('Kết nối Firebase thất bại. Vui lòng kiểm tra cấu hình.');
+        console.log('Kết nối Firebase thất bại.');
     }
 });
 

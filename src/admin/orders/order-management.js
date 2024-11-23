@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { pool, authenticateJWT } = require('../../database/dbconfig');
+const { broadcastOrderUpdate } = require('../../websocket');
 
 async function checkAdminRole(req, res, next) {
   try {
@@ -333,6 +334,10 @@ router.put('/orders/:id/status', authenticateJWT, checkAdminRole, async (req, re
     );
 
     await connection.commit();
+    
+    // Broadcast cập nhật qua WebSocket
+    broadcastOrderUpdate(orderId, status);
+
     res.json({
       message: status === 'cancelled' 
         ? 'Đã hủy đơn hàng và hoàn trả số lượng về kho'

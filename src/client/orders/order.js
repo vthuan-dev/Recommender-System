@@ -8,6 +8,7 @@ const dotenv = require('dotenv');
 const bodyParser = require('body-parser');
 const router = express.Router();
 const cors = require('cors');
+const { broadcastOrderUpdate } = require('../../websocket');
 
 dotenv.config();
 
@@ -905,6 +906,61 @@ router.post('/orders/:orderId/products/:productId/review', authenticateJWT, asyn
       console.error('Error fetching order details:', error);
       res.status(500).json({ 
         message: 'Lỗi khi lấy thông tin đơn hàng', 
+        error: error.message 
+      });
+    } finally {
+      connection.release();
+    }
+  });
+
+  // Trong route cập nhật trạng thái đơn hàng
+  router.put('/orders/:id/status', authenticateJWT, async (req, res) => {
+    const connection = await pool.getConnection();
+    try {
+      await connection.beginTransaction();
+      
+      const { status } = req.body;
+      const orderId = req.params.id;
+      const userId = req.user.userId;
+
+      // Validate status
+      const validStatuses = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
+      if (!validStatuses.includes(status)) {
+        throw new Error('Trạng thái không hợp lệ');
+      }
+
+      // Kiểm tra quyền cập nhật đơn hàng
+      const [orderCheck] = await connection.query(
+        'SELECT status FROM orders WHERE id = ? FOR UPDATE',
+        [orderId]
+      );
+
+      if (orderCheck.length === 0) {
+        throw new Error('Không tìm thấy đơn hàng');
+      }
+
+      // Cập nhật trạng thái đơn hàng
+      await connection.query(
+        'UPDATE orders SET status = ?, updated_at = NOW() WHERE id = ?',
+        [status, orderId]
+      );
+
+      await connection.commit();
+
+      // Broadcast update qua WebSocket
+      broadcastOrderUpdate(orderId, status);
+
+      res.json({ 
+        message: 'Cập nhật trạng thái đơn hàng thành công',
+        status: status,
+        orderId: orderId
+      });
+
+    } catch (error) {
+      await connection.rollback();
+      console.error('Error updating order status:', error);
+      res.status(500).json({ 
+        message: 'Lỗi cập nhật trạng thái đơn hàng', 
         error: error.message 
       });
     } finally {
