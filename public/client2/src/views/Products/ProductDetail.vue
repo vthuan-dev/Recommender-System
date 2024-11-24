@@ -191,14 +191,15 @@
               <div v-if="reviews && reviews.length > 0">
                 <div v-for="review in reviews" 
                      :key="review.id" 
-                     class="review-item">
-                  <div class="reviewer-info">
+                     class="review-item p-3 mb-3 border rounded">
+                  <div class="reviewer-info d-flex align-items-center">
                     <img :src="review.avatar_url || '/default-avatar.png'" 
                          :alt="review.fullname" 
-                         class="avatar">
+                         class="avatar rounded-circle me-3"
+                         style="width: 50px; height: 50px; object-fit: cover">
                     <div>
-                      <h6 class="mb-0">{{ review.fullname }}</h6>
-                      <div class="stars">
+                      <h6 class="mb-1">{{ review.fullname }}</h6>
+                      <div class="stars mb-1">
                         <i v-for="n in 5" :key="n" 
                            class="fas fa-star"
                            :class="n <= review.rating ? 'text-warning' : 'text-muted'">
@@ -207,15 +208,21 @@
                       <small class="text-muted">{{ formatDate(review.created_at) }}</small>
                     </div>
                   </div>
-                  <div class="review-content mt-2">
-                    {{ review.content }}
+                  
+                  <div class="review-content mt-3">
+                    <p class="mb-2">{{ review.comment }}</p>
                   </div>
+
+                  <!-- Nếu có hình ảnh đánh giá -->
                   <div class="review-images mt-2" v-if="review.images?.length">
-                    <img v-for="(image, index) in review.images" 
-                         :key="index" 
-                         :src="image" 
-                         class="review-image me-2"
-                         @click="showImageModal(image)">
+                    <div class="d-flex flex-wrap gap-2">
+                      <img v-for="(image, index) in review.images" 
+                           :key="index" 
+                           :src="image" 
+                           class="review-image"
+                           style="width: 100px; height: 100px; object-fit: cover; cursor: pointer; border-radius: 8px;"
+                           @click="showImageModal(image)">
+                    </div>
                   </div>
                 </div>
               </div>
@@ -511,7 +518,11 @@ export default {
 
     const checkCanReview = async () => {
       try {
-        console.log('Checking review permission for product:', route.params.id);
+        if (!isAuthenticated.value) {
+          canReview.value = false;
+          return;
+        }
+
         const response = await axios.get(
           `http://localhost:3000/api/products/${route.params.id}/can-review`,
           {
@@ -520,11 +531,21 @@ export default {
             }
           }
         );
+        
         console.log('Can review response:', response.data);
-        showReviewForm.value = response.data.canReview;
+        canReview.value = response.data.canReview;
+        
+        // Hiển thị thông báo nếu cần
+        if (!canReview.value) {
+          Swal.fire({
+            icon: 'info',
+            title: 'Thông báo',
+            text: response.data.message
+          });
+        }
       } catch (error) {
         console.error('Error checking review permission:', error);
-        showReviewForm.value = false;
+        canReview.value = false;
       }
     };
 
@@ -550,24 +571,61 @@ export default {
 
     const submitReview = async () => {
       try {
-        await axios.post(
-          `http://localhost:3000/api/products/${route.params.id}/reviews`,
-          newReview.value,
-          {
-            headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+        if (!newReview.value.rating || !newReview.value.content) {
+          Swal.fire({
+            icon: 'warning',
+            title: 'Thiếu thông tin',
+            text: 'Vui lòng nhập đầy đủ đánh giá và nội dung'
+          });
+          return;
+        }
+
+        // Hiển thị loading
+        Swal.fire({
+          title: 'Đang xử lý...',
+          allowOutsideClick: false,
+          didOpen: () => {
+            Swal.showLoading();
           }
-        )
-        
-        // Reset form và refresh đánh giá
-        newReview.value = { rating: 0, content: '', images: [] }
-        await fetchReviews()
-        await checkCanReview()
-        
-        alert('Cảm ơn bạn đã đánh giá sản phẩm!')
+        });
+
+        const reviewData = {
+          rating: newReview.value.rating,
+          content: newReview.value.content.trim()
+        };
+
+        // Gọi trực tiếp API đánh giá
+        const response = await axios.post(
+          `http://localhost:3000/api/products/${route.params.id}/reviews`,
+          reviewData,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('token')}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+
+        if (response.status === 201) {
+          newReview.value = { rating: 0, content: '', images: [] };
+          await fetchReviews();
+          await checkCanReview();
+          
+          Swal.fire({
+            icon: 'success',
+            title: 'Thành công',
+            text: 'Cảm ơn bạn đã đánh giá sản phẩm!'
+          });
+        }
       } catch (error) {
-        alert(error.response?.data?.message || 'Có lỗi xảy ra khi gửi đánh giá')
+        console.error('Review error:', error);
+        Swal.fire({
+          icon: 'error',
+          title: 'Lỗi',
+          text: error.response?.data?.message || 'Có lỗi xảy ra khi gửi đánh giá'
+        });
       }
-    }
+    };
 
     // Lifecycle hooks
     onMounted(() => {
@@ -768,6 +826,32 @@ export default {
   font-size: 11px;
   opacity: 0.8;
   margin-top: 2px;
+}
+
+.review-item {
+  background-color: #fff;
+  transition: all 0.3s ease;
+}
+
+.review-item:hover {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.review-image {
+  transition: transform 0.2s ease;
+}
+
+.review-image:hover {
+  transform: scale(1.05);
+}
+
+.stars i {
+  font-size: 0.9rem;
+}
+
+.review-content {
+  color: #333;
+  line-height: 1.5;
 }
 
 .review-item {

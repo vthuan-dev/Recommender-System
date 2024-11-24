@@ -306,9 +306,7 @@
                     <span class="summary-label">Phí vận chuyển</span>
                     <span class="summary-value">{{ formatPrice(shippingFee) }}</span>
                   </div>
-                  <div class="summary-divider">
-                    <hr>
-                  </div>
+                  <hr>
                   <div class="summary-item total">
                     <strong class="summary-label">Tổng cộng</strong>
                     <strong class="summary-value gradient-text">{{ formatPrice(total) }}</strong>
@@ -362,7 +360,7 @@
                       {{ getSelectedAddress?.state || 'Chưa có thông tin' }}
                     </p>
                     <p class="info-item mb-0">
-                      <strong>Mã bưu điện:</strong>
+                      <strong>Mã bưu đi��n:</strong>
                       {{ getSelectedAddress?.postal_code || 'Chưa có thông tin' }}
                     </p>
                   </div>
@@ -498,7 +496,7 @@
                     pattern="[0-9]{10}"
                   >
                   <label for="recipientPhone">Số điện thoại <span class="text-danger">*</span></label>
-                  <small class="text-muted">Vui lòng nhập số điện thoại 10 s������������</small>
+                  <small class="text-muted">Vui lòng nhập số điện thoại 10 số</small>
                 </div>
 
                 <!-- Tỉnh/Thành phố -->
@@ -643,6 +641,8 @@
   import axios from 'axios'
   import Swal from 'sweetalert2'
   import { Modal } from 'bootstrap'
+  // Import axiosInstance
+  import axiosInstance from '@/utils/axios'
   
   const router = useRouter()
   const checkoutItems = ref([])
@@ -953,53 +953,59 @@
   // Load tỉnh/thành phố
   const loadProvinces = async () => {
     try {
-      const response = await axios.get('https://provinces.open-api.vn/api/p/')
-      provinces.value = response.data
+      const response = await axiosInstance.get('/location/provinces');
+      provinces.value = response.data;
     } catch (error) {
-      console.error('Error loading provinces:', error)
+      console.error('Error loading provinces:', error);
       Swal.fire({
         icon: 'error',
         title: 'Lỗi',
         text: 'Không thể tải danh sách tỉnh thành'
-      })
+      });
     }
-  }
+  };
   
   // Xử lý khi chọn tỉnh/thành phố
   const handleProvinceChange = async () => {
     try {
-      selectedDistrict.value = ''
-      selectedWard.value = ''
-      districts.value = []
-      wards.value = []
+      selectedDistrict.value = '';
+      selectedWard.value = '';
+      districts.value = [];
+      wards.value = [];
       
       if (selectedProvince.value) {
-        const response = await axios.get(
-          `https://provinces.open-api.vn/api/p/${selectedProvince.value}?depth=2`
-        )
-        districts.value = response.data.districts
+        const response = await axiosInstance.get(`/location/districts/${selectedProvince.value}`);
+        districts.value = response.data.districts;
       }
     } catch (error) {
-      console.error('Error loading districts:', error)
+      console.error('Error loading districts:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Lỗi',
+        text: 'Không thể tải danh sách quận/huyện'
+      });
     }
-  }
+  };
   
   // Xử lý khi chọn quận/huyện
   const handleDistrictChange = async () => {
     try {
-      selectedWard.value = ''
-      wards.value = []
+      selectedWard.value = '';
+      wards.value = [];
       
       if (selectedDistrict.value) {
-        const response = await axios.get(
-          `https://provinces.open-api.vn/api/d/${selectedDistrict.value}?depth=2`
-        )
-        wards.value = response.data.wards
+        const response = await axiosInstance.get(`/location/wards/${selectedDistrict.value}`);
+        wards.value = response.data.wards;
       }
     } catch (error) {
-      console.error('Error loading wards:', error)
+      console.error('Error loading wards:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Lỗi',
+        text: 'Không thể tải danh sách phường/xã'
+      });
     }
-  }
+  };
   
   const nextStep = () => {
     if (currentStep.value < 3) {

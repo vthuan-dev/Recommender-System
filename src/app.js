@@ -35,6 +35,8 @@ const userManageRoutes = require('./admin/user/user-manage.js');
 //admin
 const orderManagementRoutes = require('./admin/orders/order-management.js');
 
+const locationRoutes = require('./client/proxy/location.js');
+
 const dotenv = require('dotenv');
 
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
@@ -89,7 +91,8 @@ app.use('/api', [
     productRoutes,
     cartRoutes,
     orderRoutes,
-    accountRoutesClient
+    accountRoutesClient,
+    locationRoutes
 ]);
 app.use('/api/admin', [
     productManagementRoutes,
