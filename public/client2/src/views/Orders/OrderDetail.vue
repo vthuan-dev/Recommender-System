@@ -95,7 +95,7 @@
                 <span class="quantity">x{{ item.quantity }}</span>
                 <span class="price">{{ formatPrice(item.item_price) }}</span>
               </div>
-              <div class="actions mt-2" v-if="canReview">
+              <div class="actions" v-if="canReview">
                 <button @click="goToReview(item.product_id)" 
                         class="btn btn-primary btn-sm">
                   <i class="fas fa-star me-1"></i>
@@ -130,10 +130,10 @@
           <i class="fas fa-times me-2"></i>
           {{ loading ? 'Đang xử lý...' : 'Hủy đơn hàng' }}
         </button>
-        <button v-if="canReview" 
+        <!-- <button v-if="canReview" 
                 class="btn btn-primary">
           <i class="fas fa-star me-2"></i>Đánh giá
-        </button>
+        </button> -->
       </div>
     </div>
   </div>
@@ -663,26 +663,34 @@ const getStepStyle = (step) => {
 
 .product-item {
   display: flex;
-  padding: 1.25rem;
-  background: #f8fafc;
-  border-radius: 12px;
-  margin-bottom: 1rem;
-  transition: all 0.3s ease;
+  padding: 1.5rem;
+  background: linear-gradient(145deg, #ffffff, #f8fafc);
+  border-radius: 20px;
+  margin-bottom: 1.5rem;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid rgba(226, 232, 240, 0.6);
+  box-shadow: 
+    0 4px 15px rgba(148, 163, 184, 0.05),
+    0 1px 3px rgba(148, 163, 184, 0.1);
+  position: relative;
+  overflow: hidden;
 }
 
 .product-item:hover {
-  background: #f1f5f9;
-  transform: translateX(8px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  transform: translateY(-2px);
+  box-shadow: 
+    0 8px 25px rgba(148, 163, 184, 0.08),
+    0 2px 5px rgba(148, 163, 184, 0.12);
+  border-color: rgba(203, 213, 225, 0.8);
 }
 
 .product-image {
-  width: 100px;
-  height: 100px;
+  width: 140px;
+  height: 140px;
   object-fit: cover;
-  border-radius: 10px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  transition: transform 0.3s ease;
+  border-radius: 16px;
+  transition: transform 0.4s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .product-item:hover .product-image {
@@ -691,43 +699,46 @@ const getStepStyle = (step) => {
 
 .product-info {
   flex: 1;
-  margin-left: 1.5rem;
+  margin-left: 2rem;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
 }
 
-.product-info h6 {
-  font-size: 1.1rem;
+h6 {
+  font-size: 1.25rem;
   font-weight: 600;
-  color: #1e293b;
-  margin: 0 0 0.5rem 0;
+  color: #0f172a;
+  margin: 0 0 0.75rem 0;
+  letter-spacing: -0.01em;
 }
 
 .variant {
-  font-size: 0.9rem;
-  color: #64748b;
-  margin: 0 0 0.75rem 0;
-  padding: 0.25rem 0.75rem;
-  background: #e2e8f0;
-  border-radius: 20px;
   display: inline-block;
+  padding: 0.4rem 1.2rem;
+  background: rgba(99, 102, 241, 0.08);
+  border-radius: 30px;
+  color: #4f46e5;
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin: 0 0 1rem 0;
 }
 
 .brand {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.75rem;
   color: #64748b;
-  font-size: 0.9rem;
-  margin-bottom: 0.75rem;
+  font-weight: 500;
+  margin-bottom: 1rem;
 }
 
 .brand-logo {
-  width: 20px;
-  height: 20px;
-  object-fit: contain;
-  border-radius: 4px;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  padding: 2px;
+  background: #f8fafc;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .quantity-price {
@@ -735,76 +746,75 @@ const getStepStyle = (step) => {
   align-items: center;
   justify-content: space-between;
   margin-top: auto;
+  padding-top: 1rem;
+  border-top: 1px dashed rgba(203, 213, 225, 0.5);
 }
 
 .quantity {
-  font-size: 0.95rem;
-  color: #64748b;
-  background: #e2e8f0;
-  padding: 0.25rem 0.75rem;
-  border-radius: 20px;
+  padding: 0.4rem 1.2rem;
+  background: rgba(99, 102, 241, 0.08);
+  border-radius: 30px;
+  color: #4f46e5;
+  font-size: 0.9rem;
+  font-weight: 500;
 }
 
 .price {
-  font-size: 1.1rem;
+  font-size: 1.35rem;
   font-weight: 600;
-  color: #ef4444;
+  color: #0f172a;
+  background: linear-gradient(135deg, #0ea5e9, #3b82f6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
-/* Empty state for missing images */
-.product-image:not([src]),
-.brand-logo:not([src]) {
-  background: #e2e8f0;
-  position: relative;
-}
-
-.product-image:not([src])::after,
-.brand-logo:not([src])::after {
-  content: '🖼️';
+/* Hiệu ứng shine */
+.product-item::after {
+  content: '';
   position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  font-size: 1.5rem;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent
+  );
+  transition: 0.5s;
 }
 
-/* Responsive design */
-@media (max-width: 640px) {
+.product-item:hover::after {
+  left: 100%;
+}
+
+@media (max-width: 768px) {
   .product-item {
     flex-direction: column;
     align-items: center;
-    text-align: center;
-    padding: 1rem;
-  }
-
-  .product-image {
-    width: 120px;
-    height: 120px;
-    margin-bottom: 1rem;
+    padding: 1.25rem;
   }
 
   .product-info {
     margin-left: 0;
-  }
-
-  .quantity-price {
-    flex-direction: column;
-    gap: 0.5rem;
+    margin-top: 1.5rem;
+    text-align: center;
+    width: 100%;
   }
 
   .brand {
     justify-content: center;
   }
-}
 
-/* Animation for hover */
-@keyframes softBounce {
-  0%, 100% { transform: translateX(8px); }
-  50% { transform: translateX(12px); }
-}
+  .quantity-price {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
 
-.product-item:hover {
-  animation: softBounce 1s ease infinite;
+  .price {
+    font-size: 1.5rem;
+  }
 }
 
 .total-section {
@@ -1180,5 +1190,85 @@ const getStepStyle = (step) => {
 @keyframes spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
+}
+
+.btn-primary.btn-sm {
+  margin-left: auto;
+  padding: 0.7rem 1.4rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  border-radius: 12px;
+  border: none;
+  background: #0ea5e9;
+  color: white;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  box-shadow: 0 2px 10px rgba(14, 165, 233, 0.2);
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-primary.btn-sm:hover {
+  background: #0284c7;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(14, 165, 233, 0.3);
+}
+
+.btn-primary.btn-sm:active {
+  transform: translateY(0);
+}
+
+.btn-primary.btn-sm i {
+  color: #fef08a;
+  font-size: 1rem;
+  transition: transform 0.3s ease;
+}
+
+.btn-primary.btn-sm:hover i {
+  transform: rotate(72deg) scale(1.2);
+}
+
+/* Hiệu ứng gợn sóng khi click */
+.btn-primary.btn-sm::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100px;
+  height: 100px;
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  opacity: 0;
+}
+
+.btn-primary.btn-sm:active::before {
+  animation: ripple 0.6s ease-out;
+}
+
+@keyframes ripple {
+  0% {
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(3);
+    opacity: 0;
+  }
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 1rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .actions {
+    justify-content: flex-end;
+  }
 }
 </style>

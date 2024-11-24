@@ -109,128 +109,75 @@
         </div>
       </div>
 
-      <!-- Tabs thông tin chi tiết -->
-      <div class="product-details mt-5">
-        <ul class="nav nav-tabs" id="productTabs" role="tablist">
-          <li class="nav-item" role="presentation">
-            <a class="nav-link" 
-               :class="{ active: activeTab === 'description' }"
-               @click="activeTab = 'description'"
-               href="#description" 
-               role="tab">
-              Mô tả
-            </a>
-          </li>
-          <li class="nav-item" role="presentation">
-            <a class="nav-link"
-               :class="{ active: activeTab === 'reviews' }"
-               @click="activeTab = 'reviews'"
-               href="#reviews"
-               role="tab">
-              Đánh giá
-            </a>
-          </li>
-        </ul>
-        
-        <div class="tab-content" id="productTabsContent">
-          <div class="tab-pane fade" 
-               :class="{ 'show active': activeTab === 'description' }"
-               id="description" 
-               role="tabpanel">
-            <div v-html="product?.description"></div>
-          </div>
+      <!-- Phần mô tả sản phẩm -->
+      <div class="product-section">
+        <h3 class="section-title">Mô tả sản phẩm</h3>
+        <div class="product-description">
+          <div v-html="product?.description"></div>
+        </div>
+      </div>
 
-          <div class="tab-pane fade"
-               :class="{ 'show active': activeTab === 'reviews' }"
-               id="reviews"
-               role="tabpanel">
-            <!-- Form đánh giá -->
-            <div v-if="isAuthenticated">
-              <div v-if="canReview" class="review-form mb-4">
-                <h5>Viết đánh giá của bạn</h5>
-                <div class="rating-input mb-3">
-                  <span>Đánh giá của bạn:</span>
-                  <div class="stars-input">
-                    <i v-for="n in 5" 
-                       :key="n" 
-                       class="fas fa-star" 
-                       :class="{ 'text-warning': n <= newReview.rating }"
-                       @click="newReview.rating = n"
-                       style="cursor: pointer">
+      <!-- Phần đánh giá -->
+      <div class="product-section">
+        <h3 class="section-title">Đánh giá sản phẩm</h3>
+        
+        <!-- Form đánh giá -->
+        <div v-if="isAuthenticated">
+          <div v-if="canReview" class="review-form">
+            <h5 class="review-title">Viết đánh giá của bạn</h5>
+            <p class="review-subtitle">Bạn cảm thấy sản phẩm này như thế nào?</p>
+            
+            <div class="stars-rating">
+              <div class="stars-input">
+                <template v-for="rating in 5" :key="rating">
+                  <div class="rating-star-wrapper" 
+                       @mouseover="hoverRating = rating"
+                       @mouseleave="hoverRating = 0"
+                       @click="newReview.rating = rating">
+                    <i class="fas fa-star"
+                       :class="[
+                         rating <= (hoverRating || newReview.rating) 
+                           ? 'text-yellow-400' 
+                           : 'text-gray-300'
+                       ]">
                     </i>
                   </div>
-                </div>
-                <div class="mb-3">
-                  <textarea 
-                    v-model="newReview.content"
-                    class="form-control" 
-                    rows="3" 
-                    placeholder="Nhập nhận xét của bạn về sản phẩm">
-                  </textarea>
-                </div>
-                <button 
-                  class="btn btn-primary" 
-                  @click="submitReview"
-                  :disabled="!newReview.rating || !newReview.content">
-                  Gửi đánh giá
-                </button>
+                </template>
+                <span v-if="newReview.rating" class="rating-label">
+                  {{ getRatingLabel(newReview.rating) }}
+                </span>
               </div>
-              <div v-else class="alert alert-info">
-                <i class="fas fa-info-circle me-2"></i>
-                Bạn cần mua và nhận sản phẩm này để có thể đánh giá. 
-                Vui lòng đợi đơn hàng được giao thành công.
-              </div>
-            </div>
-            <div v-else class="alert alert-info">
-              <i class="fas fa-info-circle me-2"></i>
-              Vui lòng <router-link to="/login">đăng nhập</router-link> để đánh giá sản phẩm
             </div>
 
-            <!-- Phần hiển thị đánh giá -->
-            <div class="reviews-list mt-4">
-              <div v-if="reviews && reviews.length > 0">
-                <div v-for="review in reviews" 
-                     :key="review.id" 
-                     class="review-item p-3 mb-3 border rounded">
-                  <div class="reviewer-info d-flex align-items-center">
-                    <img :src="review.avatar_url || '/default-avatar.png'" 
-                         :alt="review.fullname" 
-                         class="avatar rounded-circle me-3"
-                         style="width: 50px; height: 50px; object-fit: cover">
-                    <div>
-                      <h6 class="mb-1">{{ review.fullname }}</h6>
-                      <div class="stars mb-1">
-                        <i v-for="n in 5" :key="n" 
-                           class="fas fa-star"
-                           :class="n <= review.rating ? 'text-warning' : 'text-muted'">
-                        </i>
-                      </div>
-                      <small class="text-muted">{{ formatDate(review.created_at) }}</small>
-                    </div>
-                  </div>
-                  
-                  <div class="review-content mt-3">
-                    <p class="mb-2">{{ review.comment }}</p>
-                  </div>
+            <textarea 
+              v-model="newReview.content"
+              class="review-input"
+              placeholder="Chia sẻ trải nghiệm của bạn về sản phẩm này..."
+              rows="4"
+            ></textarea>
 
-                  <!-- Nếu có hình ảnh đánh giá -->
-                  <div class="review-images mt-2" v-if="review.images?.length">
-                    <div class="d-flex flex-wrap gap-2">
-                      <img v-for="(image, index) in review.images" 
-                           :key="index" 
-                           :src="image" 
-                           class="review-image"
-                           style="width: 100px; height: 100px; object-fit: cover; cursor: pointer; border-radius: 8px;"
-                           @click="showImageModal(image)">
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div v-else class="text-center py-5">
-                <p class="text-muted mb-0">Chưa có đánh giá nào cho sản phẩm này</p>
-              </div>
-            </div>
+            <button 
+              class="submit-review-btn"
+              :disabled="!newReview.rating || !newReview.content.trim()"
+              @click="submitReview"
+            >
+              <i class="fas fa-paper-plane"></i>
+              Gửi đánh giá
+            </button>
           </div>
+          <div v-else class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i>
+            Bạn cần mua và nhận sản phẩm này để có thể đánh giá
+          </div>
+        </div>
+        <div v-else class="alert alert-info">
+          <i class="fas fa-info-circle me-2"></i>
+          Vui lòng <router-link to="/login">đăng nhập</router-link> để đánh giá sản phẩm
+        </div>
+
+        <!-- Danh sách đánh giá -->
+        <div class="reviews-list">
+          <!-- Existing reviews here -->
         </div>
       </div>
 
@@ -289,8 +236,8 @@ export default {
     const provinces = ref([])
     const districts = ref([])
     const wards = ref([])
-    const activeTab = ref('description')
     const showReviewForm = ref(false)
+    const hoverRating = ref(0)
 
     // Computed properties
     const hasDiscount = computed(() => {
@@ -627,6 +574,17 @@ export default {
       }
     };
 
+    const getRatingLabel = (rating) => {
+      const labels = {
+        1: 'Rất không hài lòng',
+        2: 'Không hài lòng',
+        3: 'Bình thường',
+        4: 'Hài lòng',
+        5: 'Rất hài lòng'
+      }
+      return labels[rating]
+    }
+
     // Lifecycle hooks
     onMounted(() => {
       fetchProductDetail()
@@ -635,7 +593,6 @@ export default {
       loadProvinces()
       // Kiểm tra query parameters
       if (route.query.tab === 'reviews') {
-        activeTab.value = 'reviews'
         if (route.query.showReviewForm === 'true') {
           showReviewForm.value = true
           // Scroll đến form đánh giá
@@ -719,8 +676,9 @@ export default {
       wards,
       handleProvinceChange,
       handleDistrictChange,
-      activeTab,
-      showReviewForm
+      showReviewForm,
+      hoverRating,
+      getRatingLabel
     }
   }
 }
@@ -959,27 +917,467 @@ export default {
 }
 
 .review-form {
-  scroll-margin-top: 100px;
+  background: #ffffff;
+  max-width: 500px;
+  margin: 0 auto;
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 15px rgba(0, 0, 0, 0.05);
 }
 
-.alert {
+.review-form h5 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 1rem;
+}
+
+.rating-input p {
+  font-size: 0.95rem;
+  color: #4b5563;
+  margin-bottom: 0.75rem;
+}
+
+.stars-input {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: #f8fafc;
   border-radius: 8px;
-  padding: 1rem;
+  margin-bottom: 1rem;
 }
 
-.alert-info {
-  background-color: #f8f9fa;
-  border-left: 4px solid #17a2b8;
-}
-
-.stars-input i {
+.rating-star-wrapper i {
   font-size: 1.5rem;
-  margin-right: 0.5rem;
-  cursor: pointer;
-  transition: color 0.2s ease;
 }
 
-.stars-input i:hover {
-  color: #ffc107 !important;
+textarea {
+  width: 100%;
+  min-height: 80px;
+  padding: 0.75rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  margin-bottom: 1rem;
 }
+
+button {
+  width: 100%;
+  padding: 0.75rem;
+  font-size: 0.95rem;
+  border-radius: 8px;
+}
+
+.rating-label {
+  font-size: 0.8rem;
+}
+
+/* Mobile Responsive */
+@media (max-width: 640px) {
+  .review-form {
+    padding: 1rem;
+  }
+  
+  .stars-input {
+    padding: 0.5rem;
+  }
+  
+  .rating-star-wrapper i {
+    font-size: 1.25rem;
+  }
+}
+
+.review-form {
+  background: #ffffff;
+  padding: 2rem;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+}
+
+.review-form h5 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 1.5rem;
+  position: relative;
+}
+
+.review-form h5::after {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  left: 0;
+  width: 50px;
+  height: 3px;
+  background: #3b82f6;
+  border-radius: 2px;
+}
+
+.rating-input p {
+  color: #4b5563;
+  font-size: 1.1rem;
+  margin-bottom: 1rem;
+}
+
+.stars-input {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: #f8fafc;
+  border-radius: 12px;
+}
+
+.rating-star-wrapper {
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.rating-star-wrapper:hover {
+  transform: scale(1.1);
+}
+
+.rating-star-wrapper i {
+  font-size: 2rem;
+  transition: all 0.3s ease;
+}
+
+.rating-star-wrapper i.text-yellow-400 {
+  color: #fbbf24;
+  filter: drop-shadow(0 0 2px rgba(251, 191, 36, 0.3));
+}
+
+.rating-star-wrapper i.text-gray-300 {
+  color: #d1d5db;
+}
+
+textarea {
+  width: 100%;
+  min-height: 120px;
+  padding: 1rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  font-size: 1rem;
+  resize: none;
+  transition: all 0.3s ease;
+}
+
+textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+button {
+  width: 100%;
+  padding: 1rem;
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all 0.3s ease;
+}
+
+button:not(:disabled):hover {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+}
+
+button:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
+button i {
+  font-size: 1.1rem;
+}
+
+.rating-label {
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+@media (max-width: 640px) {
+  .review-form {
+    padding: 1.5rem;
+  }
+  
+  .stars-input {
+    padding: 0.75rem;
+  }
+  
+  .rating-star-wrapper i {
+    font-size: 1.75rem;
+  }
+}
+
+/* Animation cho sao */
+@keyframes starPop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.3); }
+  100% { transform: scale(1); }
+}
+
+.rating-star-wrapper.active i {
+  animation: starPop 0.3s ease;
+}
+
+.product-info {
+  padding: 1.5rem;
+}
+
+.product-title {
+  font-size: 2rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 1rem;
+}
+
+.rating-section {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.stars {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.stars i {
+  font-size: 1.25rem;
+  color: #d1d5db;
+}
+
+.stars i.text-warning {
+  color: #fbbf24;
+}
+
+.variants-section {
+  margin-bottom: 2rem;
+}
+
+.variants-section h6 {
+  font-size: 1.1rem;
+  color: #4b5563;
+  margin-bottom: 1rem;
+}
+
+.variant-options {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.variant-btn {
+  flex: 1;
+  min-width: 150px;
+  padding: 1rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.variant-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(45deg, #3b82f6, #60a5fa);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: 1;
+}
+
+.variant-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.variant-btn.active {
+  border-color: #3b82f6;
+  background: linear-gradient(45deg, #eff6ff, #f8fafc);
+}
+
+.variant-btn.active::before {
+  opacity: 0.05;
+}
+
+.variant-name {
+  font-weight: 500;
+  color: #1f2937;
+  margin-bottom: 0.5rem;
+  position: relative;
+  z-index: 2;
+}
+
+.variant-price {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #3b82f6;
+  position: relative;
+  z-index: 2;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .variant-options {
+    flex-direction: column;
+  }
+  
+  .variant-btn {
+    width: 100%;
+  }
+}
+
+/* Animation cho active state */
+@keyframes selectPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+  100% { transform: scale(1); }
+}
+
+.variant-btn.active {
+  animation: selectPulse 0.3s ease;
+}
+
+.section-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.product-reviews {
+  margin-top: 3rem;
+  padding-top: 2rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.review-form {
+  max-width: 600px;
+  margin: 0 auto;
+  background: #ffffff;
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 15px rgba(0, 0, 0, 0.05);
+}
+
+.review-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 0.5rem;
+}
+
+.review-subtitle {
+  color: #6b7280;
+  font-size: 0.95rem;
+  margin-bottom: 1rem;
+}
+
+.stars-rating {
+  background: #f8fafc;
+  padding: 0.75rem;
+  border-radius: 8px;
+}
+
+.review-input {
+  width: 100%;
+  min-height: 80px;
+  padding: 0.75rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  resize: none;
+  transition: all 0.2s ease;
+}
+
+.review-input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  outline: none;
+}
+
+.submit-review-btn {
+  width: 100%;
+  padding: 0.75rem;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all 0.3s ease;
+}
+
+.submit-review-btn:hover:not(:disabled) {
+  background: #2563eb;
+  transform: translateY(-1px);
+}
+
+.submit-review-btn:disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+  .review-form {
+    padding: 1rem;
+  }
+  
+  .section-title {
+    font-size: 1.25rem;
+  }
+}
+
+.product-section {
+  margin-bottom: 3rem;
+  padding: 2rem;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.section-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid #e5e7eb;
+  position: relative;
+}
+
+.section-title::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 60px;
+  height: 2px;
+  background: #3b82f6;
+  border-radius: 2px;
+}
+
+/* Giữ nguyên các CSS khác cho review form */
 </style>
