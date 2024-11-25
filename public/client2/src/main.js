@@ -4,6 +4,8 @@ import router from './router'
 import store from './store'
 import vue3GoogleLogin from 'vue3-google-login'
 import axios from 'axios'
+import Toast from "vue-toastification"
+import "vue-toastification/dist/index.css"
 
 // Import styles
 import 'bootstrap/dist/css/bootstrap.min.css'
@@ -64,5 +66,21 @@ axios.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+const options = {
+  position: "top-right",
+  timeout: 3000,
+  closeOnClick: true,
+  pauseOnHover: true,
+  draggable: true,
+  draggablePercent: 0.6,
+  showCloseButtonOnHover: false,
+  hideProgressBar: false,
+  closeButton: "button",
+  icon: true,
+  rtl: false
+}
+
+app.use(Toast, options)
 
 app.mount('#app')

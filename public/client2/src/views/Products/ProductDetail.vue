@@ -1,5 +1,7 @@
 <template>
   <div class="container py-4">
+      <AppToast ref="toastRef" />
+
     <!-- Loading state -->
     <div v-if="loading" class="text-center py-5">
       <div class="spinner-border text-primary" role="status">
@@ -128,7 +130,7 @@
             <div class="review-form">
               <h5>Viết đánh giá của bạn</h5>
               
-              <!-- Form đánh giá khi có quyền -->
+              <!-- Form đánh giá khi chưa đánh giá và có quyền đánh giá -->
               <template v-if="canReview">
                 <div class="rating-input mb-3">
                   <span>Đánh giá của bạn:</span>
@@ -157,13 +159,33 @@
                   Gửi đánh giá
                 </button>
               </template>
-
-              <!-- Thông báo khi chưa đủ điều kiện -->
+              <!-- Khi đã đánh giá hoặc chưa đủ điều kiện -->
               <template v-else>
-                <div class="alert alert-info">
-                  <i class="fas fa-info-circle me-2"></i>
-                  Bạn cần mua và nhận sản phẩm này để có thể đánh giá. 
-                  Vui lòng đợi đơn hàng được giao thành công.
+                <div class="disabled-review-form" 
+                     data-tooltip-id="review-tooltip"
+                     :data-tooltip-content="getReviewTooltipMessage">
+                  <div class="rating-input mb-3 disabled">
+                    <span>Đánh giá của bạn:</span>
+                    <div class="stars-input">
+                      <i v-for="n in 5" 
+                         :key="n" 
+                         class="fas fa-star text-muted">
+                      </i>
+                    </div>
+                  </div>
+                  <div class="mb-3">
+                    <textarea 
+                      class="form-control disabled" 
+                      rows="3" 
+                      placeholder="Nhập nhận xét của bạn về sản phẩm"
+                      disabled>
+                    </textarea>
+                  </div>
+                  <button 
+                    class="btn btn-primary disabled"
+                    disabled>
+                    Gửi đánh giá
+                  </button>
                 </div>
               </template>
             </div>
@@ -228,18 +250,20 @@
     </div>
   </div>
 </template>
-
 <script>
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import ProductCard from '@/components/Product/ProductCard.vue'
 import axios from 'axios'
+import AppToast from '@/components/Toast/Toast.vue'
 import Swal from 'sweetalert2'
+import { useToast } from 'vue-toastification'
 
 export default {
   name: 'ProductDetail',
   components: {
-    ProductCard
+    ProductCard,
+    AppToast
   },
   setup() {
     const route = useRoute()
@@ -270,6 +294,8 @@ export default {
     const districts = ref([])
     const wards = ref([])
     const showReviewForm = ref(false)
+    const toastRef = ref(null)
+    const toast = useToast()
 
     // Computed properties
     const hasDiscount = computed(() => {
@@ -280,6 +306,17 @@ export default {
       if (!hasDiscount.value) return 0
       const discount = ((product.value.original_price - product.value.price) / product.value.original_price) * 100
       return Math.round(discount)
+    })
+
+    const hasReviewed = computed(() => {
+      return reviews.value.some(review => review.user_id === localStorage.getItem('userId'))
+    })
+
+    const getReviewTooltipMessage = computed(() => {
+      if (hasReviewed.value) {
+        return 'Bạn đã đánh giá sản phẩm này rồi'
+      }
+      return 'Bạn cần mua và nhận sản phẩm này để có thể đánh giá'
     })
 
     // Methods
@@ -366,95 +403,45 @@ export default {
     const checkLogin = () => {
       const token = localStorage.getItem('token')
       if (!token) {
-        Swal.fire({
-          title: 'Bạn chưa đăng nhập',
-          text: 'Vui lòng đăng nhập để tiếp tục mua hàng',
-          icon: 'warning',
-          showCancelButton: true,
-          confirmButtonText: 'Đăng nhập ngay',
-          cancelButtonText: 'Để sau',
-          reverseButtons: true
-        }).then((result) => {
-          if (result.isConfirmed) {
-            // Lưu URL hiện tại để sau khi đăng nhập xong quay lại
-            localStorage.setItem('redirectUrl', router.currentRoute.value.fullPath)
-            router.push('/login')
-          }
-        })
+        toastRef.value.showToast('Vui lòng đăng nhập để tiếp tục mua hàng', 'error')
+        // Lưu URL hiện tại để sau khi đăng nhập xong quay lại
+        localStorage.setItem('redirectUrl', router.currentRoute.value.fullPath)
+        router.push('/login')
         return false
       }
       return true
     }
 
     const buyNow = async () => {
-      // Kiểm tra đăng nhập trước khi thực hiện
-      if (!checkLogin()) {
-        return; // Dừng hàm nếu chưa đăng nhập
-      }
-
+      if (!checkLogin()) return
+      
       try {
-        // Thêm vào giỏ hàng trước
-        await addToCart();
-        
-        // Đợi một chút để đảm bảo sản phẩm đã được thêm vào giỏ hàng
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        // Lấy thông tin giỏ hàng mới nhất
-        const token = localStorage.getItem('token');
-        const response = await axios.get('http://localhost:3000/api/cart', {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        });
-
-        // Tìm cart item mới thêm vào
-        const cartItem = response.data.items.find(item => 
-          item.product_id === product.value.id && 
-          (!selectedVariant.value || item.variant_id === selectedVariant.value?.id)
-        );
-
-        if (cartItem) {
-          // Lưu ID cart item đã chọn
-          localStorage.setItem('preSelectedCartItem', cartItem.id.toString());
-          
-          // Chuyển đến trang giỏ hàng
-          router.push('/cart');
-        } else {
-          throw new Error('Không tìm thấy sản phẩm trong giỏ hàng');
-        }
-
+        await addToCart()
+        router.push('/cart')
       } catch (error) {
-        console.error('Buy now error:', error);
-        Swal.fire({
-          icon: 'error',
-          title: 'Lỗi',
-          text: error.response?.data?.message || error.message || 'Có lỗi xảy ra'
-        });
+        console.error('Buy now error:', error)
+        toastRef.value.showToast(
+          error.response?.data?.message || 'Có lỗi xảy ra',
+          'error'
+        )
       }
-    };
+    }
 
     const addToCart = async () => {
       if (!checkLogin()) return
       
       if (!selectedVariant.value) {
-        Swal.fire({
-          icon: 'warning',
-          title: 'Vui lòng chọn phiên bản',
-          text: 'Hãy chọn phiên bản sản phẩm trước khi thêm vào giỏ hàng'
+        toast.warning('Vui lòng chọn phiên bản sản phẩm trước khi thêm vào giỏ hàng', {
+          position: "top-right",
+          timeout: 3000,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
         })
         return
       }
 
       try {
-        // Hiển thị loading
-        Swal.fire({
-          title: 'Đang xử lý...',
-          allowOutsideClick: false,
-          didOpen: () => {
-            Swal.showLoading()
-          }
-        })
-
         const response = await axios.post(
           'http://localhost:3000/api/cart/add',
           {
@@ -470,28 +457,22 @@ export default {
         )
 
         if (response.status === 200) {
-          Swal.fire({
-            title: 'Thành công!',
-            text: 'Đã thêm sản phẩm vào giỏ hàng',
-            icon: 'success',
-            showCancelButton: true,
-            confirmButtonColor: '#3085d6',
-            cancelButtonColor: '#d33',
-            confirmButtonText: 'Đến giỏ hàng',
-            cancelButtonText: 'Tiếp tục mua sắm'
-          }).then((result) => {
-            if (result.isConfirmed) {
-              router.push('/cart')
-            }
+          toast.success('Đã thêm sản phẩm vào giỏ hàng', {
+            position: "top-right",
+            timeout: 2000,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
           })
         }
       } catch (error) {
         console.error('Lỗi khi thêm vào giỏ hàng:', error)
-        Swal.fire({
-          title: 'Lỗi!',
-          text: error.response?.data?.message || 'Có lỗi xảy ra khi thêm vào giỏ hàng',
-          icon: 'error',
-          confirmButtonText: 'Đóng'
+        toast.error(error.response?.data?.message || 'Có lỗi xảy ra khi thêm vào giỏ hàng', {
+          position: "top-right",
+          timeout: 3000,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
         })
       }
     }
@@ -521,11 +502,7 @@ export default {
         
         // Hiển thị thông báo nếu cần
         if (!canReview.value) {
-          Swal.fire({
-            icon: 'info',
-            title: 'Thông báo',
-            text: response.data.message
-          });
+          toastRef.value.showToast('Bạn cần mua và nhận sản phẩm này để có thể đánh giá', 'info');
         }
       } catch (error) {
         console.error('Error checking review permission:', error);
@@ -556,22 +533,9 @@ export default {
     const submitReview = async () => {
       try {
         if (!newReview.value.rating || !newReview.value.content) {
-          Swal.fire({
-            icon: 'warning',
-            title: 'Thiếu thông tin',
-            text: 'Vui lòng nhập đầy đủ đánh giá và nội dung'
-          });
+          toastRef.value.showToast('Vui lòng nhập đầy đủ đánh giá và nội dung', 'warning');
           return;
         }
-
-        // Hiển thị loading
-        Swal.fire({
-          title: 'Đang xử lý...',
-          allowOutsideClick: false,
-          didOpen: () => {
-            Swal.showLoading();
-          }
-        });
 
         const reviewData = {
           rating: newReview.value.rating,
@@ -594,20 +558,14 @@ export default {
           newReview.value = { rating: 0, content: '', images: [] };
           await fetchReviews();
           await checkCanReview();
-          
-          Swal.fire({
-            icon: 'success',
-            title: 'Thành công',
-            text: 'Cảm ơn bạn đã đánh giá sản phẩm!'
-          });
+          toastRef.value.showToast('Cảm ơn bạn đã đánh giá sản phẩm!', 'success');
         }
       } catch (error) {
         console.error('Review error:', error);
-        Swal.fire({
-          icon: 'error',
-          title: 'Lỗi',
-          text: error.response?.data?.message || 'Có lỗi xảy ra khi gửi đánh giá'
-        });
+        toastRef.value.showToast(
+          error.response?.data?.message || 'Có lỗi xảy ra khi gửi đánh giá',
+          'error'
+        );
       }
     };
 
@@ -702,7 +660,9 @@ export default {
       wards,
       handleProvinceChange,
       handleDistrictChange,
-      showReviewForm
+      showReviewForm,
+      toastRef,
+      getReviewTooltipMessage
     }
   }
 }
@@ -962,4 +922,76 @@ export default {
     height: 40px;
   }
 }
+
+.disabled-review-form {
+  position: relative;
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.disabled-review-form::before {
+  content: attr(data-tooltip-content);
+  position: absolute;
+  top: -40px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px 12px;
+  background-color: rgba(0, 0, 0, 0.8);
+  color: white;
+  border-radius: 4px;
+  font-size: 14px;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+}
+
+.disabled-review-form:hover::before {
+  opacity: 1;
+  visibility: visible;
+}
+
+.disabled {
+  background-color: #f8f9fa;
+  cursor: not-allowed;
+}
+
+.stars-input.disabled i {
+  color: #ccc !important;
+}
+
+.form-control.disabled {
+  background-color: #f8f9fa;
+  resize: none;
+}
+
+.btn.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Custom toast styles */
+.Vue-Toastification__toast {
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.Vue-Toastification__toast--success {
+  background-color: #4caf50;
+}
+
+.Vue-Toastification__toast--error {
+  background-color: #f44336;
+}
+
+.Vue-Toastification__toast--warning {
+  background-color: #ff9800;
+}
+
+.Vue-Toastification__progress-bar {
+  background-color: rgba(255, 255, 255, 0.3);
+}
 </style>
+
