@@ -109,124 +109,106 @@
         </div>
       </div>
 
-      <!-- Tabs thông tin chi tiết -->
+      <!-- Thay thế phần tabs bằng hiển thị trực tiếp -->
       <div class="product-details mt-5">
-        <ul class="nav nav-tabs" id="productTabs" role="tablist">
-          <li class="nav-item" role="presentation">
-            <a class="nav-link" 
-               :class="{ active: activeTab === 'description' }"
-               @click="activeTab = 'description'"
-               href="#description" 
-               role="tab">
-              Mô tả
-            </a>
-          </li>
-          <li class="nav-item" role="presentation">
-            <a class="nav-link"
-               :class="{ active: activeTab === 'reviews' }"
-               @click="activeTab = 'reviews'"
-               href="#reviews"
-               role="tab">
-              Đánh giá
-            </a>
-          </li>
-        </ul>
-        
-        <div class="tab-content" id="productTabsContent">
-          <div class="tab-pane fade" 
-               :class="{ 'show active': activeTab === 'description' }"
-               id="description" 
-               role="tabpanel">
+        <!-- Phần mô tả -->
+        <div class="description-section mb-5">
+          <h4 class="section-title">Mô tả sản phẩm</h4>
+          <div class="description-content p-4 bg-white rounded shadow-sm">
             <div v-html="product?.description"></div>
           </div>
+        </div>
 
-          <div class="tab-pane fade"
-               :class="{ 'show active': activeTab === 'reviews' }"
-               id="reviews"
-               role="tabpanel">
-            <!-- Form đánh giá -->
-            <div v-if="isAuthenticated">
-              <div class="review-form mb-4">
-                <h5>Viết đánh giá của bạn</h5>
-                <div class="alert alert-info">
-                  <i class="fas fa-info-circle me-2"></i>
-                  Bạn cần mua và nhận sản phẩm này để có thể đánh giá. 
-                  Vui lòng đợi đơn hàng được giao thành công.
-                </div>
+        <!-- Phần đánh giá -->
+        <div class="reviews-section">
+          <h4 class="section-title">Đánh giá sản phẩm</h4>
+          
+          <!-- Form đánh giá -->
+          <div v-if="isAuthenticated" class="review-form-container bg-white p-4 rounded shadow-sm mb-4">
+            <div class="review-form">
+              <h5>Viết đánh giá của bạn</h5>
+              
+              <!-- Form đánh giá khi có quyền -->
+              <template v-if="canReview">
                 <div class="rating-input mb-3">
                   <span>Đánh giá của bạn:</span>
                   <div class="stars-input">
                     <i v-for="n in 5" 
                        :key="n" 
                        class="fas fa-star" 
-                       :class="{ 'text-muted': true }"
-                       style="cursor: not-allowed">
+                       :class="{ 'text-warning': n <= newReview.rating }"
+                       @click="newReview.rating = n"
+                       style="cursor: pointer">
                     </i>
                   </div>
                 </div>
                 <div class="mb-3">
                   <textarea 
+                    v-model="newReview.content"
                     class="form-control" 
                     rows="3" 
-                    placeholder="Nhập nhận xét của bạn về sản phẩm"
-                    disabled
-                    style="background-color: #f8f9fa">
+                    placeholder="Nhập nhận xét của bạn về sản phẩm">
                   </textarea>
                 </div>
                 <button 
-                  class="btn btn-primary" 
-                  disabled
-                  style="opacity: 0.6; cursor: not-allowed">
+                  class="btn btn-primary"
+                  @click="submitReview"
+                  :disabled="!newReview.rating || !newReview.content">
                   Gửi đánh giá
                 </button>
-              </div>
-            </div>
-            <div v-else class="alert alert-info">
-              <i class="fas fa-info-circle me-2"></i>
-              Vui lòng <router-link to="/login">đăng nhập</router-link> để đánh giá sản phẩm
-            </div>
+              </template>
 
-            <!-- Phần hiển thị đánh giá -->
-            <div class="reviews-list mt-4">
-              <div v-if="reviews && reviews.length > 0">
-                <div v-for="review in reviews" 
-                     :key="review.id" 
-                     class="review-item p-3 mb-3 border rounded">
-                  <div class="reviewer-info d-flex align-items-center">
-                    <img :src="review.avatar_url || '/default-avatar.png'" 
-                         :alt="review.fullname" 
-                         class="avatar rounded-circle me-3">
-                    <div>
-                      <h6 class="mb-1">{{ review.fullname }}</h6>
-                      <div class="stars mb-1">
-                        <i v-for="n in 5" :key="n" 
-                           class="fas fa-star"
-                           :class="n <= review.rating ? 'text-warning' : 'text-muted'">
-                        </i>
-                      </div>
-                      <small class="text-muted">{{ formatDate(review.created_at) }}</small>
-                    </div>
-                  </div>
-                  
-                  <div class="review-content mt-3">
-                    <p class="mb-2">{{ review.comment }}</p>
-                  </div>
+              <!-- Thông báo khi chưa đủ điều kiện -->
+              <template v-else>
+                <div class="alert alert-info">
+                  <i class="fas fa-info-circle me-2"></i>
+                  Bạn cần mua và nhận sản phẩm này để có thể đánh giá. 
+                  Vui lòng đợi đơn hàng được giao thành công.
+                </div>
+              </template>
+            </div>
+          </div>
 
-                  <!-- Nếu có hình ảnh đánh giá -->
-                  <div class="review-images mt-2" v-if="review.images?.length">
-                    <div class="d-flex flex-wrap gap-2">
-                      <img v-for="(image, index) in review.images" 
-                           :key="index" 
-                           :src="image" 
-                           class="review-image"
-                           @click="showImageModal(image)">
+          <!-- Danh sách đánh giá -->
+          <div class="reviews-list bg-white p-4 rounded shadow-sm">
+            <div v-if="reviews && reviews.length > 0">
+              <div v-for="review in reviews" 
+                   :key="review.id" 
+                   class="review-item p-3 mb-3 border-bottom">
+                <div class="reviewer-info d-flex align-items-center">
+                  <img :src="review.avatar_url || '/default-avatar.png'" 
+                       :alt="review.fullname" 
+                       class="avatar rounded-circle me-3">
+                  <div>
+                    <h6 class="mb-1">{{ review.fullname }}</h6>
+                    <div class="stars mb-1">
+                      <i v-for="n in 5" :key="n" 
+                         class="fas fa-star"
+                         :class="n <= review.rating ? 'text-warning' : 'text-muted'">
+                      </i>
                     </div>
+                    <small class="text-muted">{{ formatDate(review.created_at) }}</small>
+                  </div>
+                </div>
+                
+                <div class="review-content mt-3">
+                  <p class="mb-2">{{ review.comment }}</p>
+                </div>
+
+                <!-- Hình ảnh đánh giá -->
+                <div class="review-images mt-2" v-if="review.images?.length">
+                  <div class="d-flex flex-wrap gap-2">
+                    <img v-for="(image, index) in review.images" 
+                         :key="index" 
+                         :src="image" 
+                         class="review-image"
+                         @click="showImageModal(image)">
                   </div>
                 </div>
               </div>
-              <div v-else class="text-center py-5">
-                <p class="text-muted mb-0">Chưa có đánh giá nào cho sản phẩm này</p>
-              </div>
+            </div>
+            <div v-else class="text-center py-4">
+              <p class="text-muted mb-0">Chưa có đánh giá nào cho sản phẩm này</p>
             </div>
           </div>
         </div>
@@ -287,7 +269,6 @@ export default {
     const provinces = ref([])
     const districts = ref([])
     const wards = ref([])
-    const activeTab = ref('description')
     const showReviewForm = ref(false)
 
     // Computed properties
@@ -638,7 +619,6 @@ export default {
       loadProvinces()
       // Kiểm tra query parameters
       if (route.query.tab === 'reviews') {
-        activeTab.value = 'reviews'
         if (route.query.showReviewForm === 'true') {
           showReviewForm.value = true
           // Scroll đến form đánh giá
@@ -722,7 +702,6 @@ export default {
       wards,
       handleProvinceChange,
       handleDistrictChange,
-      activeTab,
       showReviewForm
     }
   }
@@ -904,77 +883,83 @@ export default {
   margin-top: 3rem;
 }
 
-.nav-tabs {
-  border-bottom: none;
+.section-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+  color: #333;
+  position: relative;
+  padding-bottom: 0.5rem;
 }
 
-.nav-tabs .nav-link {
-  border: none;
-  border-bottom: 1px solid #ddd;
-  border-radius: 0;
-  padding: 10px 20px;
+.section-title::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 50px;
+  height: 3px;
+  background-color: #dc3545;
 }
 
-.nav-tabs .nav-link.active {
-  border-bottom: 2px solid #dc3545;
+.description-content, 
+.review-form-container,
+.reviews-list {
+  border: 1px solid #eee;
+  transition: box-shadow 0.3s ease;
 }
 
-/* Thêm responsive cho mobile */
-@media (max-width: 576px) {
-  .purchase-buttons {
-    flex-direction: column;
-  }
-  
-  .purchase-buttons .btn {
-    width: 100%;
-    padding: 10px;
-  }
+.description-content:hover, 
+.review-form-container:hover,
+.reviews-list:hover {
+  box-shadow: 0 5px 15px rgba(0,0,0,0.08) !important;
 }
 
-/* Thêm style cho Sweetalert */
-.swal2-popup {
+.review-item {
+  transition: background-color 0.3s ease;
+}
+
+.review-item:hover {
+  background-color: #f8f9fa;
+}
+
+.review-image {
+  width: 100px;
+  height: 100px;
+  object-fit: cover;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.review-image:hover {
+  transform: scale(1.05);
+}
+
+.avatar {
+  width: 50px;
+  height: 50px;
+  object-fit: cover;
+}
+
+.stars i {
   font-size: 0.9rem;
 }
 
-.swal2-html-container ul {
-  text-align: left;
-  margin: 1em auto;
-}
-
-.swal2-html-container ul li {
-  margin: 0.5em 0;
-}
-
-.swal2-html-container ul li i {
-  margin-right: 8px;
-}
-
-.tab-pane {
-  transition: opacity 0.3s ease-in-out;
-}
-
-.tab-pane.fade {
-  opacity: 0;
-}
-
-.tab-pane.fade.show {
-  opacity: 1;
-}
-
-.review-form {
-  background-color: #f8f9fa;
-  padding: 20px;
-  border-radius: 8px;
-  border: 1px solid #dee2e6;
-}
-
-.stars-input i.text-muted {
-  color: #ccc !important;
-}
-
-.alert-info {
-  background-color: #e8f4f8;
-  border-color: #bee5eb;
-  color: #0c5460;
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .section-title {
+    font-size: 1.25rem;
+  }
+  
+  .review-image {
+    width: 80px;
+    height: 80px;
+  }
+  
+  .avatar {
+    width: 40px;
+    height: 40px;
+  }
 }
 </style>

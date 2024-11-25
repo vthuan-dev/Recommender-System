@@ -954,7 +954,7 @@ router.post('/orders/:orderId/products/:productId/review', authenticateJWT, asyn
     } catch (error) {
       console.error('Error fetching order details:', error);
       res.status(500).json({ 
-        message: 'Lỗi khi lấy thông tin đ��n hàng', 
+        message: 'Lỗi khi lấy thông tin đơn hàng', 
         error: error.message 
       });
     } finally {
@@ -1017,78 +1017,78 @@ router.post('/orders/:orderId/products/:productId/review', authenticateJWT, asyn
     }
   });
 
-  // // Kiểm tra quyền đánh giá sản phẩm
-  // router.get('/products/:productId/can-review', authenticateJWT, async (req, res) => {
-  //   let connection;
-  //   try {
-  //     connection = await pool.getConnection();
-  //     const { productId } = req.params;
-  //     const userId = req.user.userId;
+  // Kiểm tra quyền đánh giá sản phẩm
+  router.get('/products/:productId/can-review', authenticateJWT, async (req, res) => {
+    let connection;
+    try {
+      connection = await pool.getConnection();
+      const { productId } = req.params;
+      const userId = req.user.userId;
 
-  //     // Kiểm tra sản phẩm có tồn tại không
-  //     const [products] = await connection.query(
-  //       'SELECT id FROM products WHERE id = ?',
-  //       [productId]
-  //     );
+      // Kiểm tra sản phẩm có tồn tại không
+      const [products] = await connection.query(
+        'SELECT id FROM products WHERE id = ?',
+        [productId]
+      );
 
-  //     if (!products || products.length === 0) {
-  //       return res.status(404).json({
-  //         canReview: false,
-  //         message: 'Không tìm thy sản phẩm'
-  //       });
-  //     }
+      if (!products || products.length === 0) {
+        return res.status(404).json({
+          canReview: false,
+          message: 'Không tìm thấy sản phẩm'
+        });
+      }
 
-  //     // Kiểm tra đơn hàng đã giao và sản phẩm
-  //     const [orders] = await connection.query(
-  //       `SELECT DISTINCT o.id 
-  //        FROM orders o
-  //        INNER JOIN orderitems oi ON o.id = oi.order_id 
-  //        WHERE o.user_id = ? 
-  //        AND oi.product_id = ?
-  //        AND o.status = 'delivered'
-  //        LIMIT 1`,
-  //       [userId, productId]
-  //     );
+      // Kiểm tra đơn hàng đã giao và sản phẩm
+      const [orders] = await connection.query(
+        `SELECT DISTINCT o.id 
+         FROM orders o
+         INNER JOIN orderitems oi ON o.id = oi.order_id 
+         WHERE o.user_id = ? 
+         AND oi.product_id = ?
+         AND o.status = 'delivered'
+         LIMIT 1`,
+        [userId, productId]
+      );
 
-  //     // Kiểm tra đã đánh giá chưa
-  //     const [reviews] = await connection.query(
-  //       `SELECT id FROM reviews 
-  //        WHERE user_id = ? 
-  //        AND product_id = ?
-  //        LIMIT 1`,
-  //       [userId, productId]
-  //     );
+      // Kiểm tra đã đánh giá chưa
+      const [reviews] = await connection.query(
+        `SELECT id FROM reviews 
+         WHERE user_id = ? 
+         AND product_id = ?
+         LIMIT 1`,
+        [userId, productId]
+      );
 
-  //     const hasOrder = orders && orders.length > 0;
-  //     const hasReview = reviews && reviews.length > 0;
-  //     const canReview = hasOrder && !hasReview;
+      const hasOrder = orders && orders.length > 0;
+      const hasReview = reviews && reviews.length > 0;
+      const canReview = hasOrder && !hasReview;
 
-  //     return res.status(200).json({
-  //       canReview,
-  //       message: canReview 
-  //         ? 'Bạn có thể đánh giá sản phẩm này'
-  //         : !hasOrder 
-  //           ? 'Bạn cần mua và nhận sản phẩm này để đánh giá'
-  //           : 'Bạn đã đánh giá sản phẩm này rồi',
-  //       hasOrder,
-  //       hasReview
-  //     });
+      return res.status(200).json({
+        canReview,
+        message: canReview 
+          ? 'Bạn có thể đánh giá sản phẩm này'
+          : !hasOrder 
+            ? 'Bạn cần mua và nhận sản phẩm này để đánh giá'
+            : 'Bạn đã đánh giá sản phẩm này rồi',
+        hasOrder,
+        hasReview
+      });
 
-  //   } catch (error) {
-  //     console.error('Error checking review permission:', error);
-  //     if (!res.headersSent) {
-  //       return res.status(500).json({
-  //         canReview: false,
-  //         message: 'Lỗi kiểm tra quyền đánh giá',
-  //         error: error.message
-  //       });
-  //     }
-  //   } finally {
-  //     if (connection) {
-  //       connection.release();
-  //     }
-  //   }
-  // });
+    } catch (error) {
+      console.error('Error checking review permission:', error);
+      if (!res.headersSent) {
+        return res.status(500).json({
+          canReview: false,
+          message: 'Lỗi kiểm tra quyền đánh giá',
+          error: error.message
+        });
+      }
+    } finally {
+      if (connection) {
+        connection.release();
+      }
+    }
+  });
 
   // Thêm middleware kiểm tra vai trò
   const checkCustomerRole = (req, res, next) => {
