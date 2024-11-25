@@ -256,7 +256,7 @@ import { useRoute, useRouter } from 'vue-router'
 import ProductCard from '@/components/Product/ProductCard.vue'
 import axios from 'axios'
 import AppToast from '@/components/Toast/Toast.vue'
-import Swal from 'sweetalert2'
+// import Swal from 'sweetalert2'
 import { useToast } from 'vue-toastification'
 
 export default {

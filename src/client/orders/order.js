@@ -9,6 +9,7 @@ const bodyParser = require('body-parser');
 const router = express.Router();
 const cors = require('cors');
 const { broadcastOrderUpdate } = require('../../websocket');
+const paypal = require('@paypal/checkout-server-sdk');
 
 dotenv.config();
 
@@ -19,6 +20,17 @@ const { authenticateJWT } = require('../../database/dbconfig');
 // app.use(cors());
 // app.use(bodyParser.json());
 // app.use(express.static(...));
+
+// Khởi tạo PayPal client
+function initPayPalClient() {
+  const clientId = process.env.PAYPAL_CLIENT_ID;
+  const clientSecret = process.env.PAYPAL_CLIENT_SECRET;
+  const environment = process.env.NODE_ENV === 'production'
+    ? new paypal.core.LiveEnvironment(clientId, clientSecret)
+    : new paypal.core.SandboxEnvironment(clientId, clientSecret);
+  
+  return new paypal.core.PayPalHttpClient(environment);
+}
 
 router.post('/orders', authenticateJWT, async (req, res) => {
     const connection = await pool.getConnection();
@@ -1235,6 +1247,63 @@ router.post('/orders/:orderId/products/:productId/review', authenticateJWT, asyn
       });
     } finally {
       if (connection) connection.release();
+    }
+  });
+
+  // Route tạo PayPal order
+  router.post('/create-paypal-payment', authenticateJWT, async (req, res) => {
+    try {
+      const { orderItems, total } = req.body;
+      const paypalClient = initPayPalClient();
+
+      const request = new paypal.orders.OrdersCreateRequest();
+      request.prefer("return=representation");
+      request.requestBody({
+        intent: 'CAPTURE',
+        purchase_units: [{
+          amount: {
+            currency_code: 'USD',
+            value: total.toString()
+          },
+          description: 'Order from T-Store'
+        }]
+      });
+
+      const order = await paypalClient.execute(request);
+      
+      res.json({
+        orderID: order.result.id
+      });
+
+    } catch (error) {
+      console.error('PayPal Create Order Error:', error);
+      res.status(500).json({ error: 'Failed to create PayPal order' });
+    }
+  });
+
+  // Route xử lý khi thanh toán thành công
+  router.post('/capture-paypal-payment', authenticateJWT, async (req, res) => {
+    const { orderID } = req.body;
+    
+    try {
+      const paypalClient = initPayPalClient();
+      const request = new paypal.orders.OrdersCaptureRequest(orderID);
+      const capture = await paypalClient.execute(request);
+
+      // Cập nhật trạng thái đơn hàng trong DB
+      await pool.query(
+        'UPDATE orders SET status = ?, payment_status = ? WHERE id = ?',
+        ['processing', 'paid', req.body.localOrderId]
+      );
+
+      res.json({ 
+        status: 'success',
+        details: capture.result 
+      });
+      
+    } catch (error) {
+      console.error('PayPal Capture Error:', error);
+      res.status(500).json({ error: 'Failed to capture PayPal payment' });
     }
   });
 

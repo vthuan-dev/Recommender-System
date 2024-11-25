@@ -280,6 +280,25 @@
                       </div>
                     </div>
                   </div>
+
+                  <!-- PayPal -->
+                  <div class="payment-method" @click="selectPayment('paypal')">
+                    <div class="d-flex align-items-center">
+                      <img src="@/assets/payment/paypal.png" alt="PayPal" class="payment-icon">
+                      <div class="payment-details ms-3">
+                        <h6>PayPal</h6>
+                        <p class="mb-0">Thanh toán qua PayPal</p>
+                      </div>
+                      <div class="form-check ms-auto">
+                        <input 
+                          type="radio" 
+                          class="form-check-input" 
+                          :checked="selectedPaymentMethod === 'paypal'"
+                          @change="selectPayment('paypal')"
+                        >
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -624,6 +643,12 @@
             </div>
           </div>
         </div>
+      </div>
+
+      <!-- PayPal Button Container -->
+      <div v-if="selectedPaymentMethod === 'paypal'" 
+           id="paypal-button-container" 
+           class="paypal-button-container mt-3">
       </div>
     </div>
   </template>
@@ -1012,33 +1037,6 @@
     }
   }
   
-  // // Xử lý chuyển sang bước thanh toán
-  // const proceedToPayment = async () => {
-  //   try {
-  //     if (!selectedAddress.value) {
-  //       Swal.fire({
-  //         icon: 'error',
-  //         title: 'Lỗi',
-  //         text: 'Vui lòng chọn địa chỉ giao hàng'
-  //       })
-  //       return
-  //     }
-
-  //     // Lưu địa chỉ đã chọn vào state hoặc localStorage nếu cần
-  //     localStorage.setItem('selectedAddressId', selectedAddress.value)
-      
-  //     // Chuyển sang bước thanh toán
-  //     currentStep.value = 3
-  //   } catch (error) {
-  //     console.error('Error proceeding to payment:', error)
-  //     Swal.fire({
-  //       icon: 'error',
-  //       title: 'Lỗi',
-  //       text: 'Có lỗi xảy ra, vui lòng thử lại'
-  //     })
-  //   }
-  // }
-  
   const toggleAddressDisplay = () => {
     isExpanded.value = !isExpanded.value
   }
@@ -1104,9 +1102,113 @@
   }
   
   const selectPayment = (method) => {
-    selectedPaymentMethod.value = method;
-    console.log('Selected payment method:', method);
+  // Reset container trước khi load lại
+  const container = document.getElementById('paypal-button-container');
+  if (container) {
+    container.innerHTML = '';
   }
+  
+  selectedPaymentMethod.value = method;
+  
+  if (method === 'paypal') {
+    // Đợi một chút để container được render
+    setTimeout(() => {
+      loadPayPalScript();
+    }, 100);
+  }
+};
+
+  const loadPayPalScript = () => {
+    console.log('Starting PayPal script load');
+    
+    const existingScript = document.querySelector('script[src*="paypal"]');
+    if (existingScript) {
+      existingScript.remove();
+    }
+
+    // Sử dụng Client ID của E-Come 2
+    const script = document.createElement('script');
+    script.src = `https://www.paypal.com/sdk/js?client-id=AQJDaA3jrv-eoVg5iA9WxVVsnC-KmNnIst0tEaqd5GSiO0PhhCRfErUo6-Ju0BQ8SJauZfgkeNObB29NX&currency=USD`;
+    script.async = true;
+
+    script.onload = () => {
+      console.log('PayPal script loaded successfully');
+      setTimeout(() => {
+        initPayPalButton();
+      }, 1000);
+    };
+
+    script.onerror = (error) => {
+      console.error('PayPal script loading error:', error);
+      selectedPaymentMethod.value = ''; // Reset payment method
+      Swal.fire({
+        icon: 'error',
+        title: 'Lỗi',
+        text: 'Không thể tải PayPal. Vui lòng thử lại sau hoặc chọn phương thức thanh toán khác.'
+      });
+    };
+
+    document.body.appendChild(script);
+  };
+
+  const initPayPalButton = () => {
+    if (!window.paypal) {
+      console.error('PayPal SDK not loaded');
+      return;
+    }
+
+    const container = document.getElementById('paypal-button-container');
+    if (!container) {
+      console.error('PayPal button container not found');
+      return;
+    }
+
+    try {
+      window.paypal.Buttons({
+        style: {
+          layout: 'vertical',
+          color: 'blue',
+          shape: 'rect',
+          label: 'paypal'
+        },
+        createOrder: async (data, actions) => {
+          // Convert VND to USD (approximate rate)
+          const amountUSD = (total.value / 23000).toFixed(2);
+          
+          return actions.order.create({
+            purchase_units: [{
+              amount: {
+                value: amountUSD,
+                currency_code: 'USD'
+              }
+            }]
+          });
+        },
+        onApprove: async (data, actions) => {
+          try {
+            const order = await actions.order.capture();
+            console.log('Payment completed', order);
+            
+            // Lưu đơn hàng
+            await placeOrder();
+            
+            await Swal.fire({
+              icon: 'success',
+              title: 'Thanh toán thành công',
+              text: 'Đơn hàng của bạn đã được xác nhận'
+            });
+            
+            router.push('/order-success');
+          } catch (error) {
+            console.error('Error capturing order:', error);
+            throw error;
+          }
+        }
+      }).render('#paypal-button-container');
+    } catch (error) {
+      console.error('Error rendering PayPal buttons:', error);
+    }
+  };
   
   const deleteAddress = async (addressId) => {
     try {
@@ -1149,8 +1251,6 @@
     }
   };
   
-  // Thêm biến để theo dõi thiết bị  <div v-for="address in displayedAddresses" 
-
   const isMobile = ref(window.innerWidth <= 768);
 
   // Thêm event listener để cập nhật isMobile khi resize window
@@ -1160,7 +1260,7 @@
     });
   });
 
-  // Hàm xử lý set địa chỉ mặc định
+  // Hàm xử lý set địa chỉ m��c định
   const setDefaultAddress = async (addressId) => {
     try {
       const token = localStorage.getItem('token');
@@ -1209,83 +1309,28 @@
     }
   };
 
-  // // Thêm hàm để lấy thông tin người dùng
-  // const fetchUserInfo = async () => {
-  //   try {
-  //     const token = localStorage.getItem('token')
-  //     if (!token) {
-  //       throw new Error('Vui lòng đăng nhập lại')
-  //     }
-
-  //     const response = await axios({
-  //       method: 'GET',
-  //       url: 'http://localhost:3000/api/user/profile',
-  //       headers: {
-  //         'Authorization': `Bearer ${token}`
-  //       }
-  //     })
-
-  //     userInfo.value = response.data
-  //   } catch (error) {
-  //     console.error('Error fetching user info:', error)
-  //     if (error.response?.status === 401) {
-  //       // Token hết hạn hoặc không hợp lệ
-  //       localStorage.removeItem('token')
-  //       router.push('/login')
-  //     } else {
-  //       Swal.fire({
-  //         icon: 'error',
-  //         title: 'Lỗi',
-  //         text: 'Không thể lấy thông tin người dùng. Vui lòng thử lại sau.'
-  //       })
-  //     }
-  //   }
-  // }
-
-  // // Gọi fetchUserInfo khi component được tạo
-  // onMounted(async () => {
-  //   await fetchUserInfo()
-  // })
-
   // Thêm computed property để lấy địa chỉ đã chọn
   const getSelectedAddress = computed(() => {
     return addresses.value.find(addr => addr.id === selectedAddress.value);
   });
-
-  // // Thêm computed property để tính tổng
-  // const calculateTotal = async () => {
-  //   try {
-  //     const token = localStorage.getItem('token');
-  //     if (!token) throw new Error('Vui lòng đăng nhập lại');
-
-  //     const response = await axios({
-  //       method: 'GET',
-  //       url: 'http://localhost:3000/api/orders/calculate-total',
-  //       headers: {
-  //         'Authorization': `Bearer ${token}`
-  //       },
-  //       params: {
-  //         items: JSON.stringify(checkoutItems.value)
-  //       }
-  //     });
-
-  //     return response.data;
-  //   } catch (error) {
-  //     console.error('Error calculating total:', error);
-  //     Swal.fire({
-  //       icon: 'error',
-  //       title: 'Lỗi',
-  //       text: 'Không thể tính tổng đơn hàng. Vui lòng thử lại.'
-  //     });
-  //     return null;
-  //   }
-  // };
 
   // Hoặc thêm watch để tự động tính lại tổng khi items thay đổi
 // Thay thế watch cũ bằng watch mới
 watch(checkoutItems, (items) => {
     console.log('Checkout items changed:', items);
   }, { deep: true })
+
+  // Thêm ref cho orderId nếu chưa có
+  // const orderId = ref(null);
+
+  // Thêm watch để debug
+  watch(selectedPaymentMethod, (newValue) => {
+    console.log('Payment method changed to:', newValue);
+    if (newValue === 'paypal') {
+      console.log('Loading PayPal script...');
+      loadPayPalScript();
+    }
+  });
   </script>
   
   <style scoped>
@@ -1842,7 +1887,7 @@ watch(checkoutItems, (items) => {
     animation: bounceIcon 1s infinite;
   }
   
-  /* Hiệu ứng mở rộng/thu g��n */
+  /* Hiệu ứng mở rộng/thu g����n */
   .address-item {
     animation: slideDown 0.3s ease forwards;
   }
@@ -2356,5 +2401,12 @@ watch(checkoutItems, (items) => {
     padding: 1.25rem;
     border-radius: 8px;
     border: 1px solid #e2e8f0;
+  }
+
+  .paypal-button-container {
+    width: 100%;
+    max-width: 500px;
+    min-height: 150px;
+    margin: 0 auto;
   }
   </style>
