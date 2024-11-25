@@ -13,14 +13,9 @@ const initializeWebSocket = (server) => {
     ws.on('message', async (message) => {
       try {
         const data = JSON.parse(message);
-        
-        if (data.type === 'search_query') {
-          // Xử lý tìm kiếm realtime
-          const results = await searchProducts(data.query);
-          ws.send(JSON.stringify({
-            type: 'search_suggestions',
-            products: results
-          }));
+        if (data.type === 'subscribe_order') {
+          // Lưu orderId vào client connection
+          clients.set(ws, data.orderId);
         }
       } catch (error) {
         console.error('WebSocket message error:', error);
@@ -34,36 +29,28 @@ const initializeWebSocket = (server) => {
   });
 };
 
-// Hàm tìm kiếm sản phẩm
-const searchProducts = async (query) => {
-  try {
-    if (!query.trim()) return [];
-
-    const searchQuery = `
-      SELECT id, name 
-      FROM products 
-      WHERE LOWER(name) LIKE LOWER(?)
-      ORDER BY 
-        CASE 
-          WHEN LOWER(name) LIKE LOWER(?) THEN 1
-          ELSE 2
-        END,
-        name
-      LIMIT 6
-    `;
-
-    const searchPattern = `%${query}%`;
-    const startPattern = `${query}%`;
-
-    const [results] = await pool.query(searchQuery, [searchPattern, startPattern]);
-    return results;
-
-  } catch (error) {
-    console.error('Search error:', error);
-    return [];
+const broadcastOrderUpdate = (orderId, status) => {
+  if (!wss) {
+    console.warn('WebSocket server not initialized');
+    return;
   }
+
+  wss.clients.forEach((client) => {
+    if (client.readyState === WebSocket.OPEN) {
+      const subscribedOrderId = clients.get(client);
+      if (subscribedOrderId === orderId) {
+        client.send(JSON.stringify({
+          type: 'order_update',
+          orderId: orderId,
+          newStatus: status,
+          timestamp: new Date().toISOString()
+        }));
+      }
+    }
+  });
 };
 
 module.exports = {
-  initializeWebSocket
+  initializeWebSocket,
+  broadcastOrderUpdate
 };

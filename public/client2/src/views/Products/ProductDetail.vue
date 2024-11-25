@@ -197,34 +197,58 @@
               <div v-for="review in reviews" 
                    :key="review.id" 
                    class="review-item p-3 mb-3 border-bottom">
-                <div class="reviewer-info d-flex align-items-center">
-                  <img :src="review.avatar_url || '/default-avatar.png'" 
-                       :alt="review.fullname" 
-                       class="avatar rounded-circle me-3">
-                  <div>
-                    <h6 class="mb-1">{{ review.fullname }}</h6>
-                    <div class="stars mb-1">
-                      <i v-for="n in 5" :key="n" 
-                         class="fas fa-star"
-                         :class="n <= review.rating ? 'text-warning' : 'text-muted'">
-                      </i>
+                <div class="review-header d-flex justify-content-between align-items-start">
+                  <div class="reviewer-info d-flex">
+                    <img :src="review.avatar_url || '/default-avatar.png'" 
+                         :alt="review.fullname" 
+                         class="avatar rounded-circle me-3">
+                    <div>
+                      <h6 class="mb-1">{{ review.fullname }}</h6>
+                      <div class="stars mb-1">
+                        <i v-for="n in 5" :key="n" 
+                           class="fas fa-star"
+                           :class="n <= review.rating ? 'text-warning' : 'text-muted'">
+                        </i>
+                      </div>
+                      <small class="text-muted">{{ formatDate(review.created_at) }}</small>
                     </div>
-                    <small class="text-muted">{{ formatDate(review.created_at) }}</small>
+                  </div>
+                  
+                  <!-- Badge xác minh -->
+                  <div class="verification-status">
+                    <span v-if="review.is_verified" class="badge verified">
+                      <i class="fas fa-check-circle"></i>
+                      Đã xác minh
+                    </span>
+                    <span v-else class="badge unverified">
+                      <i class="fas fa-clock"></i>
+                      Chờ xác minh
+                    </span>
                   </div>
                 </div>
-                
+
                 <div class="review-content mt-3">
                   <p class="mb-2">{{ review.comment }}</p>
                 </div>
 
-                <!-- Hình ảnh đánh giá -->
-                <div class="review-images mt-2" v-if="review.images?.length">
-                  <div class="d-flex flex-wrap gap-2">
-                    <img v-for="(image, index) in review.images" 
-                         :key="index" 
-                         :src="image" 
-                         class="review-image"
-                         @click="showImageModal(image)">
+                <!-- Phần hiển thị câu trả lời của admin -->
+                <div v-if="review.admin_reply" class="admin-reply mt-3 ms-4">
+                  <div class="reply-content p-3 bg-light rounded">
+                    <div class="reply-header d-flex align-items-center mb-2">
+                      <img :src="review.admin_reply.admin_avatar || '/admin-avatar.png'" 
+                           class="admin-avatar rounded-circle me-2" 
+                           alt="Admin">
+                      <div>
+                        <strong class="admin-name">
+                          <i class="fas fa-shield-alt me-1"></i>
+                          {{ review.admin_reply.admin_name }}
+                        </strong>
+                        <small class="text-muted d-block">
+                          {{ formatDate(review.admin_reply.created_at) }}
+                        </small>
+                      </div>
+                    </div>
+                    <p class="mb-0">{{ review.admin_reply.content }}</p>
                   </div>
                 </div>
               </div>
@@ -533,7 +557,7 @@ export default {
     const submitReview = async () => {
       try {
         if (!newReview.value.rating || !newReview.value.content) {
-          toastRef.value.showToast('Vui lòng nhập đầy đủ đánh giá và nội dung', 'warning');
+          toastRef.value.showToast('Vui lòng nh��p đầy đủ đánh giá và nội dung', 'warning');
           return;
         }
 
@@ -992,6 +1016,101 @@ export default {
 
 .Vue-Toastification__progress-bar {
   background-color: rgba(255, 255, 255, 0.3);
+}
+
+.verification-status .badge {
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.badge.verified {
+  background-color: #10b981;
+  color: white;
+}
+
+.badge.unverified {
+  background-color: #f3f4f6;
+  color: #6b7280;
+}
+
+.verification-status i {
+  font-size: 0.9rem;
+}
+
+/* Hiệu ứng hover */
+.badge.verified:hover {
+  background-color: #059669;
+}
+
+.badge.unverified:hover {
+  background-color: #e5e7eb;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .verification-status .badge {
+    font-size: 0.75rem;
+    padding: 0.4rem 0.8rem;
+  }
+  
+  .review-header {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .verification-status {
+    align-self: flex-start;
+  }
+}
+
+.admin-reply {
+  margin-top: 1rem;
+  padding-left: 1rem;
+  border-left: 2px solid #e5e7eb;
+}
+
+.admin-reply .reply-content {
+  background-color: #f8f9fa;
+  border-radius: 0.5rem;
+  border-left: 3px solid #0d6efd;
+}
+
+.admin-avatar {
+  width: 32px;
+  height: 32px;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.admin-name {
+  color: #0d6efd;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.admin-name i {
+  color: #0d6efd;
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+  .admin-reply {
+    margin-left: 0.5rem;
+  }
+  
+  .reply-content {
+    padding: 0.75rem !important;
+  }
+  
+  .admin-name {
+    font-size: 0.85rem;
+  }
 }
 </style>
 

@@ -19,9 +19,12 @@ const app = createApp(App)
 app.use(store)
 app.use(router)
 app.use(i18n)
+
 // Khôi phục theme từ localStorage
 const savedTheme = localStorage.getItem('theme') || 'default'
 document.documentElement.setAttribute('data-theme', savedTheme)
+
 app.mount('#app')
+
 // Initialize auth state
 store.dispatch('initializeAuth')

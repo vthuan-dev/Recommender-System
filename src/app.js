@@ -182,3 +182,11 @@ app.use((req, res, next) => {
   next();
 });
 
+const reviewManagementRoutes = require('./admin/reviews/reviews-management');
+
+// Đăng ký routes
+app.use('/api/admin', [
+  // ... other admin routes ...
+  reviewManagementRoutes
+]);
+

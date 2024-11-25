@@ -335,8 +335,13 @@ router.put('/orders/:id/status', authenticateJWT, checkAdminRole, async (req, re
 
     await connection.commit();
     
-    // Broadcast cập nhật qua WebSocket
-    broadcastOrderUpdate(orderId, status);
+    // Thêm try-catch cho broadcast
+    try {
+      broadcastOrderUpdate(orderId, status);
+    } catch (broadcastError) {
+      console.warn('Failed to broadcast order update:', broadcastError);
+      // Không throw error vì đây không phải lỗi nghiêm trọng
+    }
 
     res.json({
       message: status === 'cancelled' 

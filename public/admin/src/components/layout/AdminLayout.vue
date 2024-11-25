@@ -49,6 +49,11 @@
           <span>Khách hàng</span>
         </router-link>
 
+        <router-link to="/admin/reviews" class="nav-item" active-class="active">
+          <i class="fas fa-star"></i>
+          <span>Đánh giá sản phẩm</span>
+        </router-link>
+
         <router-link 
           to="/admin/settings" 
           class="nav-item" 

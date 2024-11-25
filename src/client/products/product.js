@@ -676,37 +676,46 @@ router.get('/products/:id/variants', async (req, res) => {
   }
 });
 
-// 2. API ly đánh giá của sản phẩm với phân trang
+// 2. API lấy đánh giá của sản phẩm với phân trang
 router.get('/products/:id/reviews', async (req, res) => {
   try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-    const offset = (page - 1) * limit;
-
     const [reviews] = await pool.query(`
-      SELECT r.*, u.fullname, u.avatar_url
+      SELECT 
+        r.*,
+        u.fullname,
+        u.avatar_url,
+        r.is_verified,
+        JSON_OBJECT(
+          'id', rr.id,
+          'content', rr.content,
+          'created_at', rr.created_at,
+          'admin_name', admin.fullname,
+          'admin_avatar', admin.avatar_url
+        ) as admin_reply
       FROM reviews r
       JOIN users u ON r.user_id = u.id
+      LEFT JOIN review_replies rr ON r.id = rr.review_id
+      LEFT JOIN users admin ON rr.admin_id = admin.id
       WHERE r.product_id = ?
       ORDER BY r.created_at DESC
-      LIMIT ? OFFSET ?
-    `, [req.params.id, limit, offset]);
+    `, [req.params.id]);
 
-    const [total] = await pool.query(
-      'SELECT COUNT(*) as count FROM reviews WHERE product_id = ?',
-      [req.params.id]
-    );
+    // Không cần parse JSON nữa vì MySQL đã trả về đúng format
+    const formattedReviews = reviews.map(review => ({
+      ...review,
+      admin_reply: review.admin_reply || null // Chỉ cần gán trực tiếp
+    }));
 
     res.json({
-      reviews,
-      pagination: {
-        currentPage: page,
-        totalPages: Math.ceil(total[0].count / limit),
-        totalReviews: total[0].count
-      }
+      reviews: formattedReviews
     });
+
   } catch (error) {
-    res.status(500).json({ message: 'Lỗi khi lấy đánh giá', error: error.message });
+    console.error('Error fetching reviews:', error);
+    res.status(500).json({ 
+      message: 'Lỗi khi lấy danh sách đánh giá',
+      error: error.message 
+    });
   }
 });
 

@@ -246,11 +246,26 @@ const initWebSocket = () => {
   };
 
   ws.value.onmessage = (event) => {
-    const data = JSON.parse(event.data);
-    if (data.type === 'order_update' && data.orderId === route.params.id) {
-      if (order.value && order.value.order_info) {
-        order.value.order_info.status = data.newStatus;
+    try {
+      const data = JSON.parse(event.data);
+      console.log('Received WebSocket message:', data);
+      
+      if (data.type === 'order_update' && data.orderId === route.params.id) {
+        if (order.value && order.value.order_info) {
+          order.value.order_info.status = data.newStatus;
+          Swal.fire({
+            title: 'Trạng thái đơn hàng đã cập nhật',
+            text: `Đơn hàng của bạn đã chuyển sang trạng thái: ${statusDescriptions[data.newStatus]}`,
+            icon: 'info',
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 3000
+          });
+        }
       }
+    } catch (error) {
+      console.error('Error processing WebSocket message:', error);
     }
   };
 

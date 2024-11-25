@@ -9,6 +9,7 @@ import Orders from '../views/Orders.vue';
 // import Customers from '../components/users/Customers.vue';
 import UserManagement from '../components/users/UserManagement.vue';
 // import CheckoutView from '../views/Checkout/CheckoutView.vue';
+import ReviewManagement from '../views/ReviewManagement.vue';
 
 const routes = [
   {
@@ -59,6 +60,14 @@ const routes = [
         name: 'UserManagement',
         component: UserManagement,
         meta: { requiresAuth: true }
+      },
+      {
+        path: 'reviews',
+        name: 'ReviewManagement',
+        component: ReviewManagement,
+        meta: {
+          title: 'Quản lý đánh giá'
+        }
       }
       // {
       //   path: 'users/customers',
