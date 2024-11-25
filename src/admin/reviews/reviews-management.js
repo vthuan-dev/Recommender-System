@@ -5,20 +5,28 @@ const { pool, authenticateJWT } = require('../../database/dbconfig');
 // Middleware kiểm tra quyền admin
 async function checkAdminRole(req, res, next) {
   try {
-    if (req.user && req.user.role === 'admin') {
-      next();
-    } else {
-      res.status(403).json({ message: 'Chỉ admin mới có quyền truy cập' });
+    // Kiểm tra có user và role
+    if (!req.user) {
+      return res.status(401).json({ message: 'Unauthorized - No user found' });
     }
+
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Forbidden - Admin role required' });
+    }
+
+    next();
   } catch (error) {
-    res.status(500).json({ message: 'Lỗi kiểm tra quyền admin', error: error.message });
+    console.error('Admin check error:', error);
+    res.status(500).json({ 
+      message: 'Lỗi kiểm tra quyền admin', 
+      error: error.message 
+    });
   }
 }
 
 // Lấy danh sách đánh giá
 router.get('/reviews', authenticateJWT, checkAdminRole, async (req, res) => {
   try {
-    console.log('Đang lấy danh sách đánh giá...');
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const offset = (page - 1) * limit;
@@ -39,79 +47,65 @@ router.get('/reviews', authenticateJWT, checkAdminRole, async (req, res) => {
       queryParams.push(parseInt(rating));
     }
 
-    // Query với error handling
-    let reviews, totalCount;
-    try {
-      const reviewsQuery = `
-        SELECT 
-          r.id,
-          r.rating,
-          r.comment,
-          r.created_at,
-          r.updated_at,
-          r.is_verified,
-          u.fullname as customer_name,
-          u.email as customer_email,
-          u.avatar_url as customer_avatar,
-          p.name as product_name,
-          p.image_url as product_image,
-          b.name as brand_name,
-          (SELECT 
-            JSON_OBJECT(
-              'id', rr.id,
-              'content', rr.content,
-              'created_at', rr.created_at,
-              'admin_name', admin.fullname,
-              'admin_avatar', admin.avatar_url
-            )
-           FROM review_replies rr
-           JOIN users admin ON rr.admin_id = admin.id
-           WHERE rr.review_id = r.id
-           LIMIT 1) as admin_reply
-        FROM reviews r
-        JOIN users u ON r.user_id = u.id
-        JOIN products p ON r.product_id = p.id
-        LEFT JOIN brands b ON p.brand_id = b.id
-        WHERE ${whereClause}
-        ORDER BY r.created_at DESC
-        LIMIT ? OFFSET ?
-      `;
+    // Query lấy tổng số records
+    const [countResult] = await pool.query(`
+      SELECT COUNT(*) as total
+      FROM reviews r
+      WHERE ${whereClause}
+    `, queryParams);
 
-      console.log('SQL Query:', reviewsQuery);
-      console.log('Query Params:', [...queryParams, limit, offset]);
+    const totalReviews = countResult[0].total;
+    const totalPages = Math.ceil(totalReviews / limit);
 
-      [reviews] = await pool.query(reviewsQuery, [...queryParams, limit, offset]);
-
-      [totalCount] = await pool.query(
-        `SELECT COUNT(*) as count FROM reviews r WHERE ${whereClause}`,
-        queryParams
-      );
-
-      console.log('Tìm thấy:', reviews.length, 'đánh giá');
-
-    } catch (dbError) {
-      console.error('Database error:', dbError);
-      throw new Error(`Lỗi truy vấn cơ sở dữ liệu: ${dbError.message}`);
-    }
+    // Query lấy reviews
+    const [reviews] = await pool.query(`
+      SELECT 
+        r.*,
+        u.fullname as customer_name,
+        u.email as customer_email,
+        u.avatar_url as customer_avatar,
+        p.name as product_name,
+        p.image_url as product_image,
+        b.name as brand_name,
+        rr.id as reply_id,
+        rr.content as reply_content,
+        rr.created_at as reply_created_at,
+        admin.fullname as admin_name,
+        admin.avatar_url as admin_avatar
+      FROM reviews r
+      JOIN users u ON r.user_id = u.id
+      JOIN products p ON r.product_id = p.id
+      LEFT JOIN brands b ON p.brand_id = b.id
+      LEFT JOIN review_replies rr ON r.id = rr.review_id
+      LEFT JOIN users admin ON rr.user_id = admin.id
+      WHERE ${whereClause}
+      ORDER BY r.created_at DESC
+      LIMIT ? OFFSET ?
+    `, [...queryParams, limit, offset]);
 
     res.json({
       reviews: reviews.map(review => ({
         ...review,
-        created_at: new Date(review.created_at).toISOString(),
-        updated_at: new Date(review.updated_at).toISOString(),
-        is_verified: !!review.is_verified
+        admin_reply: review.reply_id ? {
+          id: review.reply_id,
+          content: review.reply_content,
+          created_at: review.reply_created_at,
+          admin_name: review.admin_name,
+          admin_avatar: review.admin_avatar
+        } : null
       })),
-      currentPage: page,
-      totalPages: Math.ceil(totalCount[0].count / limit),
-      totalReviews: totalCount[0].count
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalItems: totalReviews
+      }
     });
 
   } catch (error) {
-    console.error('Error in /reviews:', error);
+    console.error('Error fetching reviews:', error);
     res.status(500).json({ 
-      message: 'Lỗi khi lấy danh sách đánh giá', 
-      error: error.message,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      message: 'Lỗi khi lấy danh sách đánh giá',
+      error: error.message 
     });
   }
 });
@@ -242,30 +236,49 @@ router.post('/reviews/:reviewId/reply', authenticateJWT, checkAdminRole, async (
   try {
     const { reviewId } = req.params;
     const { content } = req.body;
-    const adminId = req.user.userId;
+    const userId = req.user.userId; // ID của admin
 
     if (!content?.trim()) {
       return res.status(400).json({ message: 'Nội dung trả lời không được để trống' });
     }
 
-    const [result] = await pool.query(
-      'INSERT INTO review_replies (review_id, admin_id, content) VALUES (?, ?, ?)',
-      [reviewId, adminId, content]
+    // Kiểm tra xem đã có reply chưa
+    const [existingReply] = await pool.query(
+      'SELECT * FROM review_replies WHERE review_id = ?',
+      [reviewId]
     );
 
+    if (existingReply.length > 0) {
+      return res.status(400).json({ message: 'Đánh giá này đã được trả lời' });
+    }
+
+    // Thêm reply mới
+    const [result] = await pool.query(
+      `INSERT INTO review_replies (review_id, user_id, content, user_type) 
+       VALUES (?, ?, ?, 'admin')`,
+      [reviewId, userId, content]
+    );
+
+    // Lấy thông tin reply vừa tạo
     const [reply] = await pool.query(`
       SELECT 
         rr.*,
         u.fullname as admin_name,
         u.avatar_url as admin_avatar
       FROM review_replies rr
-      JOIN users u ON rr.admin_id = u.id
+      JOIN users u ON rr.user_id = u.id
       WHERE rr.id = ?
     `, [result.insertId]);
 
     res.status(201).json({
       message: 'Đã trả lời đánh giá thành công',
-      reply: reply[0]
+      reply: {
+        id: reply[0].id,
+        content: reply[0].content,
+        created_at: reply[0].created_at,
+        admin_name: reply[0].admin_name,
+        admin_avatar: reply[0].admin_avatar
+      }
     });
 
   } catch (error) {

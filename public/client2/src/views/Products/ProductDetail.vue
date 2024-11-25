@@ -122,140 +122,88 @@
         </div>
 
         <!-- Phần đánh giá -->
-        <div class="reviews-section">
-          <h4 class="section-title">Đánh giá sản phẩm</h4>
-          
-          <!-- Form đánh giá -->
-          <div v-if="isAuthenticated" class="review-form-container bg-white p-4 rounded shadow-sm mb-4">
-            <div class="review-form">
-              <h5>Viết đánh giá của bạn</h5>
-              
-              <!-- Form đánh giá khi chưa đánh giá và có quyền đánh giá -->
-              <template v-if="canReview">
-                <div class="rating-input mb-3">
-                  <span>Đánh giá của bạn:</span>
-                  <div class="stars-input">
-                    <i v-for="n in 5" 
-                       :key="n" 
-                       class="fas fa-star" 
-                       :class="{ 'text-warning': n <= newReview.rating }"
-                       @click="newReview.rating = n"
-                       style="cursor: pointer">
-                    </i>
-                  </div>
-                </div>
-                <div class="mb-3">
-                  <textarea 
-                    v-model="newReview.content"
-                    class="form-control" 
-                    rows="3" 
-                    placeholder="Nhập nhận xét của bạn về sản phẩm">
-                  </textarea>
-                </div>
-                <button 
-                  class="btn btn-primary"
-                  @click="submitReview"
-                  :disabled="!newReview.rating || !newReview.content">
-                  Gửi đánh giá
-                </button>
-              </template>
-              <!-- Khi đã đánh giá hoặc chưa đủ điều kiện -->
-              <template v-else>
-                <div class="disabled-review-form" 
-                     data-tooltip-id="review-tooltip"
-                     :data-tooltip-content="getReviewTooltipMessage">
-                  <div class="rating-input mb-3 disabled">
-                    <span>Đánh giá của bạn:</span>
-                    <div class="stars-input">
-                      <i v-for="n in 5" 
-                         :key="n" 
-                         class="fas fa-star text-muted">
+        <div class="reviews-section mt-4">
+          <h3>Đánh giá sản phẩm</h3>
+          <div v-if="reviews.length > 0">
+            <div v-for="review in reviews" :key="review.id" class="review-item mb-4">
+              <div class="review-header d-flex justify-content-between">
+                <div class="user-info d-flex align-items-center">
+                  <img :src="review.user.avatar_url || '/default-avatar.png'" 
+                       class="rounded-circle me-2" 
+                       alt="User Avatar"
+                       width="40">
+                  <div>
+                    <strong>{{ review.user.name }}</strong>
+                    <div class="rating">
+                      <i v-for="n in 5" :key="n" 
+                         class="fas fa-star"
+                         :class="n <= review.rating ? 'text-warning' : 'text-muted'">
                       </i>
                     </div>
+                    <small class="text-muted">{{ formatDate(review.created_at) }}</small>
                   </div>
-                  <div class="mb-3">
-                    <textarea 
-                      class="form-control disabled" 
-                      rows="3" 
-                      placeholder="Nhập nhận xét của bạn về sản phẩm"
-                      disabled>
-                    </textarea>
-                  </div>
-                  <button 
-                    class="btn btn-primary disabled"
-                    disabled>
-                    Gửi đánh giá
-                  </button>
                 </div>
-              </template>
-            </div>
-          </div>
+                
+                <div class="verification-status">
+                  <span v-if="review.is_verified" class="badge bg-success">
+                    <i class="fas fa-check-circle"></i> Đã xác minh
+                  </span>
+                  <span v-else class="badge bg-secondary">
+                    <i class="fas fa-clock"></i> Chờ xác minh
+                  </span>
+                </div>
+              </div>
 
-          <!-- Danh sách đánh giá -->
-          <div class="reviews-list bg-white p-4 rounded shadow-sm">
-            <div v-if="reviews && reviews.length > 0">
-              <div v-for="review in reviews" 
-                   :key="review.id" 
-                   class="review-item p-3 mb-3 border-bottom">
-                <div class="review-header d-flex justify-content-between align-items-start">
-                  <div class="reviewer-info d-flex">
-                    <img :src="review.avatar_url || '/default-avatar.png'" 
-                         :alt="review.fullname" 
-                         class="avatar rounded-circle me-3">
+              <div class="review-content mt-3">
+                <p>{{ review.comment }}</p>
+              </div>
+
+              <!-- Phản hồi -->
+              <div v-if="review.reply" class="admin-reply mt-3 ms-4">
+                <div class="reply-content p-3 bg-light rounded">
+                  <div class="reply-header d-flex align-items-center mb-2">
+                    <img :src="review.reply.user.avatar_url || '/admin-avatar.png'" 
+                         class="rounded-circle me-2" 
+                         width="30"
+                         alt="Reply User">
                     <div>
-                      <h6 class="mb-1">{{ review.fullname }}</h6>
-                      <div class="stars mb-1">
-                        <i v-for="n in 5" :key="n" 
-                           class="fas fa-star"
-                           :class="n <= review.rating ? 'text-warning' : 'text-muted'">
-                        </i>
-                      </div>
-                      <small class="text-muted">{{ formatDate(review.created_at) }}</small>
+                      <strong class="reply-user-name">
+                        <i v-if="review.reply.user.is_admin" class="fas fa-shield-alt me-1"></i>
+                        {{ review.reply.user.name }}
+                      </strong>
+                      <small class="text-muted d-block">
+                        {{ formatDate(review.reply.created_at) }}
+                      </small>
                     </div>
                   </div>
-                  
-                  <!-- Badge xác minh -->
-                  <div class="verification-status">
-                    <span v-if="review.is_verified" class="badge verified">
-                      <i class="fas fa-check-circle"></i>
-                      Đã xác minh
-                    </span>
-                    <span v-else class="badge unverified">
-                      <i class="fas fa-clock"></i>
-                      Chờ xác minh
-                    </span>
-                  </div>
-                </div>
-
-                <div class="review-content mt-3">
-                  <p class="mb-2">{{ review.comment }}</p>
-                </div>
-
-                <!-- Phần hiển thị câu trả lời của admin -->
-                <div v-if="review.admin_reply" class="admin-reply mt-3 ms-4">
-                  <div class="reply-content p-3 bg-light rounded">
-                    <div class="reply-header d-flex align-items-center mb-2">
-                      <img :src="review.admin_reply.admin_avatar || '/admin-avatar.png'" 
-                           class="admin-avatar rounded-circle me-2" 
-                           alt="Admin">
-                      <div>
-                        <strong class="admin-name">
-                          <i class="fas fa-shield-alt me-1"></i>
-                          {{ review.admin_reply.admin_name }}
-                        </strong>
-                        <small class="text-muted d-block">
-                          {{ formatDate(review.admin_reply.created_at) }}
-                        </small>
-                      </div>
-                    </div>
-                    <p class="mb-0">{{ review.admin_reply.content }}</p>
-                  </div>
+                  <p class="mb-0">{{ review.reply.content }}</p>
                 </div>
               </div>
             </div>
-            <div v-else class="text-center py-4">
-              <p class="text-muted mb-0">Chưa có đánh giá nào cho sản phẩm này</p>
+
+            <!-- Phân trang -->
+            <div v-if="totalPages > 1" class="pagination justify-content-center mt-4">
+              <button class="btn btn-outline-primary me-2" 
+                      :disabled="currentPage === 1"
+                      @click="changePage(currentPage - 1)">
+                <i class="fas fa-chevron-left"></i>
+              </button>
+              <button v-for="page in totalPages" 
+                      :key="page"
+                      class="btn btn-outline-primary me-2"
+                      :class="{ active: page === currentPage }"
+                      @click="changePage(page)">
+                {{ page }}
+              </button>
+              <button class="btn btn-outline-primary"
+                      :disabled="currentPage === totalPages"
+                      @click="changePage(currentPage + 1)">
+                <i class="fas fa-chevron-right"></i>
+              </button>
             </div>
+          </div>
+          <div v-else class="text-center py-4">
+            <p class="text-muted mb-0">Chưa có đánh giá nào cho sản phẩm này</p>
           </div>
         </div>
       </div>
@@ -375,14 +323,15 @@ export default {
       try {
         const response = await axios.get(
           `http://localhost:3000/api/products/${route.params.id}/reviews?page=${page}&limit=5`
-        )
-        reviews.value = response.data.reviews
-        totalPages.value = response.data.pagination.totalPages
-        currentPage.value = page
+        );
+        reviews.value = response.data.reviews;
+        totalPages.value = response.data.pagination.totalPages;
+        currentPage.value = page;
       } catch (error) {
-        console.error('Error fetching reviews:', error)
+        console.error('Error fetching reviews:', error);
+        toast.error('Không thể tải đánh giá sản phẩm');
       }
-    }
+    };
 
     const calculateRatingPercentage = (stars) => {
       if (!reviews.value.length) return 0
@@ -557,7 +506,7 @@ export default {
     const submitReview = async () => {
       try {
         if (!newReview.value.rating || !newReview.value.content) {
-          toastRef.value.showToast('Vui lòng nh��p đầy đủ đánh giá và nội dung', 'warning');
+          toastRef.value.showToast('Vui lòng nhp đầy đủ đánh giá và nội dung', 'warning');
           return;
         }
 

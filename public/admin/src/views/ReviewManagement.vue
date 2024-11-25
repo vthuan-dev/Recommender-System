@@ -193,14 +193,20 @@
       const response = await api.get('/admin/reviews', {
         params: {
           page: currentPage.value,
-          ...filters.value
+          limit: 10,
+          status: filters.value.status,
+          rating: filters.value.rating || undefined
         }
       });
-      reviews.value = response.data.reviews;
-      totalPages.value = response.data.totalPages;
+      
+      if (response.data) {
+        reviews.value = response.data.reviews;
+        totalPages.value = response.data.pagination.totalPages;
+      }
     } catch (error) {
       console.error('Load reviews error:', error);
-      toast.error('Lỗi khi tải danh sách đánh giá: ' + (error.response?.data?.message || error.message));
+      const errorMessage = error.response?.data?.message || error.message;
+      toast.error('Lỗi khi tải danh sách đánh giá: ' + errorMessage);
     }
   };
   

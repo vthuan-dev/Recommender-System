@@ -679,35 +679,65 @@ router.get('/products/:id/variants', async (req, res) => {
 // 2. API lấy đánh giá của sản phẩm với phân trang
 router.get('/products/:id/reviews', async (req, res) => {
   try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 5;
+    const offset = (page - 1) * limit;
+
+    // Sửa lại query để phù hợp với cấu trúc CSDL của bạn
     const [reviews] = await pool.query(`
       SELECT 
         r.*,
-        u.fullname,
-        u.avatar_url,
-        r.is_verified,
-        JSON_OBJECT(
-          'id', rr.id,
-          'content', rr.content,
-          'created_at', rr.created_at,
-          'admin_name', admin.fullname,
-          'admin_avatar', admin.avatar_url
-        ) as admin_reply
+        u.fullname as reviewer_name,
+        u.avatar_url as reviewer_avatar,
+        rr.id as reply_id,
+        rr.content as reply_content,
+        rr.created_at as reply_created_at,
+        reply_user.fullname as reply_user_name,
+        reply_user.avatar_url as reply_user_avatar,
+        reply_user.role_id as reply_user_role,
+        COUNT(*) OVER() as total_count
       FROM reviews r
       JOIN users u ON r.user_id = u.id
       LEFT JOIN review_replies rr ON r.id = rr.review_id
-      LEFT JOIN users admin ON rr.admin_id = admin.id
+      LEFT JOIN users reply_user ON rr.user_id = reply_user.id
       WHERE r.product_id = ?
       ORDER BY r.created_at DESC
-    `, [req.params.id]);
+      LIMIT ? OFFSET ?
+    `, [req.params.id, limit, offset]);
 
-    // Không cần parse JSON nữa vì MySQL đã trả về đúng format
+    const totalReviews = reviews.length > 0 ? reviews[0].total_count : 0;
+    const totalPages = Math.ceil(totalReviews / limit);
+
+    // Format lại dữ liệu trả về
     const formattedReviews = reviews.map(review => ({
-      ...review,
-      admin_reply: review.admin_reply || null // Chỉ cần gán trực tiếp
+      id: review.id,
+      rating: review.rating,
+      comment: review.comment,
+      created_at: review.created_at,
+      is_verified: review.is_verified,
+      user: {
+        name: review.reviewer_name,
+        avatar_url: review.reviewer_avatar
+      },
+      reply: review.reply_id ? {
+        id: review.reply_id,
+        content: review.reply_content,
+        created_at: review.reply_created_at,
+        user: {
+          name: review.reply_user_name,
+          avatar_url: review.reply_user_avatar,
+          is_admin: review.reply_user_role === 1 // Giả sử role_id = 1 là admin
+        }
+      } : null
     }));
 
     res.json({
-      reviews: formattedReviews
+      reviews: formattedReviews,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalItems: totalReviews
+      }
     });
 
   } catch (error) {
