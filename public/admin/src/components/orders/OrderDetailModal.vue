@@ -110,6 +110,27 @@
               </div>
             </div>
           </div>
+
+          <!-- Thêm section địa chỉ sau payment-section -->
+          <div class="shipping-section">
+            <h5 class="section-title">Thông tin giao hàng</h5>
+            <div class="shipping-details">
+              <div class="shipping-row">
+                <span class="label">Người nhận:</span>
+                <span class="value">{{ order.shipping_address?.recipient_name || order.customer?.name }}</span>
+              </div>
+              <div class="shipping-row">
+                <span class="label">Số điện thoại:</span>
+                <span class="value">{{ order.shipping_address?.recipient_phone || order.customer?.phone }}</span>
+              </div>
+              <div class="shipping-row">
+                <span class="label">Địa chỉ:</span>
+                <span class="value">
+                  {{ formatAddress(order.shipping_address) }}
+                </span>
+              </div>
+            </div>
+          </div>
         </template>
       </div>
     </div>
@@ -405,6 +426,49 @@ td {
 .payment-row .value.failed { color: #ef4444; }
 .payment-row .value.refunded { color: #6366f1; }
 .payment-row .value.cancelled { color: #64748b; }
+
+.shipping-section {
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  margin-bottom: 24px;
+}
+
+.shipping-details {
+  padding: 20px;
+}
+
+.shipping-row {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 12px;
+  padding: 8px 0;
+}
+
+.shipping-row .label {
+  width: 140px;
+  color: #64748b;
+  font-size: 0.875rem;
+}
+
+.shipping-row .value {
+  flex: 1;
+  color: #1e293b;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+  .shipping-row {
+    flex-direction: column;
+  }
+  
+  .shipping-row .label {
+    width: 100%;
+    margin-bottom: 4px;
+  }
+}
 </style>
 
 <script>
@@ -468,12 +532,28 @@ export default {
       return new Date(date).toLocaleString('vi-VN')
     }
 
+    const formatAddress = (address) => {
+      if (!address) return 'Không có thông tin';
+      
+      const parts = [
+        address.address_line1,
+        address.address_line2,
+        address.city,
+        address.state,
+        address.postal_code,
+        address.country
+      ].filter(Boolean); // Lọc bỏ các giá trị null/undefined
+      
+      return parts.join(', ');
+    }
+
     return {
       getStatusLabel,
       getPaymentMethodLabel,
       getPaymentStatusLabel,
       formatPrice,
-      formatDate
+      formatDate,
+      formatAddress
     }
   }
 }
