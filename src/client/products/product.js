@@ -907,4 +907,141 @@ router.get('/products/:productId/review-status', authenticateJWT, async (req, re
   }
 });
 
+// API tìm kiếm sản phẩm
+router.get('/search', async (req, res) => {
+  try {
+    const { q: searchQuery, category } = req.query;
+    let query = `
+      SELECT 
+        p.*,
+        b.name as brand_name,
+        MIN(pv.price) as min_price,
+        MAX(pv.price) as max_price,
+        (SELECT AVG(rating) FROM reviews r WHERE r.product_id = p.id) as avg_rating
+      FROM products p
+      LEFT JOIN brands b ON p.brand_id = b.id
+      LEFT JOIN productvariants pv ON p.id = pv.product_id
+      WHERE (p.name LIKE ? OR p.description LIKE ?)
+    `;
+    
+    const params = [`%${searchQuery}%`, `%${searchQuery}%`];
+
+    if (category) {
+      query += ` AND p.category_id = ?`;
+      params.push(category);
+    }
+
+    query += `
+      GROUP BY p.id
+      ORDER BY 
+        CASE 
+          WHEN p.name LIKE ? THEN 1
+          WHEN p.name LIKE ? THEN 2
+          ELSE 3
+        END,
+        p.name
+      LIMIT 20
+    `;
+    params.push(`${searchQuery}%`, `%${searchQuery}%`);
+
+    const [products] = await pool.query(query, params);
+
+    res.json({
+      products,
+      total: products.length,
+      query: searchQuery
+    });
+
+  } catch (error) {
+    console.error('Lỗi tìm kiếm sản phẩm:', error);
+    res.status(500).json({ 
+      message: 'Lỗi tìm kiếm sản phẩm',
+      error: error.message 
+    });
+  }
+});
+
+// API endpoint cho gợi ý tìm kiếm realtime
+router.get('/search/suggestions', async (req, res) => {
+  try {
+    const { q: searchQuery } = req.query;
+    
+    if (!searchQuery || searchQuery.trim().length === 0) {
+      return res.json({ products: [] });
+    }
+
+    const query = `
+      SELECT DISTINCT
+        p.id,
+        p.name
+      FROM products p
+      WHERE LOWER(p.name) LIKE LOWER(?)
+      ORDER BY 
+        CASE 
+          WHEN LOWER(p.name) LIKE LOWER(?) THEN 1
+          ELSE 2
+        END
+      LIMIT 5
+    `;
+
+    const searchPattern = `%${searchQuery}%`;
+    const startPattern = `${searchQuery}%`;
+
+    const [products] = await pool.query(query, [searchPattern, startPattern]);
+    res.json({ products });
+
+  } catch (error) {
+    console.error('Lỗi tìm kiếm:', error);
+    res.status(500).json({ error: 'Lỗi tìm kiếm' });
+  }
+});
+
+// Thêm route cho search suggestions
+router.get('/api/search/suggestions', async (req, res) => {
+  try {
+    const { q: searchQuery } = req.query;
+    
+    if (!searchQuery || searchQuery.trim().length === 0) {
+      return res.json({ products: [] });
+    }
+
+    const query = `
+      SELECT 
+        id,
+        name,
+        image_url,
+        price
+      FROM products 
+      WHERE LOWER(name) LIKE LOWER(?)
+      ORDER BY 
+        CASE 
+          WHEN LOWER(name) LIKE LOWER(?) THEN 1
+          ELSE 2
+        END
+      LIMIT 5
+    `;
+
+    const searchPattern = `%${searchQuery}%`;
+    const startPattern = `${searchQuery}%`;
+
+    const [products] = await pool.query(query, [searchPattern, startPattern]);
+
+    res.json({ 
+      products: products.map(product => ({
+        id: product.id,
+        name: product.name,
+        image_url: product.image_url,
+        price: product.price
+      }))
+    });
+
+  } catch (error) {
+    console.error('Lỗi tìm kiếm:', error);
+    res.status(500).json({ 
+      error: 'Lỗi tìm kiếm',
+      message: error.message 
+    });
+  }
+});
+
 module.exports = router;
