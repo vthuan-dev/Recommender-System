@@ -388,18 +388,48 @@ router.post('/orders/:orderId/products/:productId/review', authenticateJWT, asyn
   router.get('/products/:productId/reviews', async (req, res) => {
     try {
       const { productId } = req.params;
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 10;
+      const offset = (page - 1) * limit;
+
       const [reviews] = await pool.query(
-        `SELECT r.*, u.fullname AS username
-         FROM reviews r 
-         JOIN users u ON r.user_id = u.id 
-         WHERE r.product_id = ? 
-         ORDER BY r.created_at DESC`,
+        `SELECT r.*, 
+                u.fullname, 
+                u.avatar_url,
+                r.edit_count > 0 as is_edited,
+                r.created_at,
+                r.updated_at
+         FROM reviews r
+         JOIN users u ON r.user_id = u.id
+         WHERE r.product_id = ?
+         ORDER BY r.created_at DESC
+         LIMIT ? OFFSET ?`,
+        [productId, limit, offset]
+      );
+
+      const [total] = await pool.query(
+        'SELECT COUNT(*) as count FROM reviews WHERE product_id = ?',
         [productId]
       );
-      res.json(reviews);
+
+      res.json({
+        reviews: reviews.map(review => ({
+          ...review,
+          is_edited: review.edit_count > 0,
+          edit_time: review.is_edited ? review.updated_at : null
+        })),
+        pagination: {
+          currentPage: page,
+          totalPages: Math.ceil(total[0].count / limit),
+          totalReviews: total[0].count
+        }
+      });
     } catch (error) {
-      console.error('Error fetching product reviews:', error);
-      res.status(500).json({ message: 'Lỗi lấy đánh giá sản phẩm', error: error.message });
+      console.error('Error fetching reviews:', error);
+      res.status(500).json({ 
+        message: 'Lỗi khi lấy danh sách đánh giá', 
+        error: error.message 
+      });
     }
   });
 
@@ -924,7 +954,7 @@ router.post('/orders/:orderId/products/:productId/review', authenticateJWT, asyn
     } catch (error) {
       console.error('Error fetching order details:', error);
       res.status(500).json({ 
-        message: 'Lỗi khi lấy thông tin đơn hàng', 
+        message: 'Lỗi khi lấy thông tin đ��n hàng', 
         error: error.message 
       });
     } finally {

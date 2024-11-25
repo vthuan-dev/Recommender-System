@@ -870,4 +870,41 @@ router.get('/products/:productId/can-review', authenticateJWT, async (req, res) 
 //   }
 // });
 
+// Thêm route mới để kiểm tra trạng thái đánh giá
+router.get('/products/:productId/review-status', authenticateJWT, async (req, res) => {
+  try {
+    const { productId } = req.params;
+    const userId = req.user.userId;
+
+    // Kiểm tra xem người dùng đã đánh giá chưa
+    const [reviewCheck] = await pool.query(
+      'SELECT id FROM reviews WHERE user_id = ? AND product_id = ?',
+      [userId, productId]
+    );
+
+    // Kiểm tra xem người dùng có thể đánh giá không (đã mua và nhận hàng)
+    const [orderCheck] = await pool.query(`
+      SELECT EXISTS (
+        SELECT 1 FROM orders o 
+        JOIN orderitems oi ON o.id = oi.order_id
+        WHERE o.user_id = ? 
+        AND oi.product_id = ?
+        AND o.status = 'delivered'
+      ) as canReview
+    `, [userId, productId]);
+
+    res.json({
+      hasReviewed: reviewCheck.length > 0,
+      canReview: orderCheck[0].canReview === 1
+    });
+
+  } catch (error) {
+    console.error('Error checking review status:', error);
+    res.status(500).json({
+      message: 'Lỗi kiểm tra trạng thái đánh giá',
+      error: error.message
+    });
+  }
+});
+
 module.exports = router;

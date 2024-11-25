@@ -172,13 +172,6 @@
                 <button @click="previousStep" class="btn btn-outline-secondary">
                   <i class="fas fa-arrow-left"></i> Quay lại
                 </button>
-                <button 
-                  @click="proceedToPayment" 
-                  class="btn btn-primary"
-                  :disabled="!selectedAddress"
-                >
-                  Tiếp tục thanh toán <i class="fas fa-arrow-right"></i>
-                </button>
               </div>
             </div>
   
@@ -360,7 +353,7 @@
                       {{ getSelectedAddress?.state || 'Chưa có thông tin' }}
                     </p>
                     <p class="info-item mb-0">
-                      <strong>Mã bưu đi��n:</strong>
+                      <strong>Mã bưu điện:</strong>
                       {{ getSelectedAddress?.postal_code || 'Chưa có thông tin' }}
                     </p>
                   </div>
@@ -1019,32 +1012,32 @@
     }
   }
   
-  // Xử lý chuyển sang bước thanh toán
-  const proceedToPayment = async () => {
-    try {
-      if (!selectedAddress.value) {
-        Swal.fire({
-          icon: 'error',
-          title: 'Lỗi',
-          text: 'Vui lòng chọn địa ch giao hàng'
-        })
-        return
-      }
+  // // Xử lý chuyển sang bước thanh toán
+  // const proceedToPayment = async () => {
+  //   try {
+  //     if (!selectedAddress.value) {
+  //       Swal.fire({
+  //         icon: 'error',
+  //         title: 'Lỗi',
+  //         text: 'Vui lòng chọn địa chỉ giao hàng'
+  //       })
+  //       return
+  //     }
 
-      // Lưu địa chỉ đã chọn vào state hoặc localStorage nếu cần
-      localStorage.setItem('selectedAddressId', selectedAddress.value)
+  //     // Lưu địa chỉ đã chọn vào state hoặc localStorage nếu cần
+  //     localStorage.setItem('selectedAddressId', selectedAddress.value)
       
-      // Chuyển sang bước thanh toán
-      currentStep.value = 3
-    } catch (error) {
-      console.error('Error proceeding to payment:', error)
-      Swal.fire({
-        icon: 'error',
-        title: 'Lỗi',
-        text: 'Có lỗi xảy ra, vui lòng thử lại'
-      })
-    }
-  }
+  //     // Chuyển sang bước thanh toán
+  //     currentStep.value = 3
+  //   } catch (error) {
+  //     console.error('Error proceeding to payment:', error)
+  //     Swal.fire({
+  //       icon: 'error',
+  //       title: 'Lỗi',
+  //       text: 'Có lỗi xảy ra, vui lòng thử lại'
+  //     })
+  //   }
+  // }
   
   const toggleAddressDisplay = () => {
     isExpanded.value = !isExpanded.value
@@ -1303,21 +1296,29 @@ watch(checkoutItems, (items) => {
   
   .checkout-steps {
     display: flex;
-    justify-content: center;
+    justify-content: space-between;
     align-items: center;
-    margin: 2rem 0;
-    position: relative;
+    margin-bottom: 2rem;
   }
   
   .step {
     display: flex;
     flex-direction: column;
     align-items: center;
-    opacity: 0.5;
-    transition: all 0.5s ease;
     position: relative;
-    z-index: 2;
-    cursor: not-allowed;
+    flex: 1;
+  }
+  
+  .step-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: #f8f9fa;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 0.5rem;
+    border: 2px solid #dee2e6;
   }
   
   .step.active {
@@ -1354,31 +1355,6 @@ watch(checkoutItems, (items) => {
     100% {
       transform: scale(1);
     }
-  }
-  
-  .step-icon {
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    background: #f5f5f5;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 0.5rem;
-    transition: all 0.5s ease;
-    position: relative;
-    overflow: hidden;
-  }
-  
-  .step.active .step-icon {
-    background: #007bff;
-    color: white;
-    box-shadow: 0 0 0 5px rgba(0, 123, 255, 0.2);
-  }
-  
-  .step.active .step-icon .material-icons {
-    color: white;
-    animation: bounceIn 0.5s ease;
   }
   
   .step-line {
@@ -1569,6 +1545,7 @@ watch(checkoutItems, (items) => {
       font-size: 0.8rem;
     }
   }
+  
   
   .required:after {
     content: " *";
@@ -1865,7 +1842,7 @@ watch(checkoutItems, (items) => {
     animation: bounceIcon 1s infinite;
   }
   
-  /* Hiệu ứng mở rộng/thu gọn */
+  /* Hiệu ứng mở rộng/thu g��n */
   .address-item {
     animation: slideDown 0.3s ease forwards;
   }
