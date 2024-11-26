@@ -190,3 +190,7 @@ app.use('/api/admin', [
   reviewManagementRoutes
 ]);
 
+const aiRouter = require('./routes/ai');
+
+app.use('/api/ai', aiRouter);
+

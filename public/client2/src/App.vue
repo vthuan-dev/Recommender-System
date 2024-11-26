@@ -3,12 +3,14 @@
     <Header />
     <router-view></router-view>
     <Footer />
+    <ChatBot />
   </div>
 </template>
 
 <script>
 import Header from '@/components/Layout/Header.vue'
 import Footer from '@/components/Layout/Footer.vue'
+import ChatBot from '@/components/ChatBot/ChatBot.vue'
 import { onMounted, onUnmounted, ref } from 'vue'
 import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
@@ -27,7 +29,8 @@ export default {
   name: 'App',
   components: {
     Header,
-    Footer
+    Footer,
+    ChatBot
   },
   setup() {
     const store = useStore()
