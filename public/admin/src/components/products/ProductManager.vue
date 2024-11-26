@@ -411,50 +411,73 @@ const visiblePages = computed(() => {
 // Fetch products với xử lý loading state
 const fetchProducts = async () => {
   try {
-    loading.value = true;
+    loading.value = true
     const response = await productService.getProducts({
       page: currentPage.value,
-      limit: perPage.value, // Thêm limit vào params
-      ...filters.value
-    });
+      limit: perPage.value,
+      search: filters.value.search,
+      category: filters.value.category,
+      brand: filters.value.brand
+    })
     
-    if (response && response.products) {
-      products.value = response.products;
-      totalPages.value = response.totalPages;
-      totalProducts.value = response.totalProducts;
+    if (response.success) {
+      products.value = response.products
+      totalPages.value = response.totalPages
+      totalProducts.value = response.totalProducts
+    } else {
+      throw new Error(response.message || 'Failed to fetch products')
     }
   } catch (error) {
-    console.error('Error fetching products:', error);
-    products.value = [];
+    console.error('Error fetching products:', error)
+    // Thêm xử lý hiển thị lỗi cho người dùng nếu cần
   } finally {
-    loading.value = false;
-  }
-};
-
-const fetchCategories = async () => {
-  try {
-    const data = await productService.getCategories()
-    categories.value = data
-  } catch (error) {
-    console.error('Error fetching categories:', error)
+    loading.value = false
   }
 }
 
+// Sửa lại hàm fetchBrands với xử lý lỗi
 const fetchBrands = async () => {
   try {
     const data = await productService.getBrands()
-    brands.value = data
+    if (Array.isArray(data)) {
+      brands.value = data
+    } else {
+      console.error('Invalid brands data:', data)
+      brands.value = []
+    }
   } catch (error) {
     console.error('Error fetching brands:', error)
+    brands.value = []
   }
 }
 
+// Sửa lại hàm fetchCategories với xử lý lỗi
+const fetchCategories = async () => {
+  try {
+    const data = await productService.getCategories()
+    if (Array.isArray(data)) {
+      categories.value = data
+    } else {
+      console.error('Invalid categories data:', data)
+      categories.value = []
+    }
+  } catch (error) {
+    console.error('Error fetching categories:', error)
+    categories.value = []
+  }
+}
+
+// Thêm error handling cho onMounted
 onMounted(async () => {
-  await Promise.all([
-    fetchProducts(),
-    fetchCategories(),
-    fetchBrands()
-  ])
+  try {
+    await Promise.all([
+      fetchProducts(),
+      fetchCategories(),
+      fetchBrands()
+    ])
+  } catch (error) {
+    console.error('Error during component initialization:', error)
+  }
 })
 
 // Hàm mở modal
@@ -570,13 +593,18 @@ const toggleProductDetails = (productId) => {
   expandedProduct.value = expandedProduct.value === productId ? null : productId
 }
 
-const getImageUrl = (url) => {
-  if (!url) return 'https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEj2GqhUbpEqRxJvzyk3TvXjZ0drENlUZUtyUEf0SxgT9s6QJfEt2X6WHORiJBreix1VMbi8Qi1Pgqel1G3nWElQywahVfUI8U6kfjMfELukWOsWbJorp0ODdBL2oJXOLft-XRu02-r_WIw/s580/placeholder-image.jpg';
-  if (url.startsWith('http')) return url;
+// Sửa lại hàm getImageUrl để không sử dụng path module
+const getImageUrl = (imageUrl) => {
+  if (!imageUrl) return '/assets/images/default-product.png'
   
-  // Sửa lại đường dẫn để match với cấu hình trong app.js
-  return `${import.meta.env.VITE_API_URL}/assets/uploads/products/${path.basename(url)}`;
-};
+  // Nếu là URL đầy đủ
+  if (imageUrl.startsWith('http')) {
+    return imageUrl
+  }
+  
+  // Nếu là đường dẫn tương đối
+  return imageUrl.startsWith('/') ? imageUrl : `/${imageUrl}`
+}
 
 const handleImageError = (e) => {
   e.target.src = 'https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEj2GqhUbpEqRxJvzyk3TvXjZ0drENlUZUtyUEf0SxgT9s6QJfEt2X6WHORiJBreix1VMbi8Qi1Pgqel1G3nWElQywahVfUI8U6kfjMfELukWOsWbJorp0ODdBL2oJXOLft-XRu02-r_WIw/s580/placeholder-image.jpg';
@@ -630,7 +658,7 @@ const confirmDelete = async (product, event) => {
         // Tính lại tổng số trang
         totalPages.value = Math.ceil(totalProducts.value / itemsPerPage.value)
         
-        // Nếu xóa hết sản phẩm ��� trang hiện tại, load trang trớc đó
+        // Nếu xóa hết sản phẩm  trang hiện tại, load trang trớc đó
         if (products.value.length === 0 && currentPage.value > 1) {
           currentPage.value--
           await fetchProducts()

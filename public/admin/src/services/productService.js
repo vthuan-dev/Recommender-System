@@ -16,7 +16,10 @@ export const productService = {
       return response.data;
     } catch (error) {
       console.error('Error fetching products:', error);
-      throw error.response?.data || error.message;
+      throw error.response?.data || { 
+        success: false, 
+        message: 'Lỗi khi tải danh sách sản phẩm' 
+      };
     }
   },
 
@@ -64,10 +67,11 @@ export const productService = {
 
   getCategories: async () => {
     try {
-      const response = await api.get('/categories')
+      const response = await api.get('/admin/categories')
       return response.data
     } catch (error) {
-      throw error.response?.data || error.message
+      console.error('Error fetching categories:', error)
+      return []
     }
   },
 
@@ -77,7 +81,7 @@ export const productService = {
       return response.data
     } catch (error) {
       console.error('Error fetching brands:', error)
-      throw error.response?.data || error.message
+      return []
     }
   },
 
