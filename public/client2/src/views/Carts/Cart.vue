@@ -72,7 +72,7 @@
 
                 <!-- Product Image -->
                 <div class="item-image-container">
-                  <img :src="item.image_url" :alt="item.product_name">
+                  <img :src="formatImageUrl(item.image_url)" :alt="item.product_name" class="item-image">
                   <div class="image-overlay"></div>
                 </div>
 
@@ -481,7 +481,7 @@ export default {
         if (response.data.valid) {
           discount.value = response.data.discount;
           discountSuccess.value = response.data.message;
-          // Cập nhật tổng tiền sau khi áp dụng giảm giá
+          // Cập nhật tổng tiền sau khi áp dụng gi��m giá
           total.value = selectedSubtotal.value + shippingFee.value - discount.value;
         } else {
           discountError.value = response.data.message;
@@ -518,6 +518,27 @@ export default {
       total.value = selectedSubtotal.value + shippingFee.value;
     });
 
+    // Thêm hàm formatImageUrl
+    const formatImageUrl = (imageUrl) => {
+      if (!imageUrl) return '';
+      
+      // Nếu là URL đầy đủ thì trả về nguyên bản
+      if (imageUrl.startsWith('http')) {
+        return imageUrl;
+      }
+      
+      // Đảm bảo đường dẫn bắt đầu bằng /
+      let formattedUrl = imageUrl.startsWith('/') ? imageUrl : `/${imageUrl}`;
+      
+      // Kiểm tra và thêm prefix nếu cần
+      if (!formattedUrl.startsWith('/assets/uploads/')) {
+        formattedUrl = `/assets/uploads/products/${formattedUrl}`;
+      }
+      
+      // Thêm base URL của server
+      return `http://localhost:3000${formattedUrl}`;
+    }
+
     return {
       loading,
       cartItems,
@@ -543,6 +564,7 @@ export default {
       discountCode,
       isApplying,
       applyDiscount,
+      formatImageUrl
     }
   }
 }

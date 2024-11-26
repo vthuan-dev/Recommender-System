@@ -43,7 +43,7 @@
                 <div class="card-body">
                   <div v-for="item in checkoutItems" :key="item.variantId" class="checkout-item">
                     <div class="d-flex align-items-center">
-                      <img :src="item.image" :alt="item.name" class="item-image">
+                      <img :src="formatImageUrl(item.image_url)" :alt="item.name" class="item-image">
                       <div class="item-details ms-3">
                         <h6 class="mb-1">{{ item.name }}</h6>
                         <p class="text-muted mb-1">Phiên bản: {{ item.variantName }}</p>
@@ -388,7 +388,13 @@
                 <div class="product-list">
                   <div v-for="item in checkoutItems" :key="item.variantId" class="product-item">
                     <div class="d-flex align-items-center">
-                      <img :src="item.image" :alt="item.name" class="confirmation-item-image">
+                      <!-- Sửa lại phần hiển thị ảnh -->
+                      <img 
+                        :src="formatImageUrl(item.image)" 
+                        :alt="item.name" 
+                        class="confirmation-item-image"
+                        @error="handleImageError"
+                      >
                       <div class="ms-3 flex-grow-1">
                         <h6 class="product-name">{{ item.name }}</h6>
                         <p class="variant-name mb-1">Phiên bản: {{ item.variantName }}</p>
@@ -713,7 +719,16 @@
       console.log('Loaded checkout data:', checkoutData)
 
       if (checkoutData) {
-        checkoutItems.value = checkoutData.items
+        // Log để debug
+        console.log('Checkout items before processing:', checkoutData.items)
+        
+        checkoutItems.value = checkoutData.items.map(item => ({
+          ...item,
+          image: item.image_url || item.image // Đảm bảo lấy đúng trường ảnh
+        }))
+        
+        // Log để debug
+        console.log('Processed checkout items:', checkoutItems.value)
         
         if (checkoutData.discount) {
           discountAmount.value = checkoutData.discount.amount
@@ -1355,6 +1370,33 @@ watch(checkoutItems, (items) => {
       loadPayPalScript();
     }
   });
+
+  // Thêm hàm formatImageUrl giống như trong Cart.vue
+  const formatImageUrl = (imageUrl) => {
+    if (!imageUrl) return ''; // Trả về ảnh mặc định nếu không có ảnh
+    
+    // Nếu đã là URL đầy đủ thì trả về nguyên bản
+    if (imageUrl.startsWith('http')) {
+      return imageUrl;
+    }
+    
+    // Đảm bảo đường dẫn bắt đầu bằng /
+    let formattedUrl = imageUrl.startsWith('/') ? imageUrl : `/${imageUrl}`;
+    
+    // Thêm prefix nếu cần
+    if (!formattedUrl.startsWith('/assets/uploads/')) {
+      formattedUrl = `/assets/uploads/products/${formattedUrl}`;
+    }
+    
+    // Thêm base URL của server
+    return `http://localhost:3000${formattedUrl}`;
+  }
+
+  // Thêm hàm xử lý lỗi ảnh
+  const handleImageError = (e) => {
+    // Gán ảnh mặc định khi load ảnh bị lỗi
+    e.target.src = '/placeholder-image.jpg'; // Thay đường dẫn này bằng ảnh mặc định của bạn
+  }
   </script>
   
   <style scoped>
@@ -2435,5 +2477,18 @@ watch(checkoutItems, (items) => {
     max-width: 500px;
     min-height: 150px;
     margin: 0 auto;
+  }
+
+  /* Thêm styles cho ảnh */
+  .confirmation-item-image {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 8px;
+  }
+
+  /* Thêm style cho trường hợp ảnh lỗi */
+  .confirmation-item-image[src=''] {
+    display: none;
   }
   </style>
