@@ -88,12 +88,15 @@ export default {
 
 .product-card {
   transition: all 0.3s ease;
+  max-width: 300px;
+  margin: 0 auto;
 }
 
 .product-image {
   position: relative;
   padding-top: 100%;
   overflow: hidden;
+  max-height: 300px;
 }
 
 .product-image img {
@@ -102,7 +105,8 @@ export default {
   left: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+  padding: 10px;
 }
 
 .product-actions {
@@ -148,11 +152,13 @@ export default {
 }
 
 .product-title {
+  font-size: 1rem;
+  line-height: 1.4;
+  height: 2.8em;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  height: 2.4em;
   margin-bottom: 0.5rem;
 }
 
@@ -163,14 +169,18 @@ export default {
 .new-price {
   font-weight: bold;
   color: #dc3545;
-  font-size: 1.1rem;
+  font-size: 1rem;
 }
 
 .old-price {
-  font-size: 0.9rem;
+  font-size: 0.85rem;
 }
 
 .brand-name {
   color: #6c757d;
+}
+
+.card {
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
 </style>

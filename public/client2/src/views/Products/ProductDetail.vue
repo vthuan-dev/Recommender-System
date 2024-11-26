@@ -119,10 +119,58 @@
       <!-- Thay thế phần tabs bằng hiển thị trực tiếp -->
       <div class="product-details mt-5">
         <!-- Phần mô tả -->
-        <div class="description-section mb-5">
-          <h4 class="section-title">Mô tả sản phẩm</h4>
-          <div class="description-content p-4 bg-white rounded shadow-sm">
-            <div v-html="product?.description"></div>
+        <div class="product-description bg-white rounded shadow-sm p-4">
+          <h3 class="section-title mb-4">Đặc điểm nổi bật</h3>
+          <div class="specs-table">
+            <table class="table table-hover">
+              <tbody>
+                <tr>
+                  <th class="spec-title">Màn hình</th>
+                  <td class="spec-content">
+                    Super Retina XDR OLED 6.9 inch
+                    <ul class="spec-details">
+                      <li>Viền mỏng hơn, cảm giác cầm tuyệt vời</li>
+                      <li>Công nghệ màn hình Super Retina XDR</li>
+                    </ul>
+                  </td>
+                </tr>
+                <tr>
+                  <th class="spec-title">Camera</th>
+                  <td class="spec-content">
+                    <ul class="spec-details">
+                      <li>Camera chính: Fusion 48MP</li>
+                      <li>Camera Ultra Wide: 48MP</li>
+                      <li>Camera Telephoto: 5x 12MP</li>
+                      <li>Camera trước: 12MP</li>
+                      <li>Điều khiển dễ dàng bằng cử chỉ vuốt</li>
+                    </ul>
+                  </td>
+                </tr>
+                <tr>
+                  <th class="spec-title">Thiết kế</th>
+                  <td class="spec-content">
+                    Titan cấp 5 với lớp hoàn thiện mới, tinh tế được xử lý bề mặt vi điểm
+                  </td>
+                </tr>
+                <tr>
+                  <th class="spec-title">Hiệu năng</th>
+                  <td class="spec-content">
+                    <ul class="spec-details">
+                      <li>Chip A18 Pro</li>
+                      <li>6 lõi CPU</li>
+                      <li>6 lõi GPU</li>
+                      <li>Neural Engine 16 lõi</li>
+                    </ul>
+                  </td>
+                </tr>
+                <tr>
+                  <th class="spec-title">Hệ điều hành</th>
+                  <td class="spec-content">
+                    iOS 18 với giao diện trực quan, dễ sử dụng và nhiều tính năng hữu ích
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
 
@@ -745,13 +793,17 @@ export default {
 
 <style scoped>
 .product-image-container {
+  width: 100%;
+  max-width: 500px;
+  margin: 0 auto;
   position: relative;
-  margin-bottom: 20px;
 }
 
 .main-image {
   width: 100%;
   height: auto;
+  max-height: 500px;
+  object-fit: contain;
   border-radius: 8px;
 }
 
@@ -1429,6 +1481,76 @@ export default {
   .user-info img {
     width: 40px;
     height: 40px;
+  }
+}
+
+.product-description {
+  margin-top: 2rem;
+}
+
+.section-title {
+  color: #2c3e50;
+  font-size: 1.5rem;
+  font-weight: 600;
+  border-bottom: 2px solid #e0e0e0;
+  padding-bottom: 0.5rem;
+}
+
+.specs-table {
+  margin-top: 1.5rem;
+}
+
+.table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.spec-title {
+  width: 150px;
+  background-color: #f8f9fa;
+  color: #2c3e50;
+  font-weight: 600;
+  vertical-align: top;
+  padding: 1rem;
+}
+
+.spec-content {
+  padding: 1rem;
+  color: #4a5568;
+  line-height: 1.6;
+}
+
+.spec-details {
+  list-style: none;
+  padding-left: 0;
+  margin: 0.5rem 0 0 0;
+}
+
+.spec-details li {
+  position: relative;
+  padding-left: 1.2rem;
+  margin-bottom: 0.5rem;
+}
+
+.spec-details li:before {
+  content: "•";
+  position: absolute;
+  left: 0;
+  color: #3498db;
+}
+
+tr:hover {
+  background-color: #f8f9fa;
+  transition: background-color 0.2s ease;
+}
+
+@media (max-width: 768px) {
+  .spec-title {
+    width: 100px;
+  }
+  
+  .spec-content {
+    font-size: 0.9rem;
   }
 }
 </style>
