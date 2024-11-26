@@ -1,17 +1,22 @@
 import api from '../utils/axios'
 
 export const productService = {
-  getProducts: async (params) => {
+  getProducts: async (params = {}) => {
     try {
-      const response = await api.get('/admin/products', { params })
-      return {
-        products: response.data.products,
-        totalPages: response.data.totalPages,
-        currentPage: response.data.currentPage,
-        totalProducts: response.data.totalProducts
-      }
+      const response = await api.get('/admin/products', { 
+        params: {
+          page: params.page || 1,
+          limit: params.limit || 10,
+          search: params.search || '',
+          category: params.category || '',
+          brand: params.brand || ''
+        }
+      });
+      
+      return response.data;
     } catch (error) {
-      throw error.response?.data || error.message
+      console.error('Error fetching products:', error);
+      throw error.response?.data || error.message;
     }
   },
 
