@@ -211,7 +211,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 import Swal from 'sweetalert2'
@@ -401,8 +401,25 @@ export default {
           quantity: parseInt(item.quantity)
         }))
 
-      // Lưu vào localStorage
-      localStorage.setItem('checkoutItems', JSON.stringify(selectedProducts))
+      // Tính toán tổng tiền và thông tin giảm giá
+      const subtotalAmount = selectedProducts.reduce((sum, item) => 
+        sum + (item.price * item.quantity), 0
+      )
+
+      // Lưu thông tin checkout với giảm giá
+      const checkoutData = {
+        items: selectedProducts,
+        discount: {
+          code: discountCode.value,
+          amount: discount.value
+        },
+        subtotal: subtotalAmount,
+        shipping: 30000,
+        total: subtotalAmount + 30000 - (discount.value || 0)
+      }
+
+      console.log('Checkout data:', checkoutData) // Debug
+      localStorage.setItem('checkoutItems', JSON.stringify(checkoutData))
       router.push('/checkout')
     }
 
@@ -448,19 +465,58 @@ export default {
 
     const applyDiscount = async () => {
       try {
-        isApplying.value = true
-        discountError.value = null
-        discountSuccess.value = null
-        
-        // Add your discount application logic here
-        
-        discountSuccess.value = 'Mã giảm giá đã được áp dụng thành công!'
+        isApplying.value = true;
+        discountError.value = null;
+        discountSuccess.value = null;
+
+        const response = await axios.post(`${API_URL}/validate-discount`, {
+          code: discountCode.value,
+          subtotal: selectedSubtotal.value
+        }, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`
+          }
+        });
+
+        if (response.data.valid) {
+          discount.value = response.data.discount;
+          discountSuccess.value = response.data.message;
+          // Cập nhật tổng tiền sau khi áp dụng giảm giá
+          total.value = selectedSubtotal.value + shippingFee.value - discount.value;
+        } else {
+          discountError.value = response.data.message;
+          discount.value = 0;
+        }
       } catch (err) {
-        discountError.value = err.response?.data?.message || 'Không thể áp dụng mã giảm giá'
+        console.error('Error applying discount:', err);
+        discountError.value = err.response?.data?.message || 'Không thể áp dụng mã giảm giá';
+        discount.value = 0;
       } finally {
-        isApplying.value = false
+        isApplying.value = false;
       }
-    }
+    };
+
+    // Thêm watch cho discountCode
+    watch(discountCode, (newVal) => {
+      if (!newVal) {
+        discount.value = 0;
+        discountError.value = null;
+        discountSuccess.value = null;
+        // Cập nhật lại tổng tiền khi xóa mã
+        total.value = selectedSubtotal.value + shippingFee.value;
+      }
+    });
+
+    // Thêm watch cho selectedItems để cập nhật lại giảm giá
+    watch(selectedItems, () => {
+      // Reset giảm giá khi thay đổi sản phẩm được chọn
+      discount.value = 0;
+      discountCode.value = '';
+      discountError.value = null;
+      discountSuccess.value = null;
+      // Cập nhật lại tổng tiền
+      total.value = selectedSubtotal.value + shippingFee.value;
+    });
 
     return {
       loading,

@@ -12,7 +12,16 @@ import Footer from '@/components/Layout/Footer.vue'
 import { onMounted, onUnmounted, ref } from 'vue'
 import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
-import CustomSweetAlert from '@/components/Common/CustomSweetAlert'
+import Swal from 'sweetalert2'
+
+// Thêm danh sách các route cần bảo vệ
+const protectedRoutes = [
+  '/cart',
+  '/checkout',
+  '/profile',
+  '/orders',
+  '/addresses'
+]
 
 export default {
   name: 'App',
@@ -25,15 +34,24 @@ export default {
     const router = useRouter()
     const tokenCheckInterval = ref(null)
 
-    const checkAuth = async () => {
-      const isValid = await store.dispatch('checkAuthStatus')
-      if (!isValid && router.currentRoute.value.meta.requiresAuth) {
-        CustomSweetAlert.warning(
-          'Phiên đăng nhập đã hết hạn',
-          'Vui lòng đăng nhập lại để tiếp tục!'
-        )
-        router.push('/login')
+    const checkAuth = () => {
+      const token = localStorage.getItem('token')
+      const currentPath = router.currentRoute.value.path
+      
+      if (!token && protectedRoutes.includes(currentPath)) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Yêu cầu đăng nhập',
+          text: 'Vui lòng đăng nhập để tiếp tục',
+          confirmButtonText: 'Đăng nhập ngay'
+        }).then((result) => {
+          if (result.isConfirmed) {
+            router.push('/login')
+          }
+        })
+        return false
       }
+      return true
     }
 
     onMounted(async () => {
@@ -62,6 +80,10 @@ export default {
         clearInterval(tokenCheckInterval.value)
       }
     })
+
+    return {
+      checkAuth
+    }
   }
 }
 </script>

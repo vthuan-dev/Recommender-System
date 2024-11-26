@@ -326,7 +326,7 @@
                   <button class="checkout-button" 
                           @click="handleNextStep" 
                           :disabled="!selectedPaymentMethod">
-                    <span>Tiếp tục</span>
+                    <span>Ti��p t��c</span>
                     <i class="material-icons">arrow_forward</i>
                   </button>
                 </div>
@@ -529,7 +529,7 @@
                       {{ province.name }}
                     </option>
                   </select>
-                  <label for="province">Tỉnh/Thành phố <span class="text-danger">*</span></label>
+                  <label for="province">T��nh/Thành phố <span class="text-danger">*</span></label>
                 </div>
 
                 <!-- Quận/Huyện -->
@@ -658,7 +658,7 @@
   import { useRouter } from 'vue-router'
   import axios from 'axios'
   import Swal from 'sweetalert2'
-  import { Modal } from 'bootstrap'
+  // import { Modal } from 'bootstrap'
   // Import axiosInstance
   import axiosInstance from '@/utils/axios'
   
@@ -667,6 +667,14 @@
   const addresses = ref([])
   const selectedAddress = ref(null)
   const shippingFee = ref(30000) // Phí ship cố định
+
+  // Thêm các biến cho giảm giá
+  const discountCode = ref('')
+  // const discount = ref(0)
+  const discountAmount = ref(0)
+  // const subtotal = ref(0)
+  // const total = ref(0)
+  
   const newAddress = ref({
     address_line1: '',
     address_line2: '',
@@ -691,34 +699,41 @@
   const orderNote = ref('')
   // const userInfo = ref(null)
   
-  // Load checkout items from localStorage
-  onMounted(() => {
+  // Sử dụng discountAmount trong template
+  const calculateFinalTotal = computed(() => {
+    return subtotal.value + shippingFee.value - discountAmount.value
+  })
+  
+  onMounted(async () => {
     try {
-      const savedItems = localStorage.getItem('checkoutItems')
-      if (savedItems) {
-        const parsedItems = JSON.parse(savedItems)
-        checkoutItems.value = parsedItems.map(item => ({
-          product_id: parseInt(item.product_id),
-          variant_id: parseInt(item.variant_id),
-          quantity: parseInt(item.quantity),
-          price: parseFloat(item.price),
-          name: item.name,
-          variantName: item.variantName,
-          image: item.image
-        }))
+      // Load provinces ngay khi component được mount
+      await loadProvinces()
+      
+      const checkoutData = JSON.parse(localStorage.getItem('checkoutItems'))
+      console.log('Loaded checkout data:', checkoutData)
+
+      if (checkoutData) {
+        checkoutItems.value = checkoutData.items
+        
+        if (checkoutData.discount) {
+          discountAmount.value = checkoutData.discount.amount
+          discountCode.value = checkoutData.discount.code
+        }
+
+        subtotal.value = checkoutData.subtotal
+        shippingFee.value = checkoutData.shipping
+        total.value = calculateFinalTotal.value
       }
+      
+      await fetchAddresses()
     } catch (error) {
-      console.error('Error loading checkout items:', error)
+      console.error('Error in onMounted:', error)
       Swal.fire({
         icon: 'error',
         title: 'Lỗi',
         text: 'Không thể tải thông tin đơn hàng'
       })
     }
-    fetchAddresses()
-    addressModal.value = new Modal(document.getElementById('addAddressModal'))
-    loadProvinces()
-    // fetchUserInfo()
   })
   
   // Fetch user addresses
@@ -813,6 +828,10 @@
     try {
       validateOrderData();
 
+      // Lấy thông tin giảm giá từ localStorage
+      const checkoutData = JSON.parse(localStorage.getItem('checkoutItems'));
+      const discountInfo = checkoutData?.discount || { code: null, amount: 0 };
+
       const orderData = {
         addressId: parseInt(selectedAddress.value),
         items: checkoutItems.value.map(item => ({
@@ -820,7 +839,12 @@
           variantId: parseInt(item.variant_id),
           quantity: parseInt(item.quantity),
           price: parseFloat(item.price)
-        }))
+        })),
+        // Thêm thông tin giảm giá vào orderData
+        discountCode: discountInfo.code,
+        discountAmount: discountInfo.amount,
+        subtotal: subtotal.value,
+        total: total.value
       };
 
       console.log('Sending order data:', orderData);
@@ -837,7 +861,7 @@
 
       if (response.data.orderId) {
         localStorage.removeItem('cartItems');
-        localStorage.removeItem('checkoutItems'); // Thêm dòng này
+        localStorage.removeItem('checkoutItems');
         await Swal.fire({
           icon: 'success',
           title: 'Đặt hàng thành công',
@@ -1590,6 +1614,9 @@ watch(checkoutItems, (items) => {
       font-size: 0.8rem;
     }
   }
+  
+  
+  
   
   
   .required:after {

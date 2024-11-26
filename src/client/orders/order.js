@@ -1115,37 +1115,33 @@ router.post('/orders/:orderId/products/:productId/review', authenticateJWT, asyn
   
   router.get('/calculate-total', authenticateJWT, async (req, res) => {
     try {
-      const items = JSON.parse(req.query.items);
-      const discountCode = req.query.discountCode;
+      const { items, discountCode } = req.query;
+      const cartItems = JSON.parse(items);
       
-      if (!Array.isArray(items)) {
-        return res.status(400).json({
-          message: 'Dữ liệu sản phẩm không hợp lệ'
-        });
-      }
-
-      // Tính toán tổng tiền
-      const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+      // Tính subtotal
+      const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
       const shippingFee = 30000;
       
-      // Tính giảm giá nếu có
+      // Tính giảm giá
       let discount = 0;
       if (discountCode && discountCode.toLowerCase() === 'ct501h') {
-        discount = subtotal * 0.5;
+        discount = Math.floor(subtotal * 0.5);
       }
 
+      // Tính tổng cuối
       const total = subtotal + shippingFee - discount;
+
+      console.log('Calculate total:', { subtotal, shippingFee, discount, total });
 
       res.json({
         subtotal,
         shipping_fee: shippingFee,
         discount,
-        total,
-        items: items
+        total
       });
 
     } catch (error) {
-      console.error('Error calculating order total:', error);
+      console.error('Error calculating total:', error);
       res.status(500).json({
         message: 'Lỗi tính tổng đơn hàng',
         error: error.message
@@ -1319,16 +1315,17 @@ router.post('/orders/:orderId/products/:productId/review', authenticateJWT, asyn
   // Thêm route kiểm tra mã giảm giá
   router.post('/validate-discount', authenticateJWT, async (req, res) => {
     try {
-      const { code, total } = req.body;
+      const { code, subtotal } = req.body; // Đổi total thành subtotal để tính chính xác
+      console.log('Validating discount code:', code, 'Subtotal:', subtotal);
       
-      // Kiểm tra mã giảm giá CT501H
       if (code.toLowerCase() === 'ct501h') {
-        const discount = total * 0.5; // Giảm 50%
+        const discount = Math.floor(subtotal * 0.5); // Giảm 50% và làm tròn xuống
+        console.log('Discount calculated:', discount);
         
         res.json({
           valid: true,
-          discount,
-          message: 'Mã giảm giá hợp lệ - Giảm 50% tổng đơn hàng',
+          discount: discount,
+          message: 'Mã giảm giá đã được áp dụng thành công!',
           code: code
         });
       } else {
@@ -1340,6 +1337,7 @@ router.post('/orders/:orderId/products/:productId/review', authenticateJWT, asyn
         });
       }
     } catch (error) {
+      console.error('Error validating discount:', error);
       res.status(500).json({
         message: 'Lỗi kiểm tra mã giảm giá',
         error: error.message

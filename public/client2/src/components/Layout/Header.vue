@@ -181,8 +181,8 @@
               </router-link>
             </div>
 
-            <div class="action-item user-menu" v-else>
-              <button class="user-btn" @click="toggleUserMenu">
+            <div class="action-item user-menu">
+              <button class="user-btn" @click.stop="toggleDropdown">
                 <div class="avatar">
                   <img v-if="userAvatar" :src="userAvatar" :alt="username">
                   <i v-else class="fas fa-user-circle"></i>
@@ -191,7 +191,7 @@
                 <i class="fas fa-chevron-down"></i>
               </button>
 
-              <div class="user-dropdown" :class="{ 'show': showUserMenu }">
+              <div class="user-dropdown" :class="{ show: isDropdownOpen }">
                 <div class="profile-header">
                   <div class="profile-avatar">
                     <img v-if="userAvatar" :src="userAvatar" :alt="username">
@@ -263,6 +263,7 @@ export default {
     const showMobileMenu = ref(false)
     const selectedCategory = ref('')
     const categories = ref([])
+    const isDropdownOpen = ref(false)
 
     const isLoggedIn = computed(() => store.getters.isAuthenticated)
     const username = computed(() => {
@@ -352,8 +353,28 @@ export default {
       handleSearch,
       toggleUserMenu,
       toggleMobileMenu,
-      logout
+      logout,
+      isDropdownOpen
     }
+  },
+  methods: {
+    toggleDropdown() {
+      this.isDropdownOpen = !this.isDropdownOpen;
+    },
+    closeDropdown(e) {
+      // Đóng dropdown khi click ra ngoài
+      if (!e.target.closest('.user-menu')) {
+        this.isDropdownOpen = false;
+      }
+    }
+  },
+  mounted() {
+    // Thêm event listener để đóng dropdown khi click ra ngoài
+    document.addEventListener('click', this.closeDropdown);
+  },
+  beforeUnmount() {
+    // Cleanup event listener
+    document.removeEventListener('click', this.closeDropdown);
   }
 }
 </script>
@@ -404,72 +425,123 @@ export default {
 .header-content {
   display: grid;
   grid-template-columns: auto 1fr auto;
-  gap: 40px;
   align-items: center;
+  gap: 32px;
+  padding: 16px 24px;
+  background: white;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
 }
 
 .logo {
   display: flex;
   align-items: center;
-  gap: 10px;
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: #1a73e8;
+  gap: 12px;
   text-decoration: none;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1a73e8;
+  transition: transform 0.3s ease;
+}
+
+.logo i {
+  font-size: 1.8rem;
+  background: linear-gradient(135deg, #1a73e8, #289fff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.logo:hover {
+  transform: scale(1.05);
 }
 
 .search-bar {
   display: flex;
-  max-width: 600px;
+  align-items: center;
+  max-width: 800px;
   width: 100%;
-  border: 2px solid #1a73e8;
-  border-radius: 8px;
-  overflow: hidden;
+  background: #f8fafc;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+.search-bar:focus-within {
+  border-color: #1a73e8;
+  box-shadow: 0 0 0 4px rgba(26, 115, 232, 0.1);
 }
 
 .category-select {
-  width: 150px;
-  border-right: 1px solid #eee;
+  position: relative;
+  padding: 0 16px;
+  border-right: 2px solid #e2e8f0;
 }
 
 .category-select select {
-  width: 100%;
-  height: 100%;
+  appearance: none;
   border: none;
-  padding: 0 15px;
-  background: #f8f9fa;
+  background: transparent;
+  padding: 12px 32px 12px 8px;
+  font-size: 0.95rem;
+  color: #1e293b;
   cursor: pointer;
+  width: 160px;
+}
+
+.category-select::after {
+  content: '\f107';
+  font-family: 'Font Awesome 5 Free';
+  font-weight: 900;
+  position: absolute;
+  right: 24px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #64748b;
+  pointer-events: none;
 }
 
 .search-input {
   flex: 1;
   display: flex;
+  align-items: center;
 }
 
 .search-input input {
   flex: 1;
   border: none;
-  padding: 12px 15px;
-  outline: none;
+  background: transparent;
+  padding: 12px 16px;
+  font-size: 1rem;
+  color: #1e293b;
+}
+
+.search-input input::placeholder {
+  color: #94a3b8;
 }
 
 .search-input button {
-  padding: 0 20px;
-  background: #1a73e8;
-  color: white;
+  background: linear-gradient(135deg, #1a73e8, #289fff);
   border: none;
+  padding: 10px 20px;
+  margin: 4px;
+  border-radius: 8px;
+  color: white;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: all 0.3s ease;
 }
 
 .search-input button:hover {
-  background: #1557b0;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(26, 115, 232, 0.2);
+}
+
+.search-input button i {
+  font-size: 1.1rem;
 }
 
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 25px;
+  gap: 24px;
 }
 
 .action-item {
@@ -478,22 +550,36 @@ export default {
 
 .action-item a {
   display: flex;
-  flex-direction: column;
   align-items: center;
+  gap: 8px;
   text-decoration: none;
-  color: #333;
-  gap: 4px;
+  color: #1e293b;
+  padding: 8px;
+  border-radius: 8px;
+  transition: all 0.3s ease;
 }
 
-.badge {
-  position: absolute;
-  top: -8px;
-  right: -8px;
-  background: #1a73e8;
-  color: white;
-  font-size: 0.7rem;
-  padding: 2px 6px;
-  border-radius: 10px;
+.action-item a:hover {
+  background: rgba(26, 115, 232, 0.08);
+  transform: translateY(-2px);
+}
+
+.action-item i {
+  font-size: 1.4rem;
+  background: linear-gradient(135deg, #1a73e8, #289fff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  transition: transform 0.3s ease;
+}
+
+.action-item:hover i {
+  transform: scale(1.1);
+}
+
+.label {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #64748b;
 }
 
 .user-menu {
@@ -503,116 +589,97 @@ export default {
 .user-btn {
   display: flex;
   align-items: center;
-  gap: 8px;
-  background: none;
-  border: none;
-  padding: 8px 15px;
+  gap: 12px;
+  padding: 8px 16px;
+  background: linear-gradient(to right, #f8fafc, #f1f5f9);
+  border: 1px solid #e2e8f0;
+  border-radius: 30px;
   cursor: pointer;
-  border-radius: 25px;
-  transition: all 0.2s;
+  transition: all 0.3s ease;
 }
 
 .user-btn:hover {
-  background: #f5f7fa;
+  background: linear-gradient(to right, #f1f5f9, #e2e8f0);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  transform: translateY(-2px);
+}
+
+.avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: linear-gradient(135deg, #1a73e8, #289fff);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatar i {
+  font-size: 1.2rem;
+  color: white;
+}
+
+.username {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #1e293b;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fa-chevron-down {
+  font-size: 0.8rem;
+  color: #64748b;
+  transition: transform 0.3s ease;
+}
+
+.user-btn:hover .fa-chevron-down {
+  transform: rotate(180deg);
 }
 
 .user-dropdown {
   position: absolute;
-  top: calc(100% + 12px);
+  top: calc(100% + 8px);
   right: 0;
   width: 320px;
-  background: #ffffff;
+  background: white;
   border-radius: 16px;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(10px);
   opacity: 0;
   visibility: hidden;
-  transform: translateY(-8px);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transform: translateY(-10px);
+  transition: all 0.3s ease;
   z-index: 1000;
-  overflow: hidden;
-  border: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 .user-dropdown.show {
   opacity: 1;
   visibility: visible;
   transform: translateY(0);
-  z-index: 2000;
 }
 
 .profile-header {
-  display: flex;
-  align-items: center;
-  padding: 24px;
   background: linear-gradient(135deg, #1a73e8, #289fff);
-  color: white;
+  padding: 24px;
+  border-radius: 16px 16px 0 0;
   position: relative;
+  overflow: hidden;
 }
 
-.profile-avatar {
-  position: relative;
-  width: 48px;
-  height: 48px;
-  margin-right: 16px;
-}
-
-.profile-avatar img,
-.profile-avatar i {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  object-fit: cover;
-  background: rgba(255, 255, 255, 0.2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 24px;
-}
-
-.status-dot {
+.profile-header::before {
+  content: '';
   position: absolute;
-  bottom: 2px;
-  right: 2px;
-  width: 10px;
-  height: 10px;
-  background: #4caf50;
-  border: 2px solid white;
-  border-radius: 50%;
-}
-
-.profile-info {
-  flex: 1;
-}
-
-.profile-name {
-  font-size: 1.1rem;
-  font-weight: 600;
-  margin: 0 0 4px 0;
-  letter-spacing: 0.3px;
-}
-
-.profile-email {
-  font-size: 0.85rem;
-  opacity: 0.9;
-}
-
-.logout-button {
-  background: rgba(255, 255, 255, 0.1);
-  border: none;
-  color: white;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.logout-button:hover {
-  background: rgba(255, 255, 255, 0.2);
-  transform: rotate(90deg);
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: url('data:image/svg+xml,<svg...>'); /* Add a subtle pattern */
+  opacity: 0.1;
 }
 
 .menu-options {
@@ -622,52 +689,70 @@ export default {
 .menu-option {
   display: flex;
   align-items: center;
-  padding: 12px;
-  color: #333;
-  text-decoration: none;
-  border-radius: 12px;
-  transition: all 0.2s ease;
   gap: 16px;
+  padding: 12px;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+  text-decoration: none;
 }
 
 .menu-option:hover {
   background: rgba(26, 115, 232, 0.04);
+  transform: translateX(4px);
 }
 
 .option-icon {
   width: 40px;
   height: 40px;
-  background: #f8fafc;
-  border-radius: 10px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #f8fafc, #f1f5f9);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #1a73e8;
-  font-size: 1.2rem;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
 }
 
 .menu-option:hover .option-icon {
-  background: #1a73e8;
-  color: white;
-  transform: scale(1.05);
+  background: linear-gradient(135deg, #1a73e8, #289fff);
+  transform: rotate(5deg);
 }
 
-.option-content {
-  flex: 1;
+.menu-option:hover .option-icon i {
+  color: white;
 }
 
 .option-title {
-  display: block;
-  font-weight: 500;
+  font-weight: 600;
   color: #1e293b;
+  display: block;
+  margin-bottom: 4px;
 }
 
 .option-desc {
-  display: block;
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   color: #64748b;
-  margin-top: 2px;
+}
+
+.logout-button {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.logout-button:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: rotate(90deg);
 }
 
 @keyframes slideIn {
@@ -979,5 +1064,65 @@ export default {
   opacity: 0.6;
   cursor: not-allowed;
   background: linear-gradient(135deg, #9e9e9e, #616161);
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+  .header-content {
+    background: #1e293b;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  }
+  
+  .search-bar {
+    background: #0f172a;
+    border-color: #334155;
+  }
+  
+  .search-input input {
+    color: #f1f5f9;
+  }
+  
+  .search-input input::placeholder {
+    color: #64748b;
+  }
+  
+  .category-select select {
+    color: #f1f5f9;
+  }
+  
+  .category-select {
+    border-right-color: #334155;
+  }
+}
+
+/* Animation cho chevron icon */
+.user-btn .fa-chevron-down {
+  transition: transform 0.3s ease;
+}
+
+.user-menu:has(.show) .user-btn .fa-chevron-down {
+  transform: rotate(180deg);
+}
+
+/* Thêm position relative cho container */
+.user-menu {
+  position: relative;
+}
+
+/* Thêm overlay để bắt click outside tốt hơn */
+.user-dropdown::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: transparent;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.user-dropdown.show::before {
+  pointer-events: auto;
 }
 </style>
