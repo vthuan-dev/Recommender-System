@@ -98,37 +98,53 @@
             </button>
           </div>
   
-          <!-- Phần trả lời của admin -->
-          <div class="admin-reply-section mt-3">
-            <div v-if="review.admin_reply" class="existing-reply p-3 bg-light rounded">
-              <div class="reply-header d-flex align-items-center mb-2">
-                <img :src="review.admin_reply.admin_avatar || '/admin-avatar.png'" 
-                     class="admin-avatar rounded-circle me-2" 
-                     alt="Admin Avatar">
-                <div>
-                  <strong>{{ review.admin_reply.admin_name }}</strong>
-                  <small class="text-muted d-block">
-                    {{ formatDate(review.admin_reply.created_at) }}
-                  </small>
+          <!-- Phần đối thoại -->
+          <div class="conversation-section mt-3">
+            <h6 class="conversation-title">
+              <i class="fas fa-comments me-2"></i>
+              Đối thoại
+            </h6>
+
+            <!-- Danh sách replies -->
+            <div class="replies-list">
+              <div v-for="reply in review.replies" 
+                   :key="reply.id" 
+                   :class="['reply-item', reply.user.is_admin ? 'admin-reply' : 'customer-reply']">
+                <div class="reply-header d-flex align-items-center mb-2">
+                  <img :src="reply.user.avatar_url || '/default-avatar.png'" 
+                       class="reply-avatar rounded-circle me-2" 
+                       :alt="reply.user.name">
+                  <div>
+                    <strong :class="reply.user.is_admin ? 'text-primary' : ''">
+                      {{ reply.user.name }}
+                      <i v-if="reply.user.is_admin" class="fas fa-shield-alt ms-1"></i>
+                    </strong>
+                    <small class="text-muted d-block">
+                      {{ formatDate(reply.created_at) }}
+                    </small>
+                  </div>
+                </div>
+                <div class="reply-content">
+                  {{ reply.content }}
                 </div>
               </div>
-              <p class="reply-content mb-0">{{ review.admin_reply.content }}</p>
             </div>
-            
-            <div v-else class="reply-form">
+
+            <!-- Form thêm reply mới -->
+            <div class="reply-form mt-3">
               <div class="input-group">
                 <textarea 
-                  v-model="review.replyContent" 
+                  v-model="review.newReplyContent" 
                   class="form-control"
-                  placeholder="Nhập câu trả lời của bạn..."
+                  placeholder="Thêm phản hồi của bạn..."
                   rows="2">
                 </textarea>
                 <button 
                   class="btn btn-primary"
                   @click="submitReply(review)"
-                  :disabled="!review.replyContent?.trim()">
+                  :disabled="!review.newReplyContent?.trim()">
                   <i class="fas fa-paper-plane me-1"></i>
-                  Trả lời
+                  Gửi
                 </button>
               </div>
             </div>
@@ -168,6 +184,7 @@
   import Swal from 'sweetalert2';
   import api from '@/utils/api';
   import { useToast } from '@/composables/useToast';
+  import { formatDate } from '../utils/formatDate';
   
   const toast = useToast();
   
@@ -200,7 +217,11 @@
       });
       
       if (response.data) {
-        reviews.value = response.data.reviews;
+        reviews.value = response.data.reviews.map(review => ({
+          ...review,
+          replies: [],
+          newReplyContent: ''
+        }));
         totalPages.value = response.data.pagination.totalPages;
       }
     } catch (error) {
@@ -260,50 +281,51 @@
     }
   };
   
+  // Load replies
+  const loadReplies = async (review) => {
+    try {
+      const response = await api.get(`/admin/reviews/${review.id}/replies`);
+      review.replies = response.data.replies;
+    } catch (error) {
+      console.error('Error loading replies:', error);
+      toast.error('Lỗi khi tải phản hồi');
+    }
+  };
+  
+  // Submit reply
+  const submitReply = async (review) => {
+    try {
+      const response = await api.post(`/admin/reviews/${review.id}/replies`, {
+        content: review.newReplyContent
+      });
+      
+      review.replies.push(response.data.reply);
+      review.newReplyContent = '';
+      
+      toast.success('Đã gửi phản hồi thành công');
+    } catch (error) {
+      console.error('Error submitting reply:', error);
+      toast.error('Lỗi khi gửi phản hồi: ' + (error.response?.data?.message || error.message));
+    }
+  };
+  
   // Đổi trang
   const changePage = (page) => {
     currentPage.value = page;
     loadReviews();
   };
   
-  // Format date
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('vi-VN', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-  
-  // Thêm hàm refresh
+  // Refresh data
   const refreshData = async () => {
     await Promise.all([loadReviews(), loadStats()]);
+    reviews.value.forEach(review => {
+      loadReplies(review);
+    });
     toast.success('Đã cập nhật dữ liệu');
   };
   
-  // Thêm method để gửi reply
-  const submitReply = async (review) => {
-    try {
-      const response = await api.post(`/admin/reviews/${review.id}/reply`, {
-        content: review.replyContent
-      });
-      
-      // Cập nhật UI
-      review.admin_reply = response.data.reply;
-      review.replyContent = '';
-      
-      toast.success('Đã trả lời đánh giá thành công');
-    } catch (error) {
-      console.error('Error submitting reply:', error);
-      toast.error('Lỗi khi gửi trả lời: ' + (error.response?.data?.message || error.message));
-    }
-  };
-  
   onMounted(() => {
-    loadReviews();
-    loadStats();
+    refreshData();
   });
   </script>
   
@@ -481,21 +503,52 @@
     margin-right: 1rem;
   }
   
-  .admin-reply-section {
+  .conversation-section {
+    margin-top: 1.5rem;
     border-top: 1px solid #e5e7eb;
-    margin-top: 1rem;
     padding-top: 1rem;
   }
   
-  .admin-avatar {
+  .conversation-title {
+    color: #4b5563;
+    margin-bottom: 1rem;
+  }
+  
+  .replies-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .reply-item {
+    padding: 1rem;
+    border-radius: 0.5rem;
+    background-color: #f9fafb;
+  }
+  
+  .admin-reply {
+    margin-left: 2rem;
+    border-left: 3px solid #3b82f6;
+  }
+  
+  .customer-reply {
+    margin-right: 2rem;
+    border-left: 3px solid #10b981;
+  }
+  
+  .reply-avatar {
     width: 32px;
     height: 32px;
     object-fit: cover;
   }
   
-  .existing-reply {
-    background-color: #f8f9fa;
-    border-left: 3px solid #0d6efd;
+  .reply-content {
+    white-space: pre-line;
+    margin-left: 40px;
+  }
+  
+  .reply-form {
+    margin-top: 1rem;
   }
   
   .reply-form .input-group {

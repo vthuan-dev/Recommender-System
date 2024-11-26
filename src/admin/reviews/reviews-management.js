@@ -231,25 +231,55 @@ router.get('/reviews/stats/timeline', authenticateJWT, checkAdminRole, async (re
   }
 });
 
-// Thêm route để admin trả lời review
-router.post('/reviews/:reviewId/reply', authenticateJWT, checkAdminRole, async (req, res) => {
+// Lấy tất cả replies của một review
+router.get('/reviews/:reviewId/replies', authenticateJWT, checkAdminRole, async (req, res) => {
+  try {
+    const { reviewId } = req.params;
+    
+    const [replies] = await pool.query(`
+      SELECT 
+        rr.*,
+        u.fullname,
+        u.avatar_url,
+        u.role_id
+      FROM review_replies rr
+      JOIN users u ON rr.user_id = u.id
+      WHERE rr.review_id = ?
+      ORDER BY rr.created_at ASC
+    `, [reviewId]);
+
+    res.json({
+      replies: replies.map(reply => ({
+        id: reply.id,
+        content: reply.content,
+        created_at: reply.created_at,
+        user_type: reply.user_type,
+        user: {
+          name: reply.fullname,
+          avatar_url: reply.avatar_url,
+          is_admin: reply.role_id === 1 // Giả sử role_id 1 là admin
+        }
+      }))
+    });
+
+  } catch (error) {
+    console.error('Error fetching replies:', error);
+    res.status(500).json({ 
+      message: 'Lỗi khi lấy danh sách phản hồi',
+      error: error.message 
+    });
+  }
+});
+
+// Thêm reply mới
+router.post('/reviews/:reviewId/replies', authenticateJWT, checkAdminRole, async (req, res) => {
   try {
     const { reviewId } = req.params;
     const { content } = req.body;
-    const userId = req.user.userId; // ID của admin
+    const userId = req.user.userId;
 
     if (!content?.trim()) {
-      return res.status(400).json({ message: 'Nội dung trả lời không được để trống' });
-    }
-
-    // Kiểm tra xem đã có reply chưa
-    const [existingReply] = await pool.query(
-      'SELECT * FROM review_replies WHERE review_id = ?',
-      [reviewId]
-    );
-
-    if (existingReply.length > 0) {
-      return res.status(400).json({ message: 'Đánh giá này đã được trả lời' });
+      return res.status(400).json({ message: 'Nội dung phản hồi không được để trống' });
     }
 
     // Thêm reply mới
@@ -263,28 +293,33 @@ router.post('/reviews/:reviewId/reply', authenticateJWT, checkAdminRole, async (
     const [reply] = await pool.query(`
       SELECT 
         rr.*,
-        u.fullname as admin_name,
-        u.avatar_url as admin_avatar
+        u.fullname,
+        u.avatar_url,
+        u.role_id
       FROM review_replies rr
       JOIN users u ON rr.user_id = u.id
       WHERE rr.id = ?
     `, [result.insertId]);
 
     res.status(201).json({
-      message: 'Đã trả lời đánh giá thành công',
+      message: 'Đã thêm phản hồi thành công',
       reply: {
         id: reply[0].id,
         content: reply[0].content,
         created_at: reply[0].created_at,
-        admin_name: reply[0].admin_name,
-        admin_avatar: reply[0].admin_avatar
+        user_type: reply[0].user_type,
+        user: {
+          name: reply[0].fullname,
+          avatar_url: reply[0].avatar_url,
+          is_admin: reply[0].role_id === 1
+        }
       }
     });
 
   } catch (error) {
-    console.error('Error replying to review:', error);
+    console.error('Error adding reply:', error);
     res.status(500).json({ 
-      message: 'Lỗi khi trả lời đánh giá',
+      message: 'Lỗi khi thêm phản hồi',
       error: error.message 
     });
   }

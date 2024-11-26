@@ -22,15 +22,41 @@ export default {
     },
   
     actions: {
+      async checkAuthStatus({ commit }) {
+        const token = localStorage.getItem('token')
+        if (!token) {
+          commit('clearUser')
+          return false
+        }
+
+        try {
+          const response = await fetch('http://localhost:3000/api/verify-token', {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          })
+
+          if (!response.ok) {
+            throw new Error('Token invalid')
+          }
+
+          return true
+        } catch (error) {
+          commit('clearUser')
+          localStorage.removeItem('token')
+          localStorage.removeItem('userId')
+          localStorage.removeItem('fullname')
+          localStorage.removeItem('role')
+          return false
+        }
+      },
+
       async logout({ commit }) {
-        // Xóa thông tin người dùng khỏi localStorage
         localStorage.removeItem('token')
         localStorage.removeItem('userId')
         localStorage.removeItem('fullname')
         localStorage.removeItem('role')
         localStorage.removeItem('rememberMe')
-        
-        // Cập nhật state
         commit('clearUser')
       }
     }

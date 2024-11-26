@@ -1083,4 +1083,90 @@ router.get('/api/search/suggestions', async (req, res) => {
   }
 });
 
+// Lấy danh sách replies của một review
+router.get('/reviews/:reviewId/replies', async (req, res) => {
+  try {
+    const { reviewId } = req.params;
+    
+    const [replies] = await pool.query(`
+      SELECT 
+        rr.*,
+        u.fullname,
+        u.avatar_url,
+        u.role_id
+      FROM review_replies rr
+      JOIN users u ON rr.user_id = u.id
+      WHERE rr.review_id = ?
+      ORDER BY rr.created_at ASC
+    `, [reviewId]);
+
+    res.json({
+      replies: replies.map(reply => ({
+        id: reply.id,
+        content: reply.content,
+        created_at: reply.created_at,
+        user: {
+          name: reply.fullname,
+          avatar_url: reply.avatar_url,
+          is_admin: reply.role_id === 1
+        }
+      }))
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      message: 'Lỗi khi tải phản hồi',
+      error: error.message 
+    });
+  }
+});
+
+// Thêm reply mới
+router.post('/reviews/:reviewId/replies', authenticateJWT, async (req, res) => {
+  try {
+    const { reviewId } = req.params;
+    const { content } = req.body;
+    const userId = req.user.userId;
+
+    if (!content?.trim()) {
+      return res.status(400).json({ message: 'Nội dung phản hồi không được để trống' });
+    }
+
+    const [result] = await pool.query(
+      `INSERT INTO review_replies (review_id, user_id, content, user_type) 
+       VALUES (?, ?, ?, ?)`,
+      [reviewId, userId, content, req.user.role === 'admin' ? 'admin' : 'customer']
+    );
+
+    const [reply] = await pool.query(`
+      SELECT 
+        rr.*,
+        u.fullname,
+        u.avatar_url,
+        u.role_id
+      FROM review_replies rr
+      JOIN users u ON rr.user_id = u.id
+      WHERE rr.id = ?
+    `, [result.insertId]);
+
+    res.status(201).json({
+      message: 'Đã thêm phản hồi thành công',
+      reply: {
+        id: reply[0].id,
+        content: reply[0].content,
+        created_at: reply[0].created_at,
+        user: {
+          name: reply[0].fullname,
+          avatar_url: reply[0].avatar_url,
+          is_admin: reply[0].role_id === 1
+        }
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      message: 'Lỗi khi thêm phản hồi',
+      error: error.message 
+    });
+  }
+});
+
 module.exports = router;

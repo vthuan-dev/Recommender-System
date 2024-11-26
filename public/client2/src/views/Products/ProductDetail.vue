@@ -124,8 +124,11 @@
         <!-- Phần đánh giá -->
         <div class="reviews-section mt-4">
           <h3>Đánh giá sản phẩm</h3>
+          
+          <!-- Danh sách đánh giá -->
           <div v-if="reviews.length > 0">
             <div v-for="review in reviews" :key="review.id" class="review-item mb-4">
+              <!-- Header đánh giá -->
               <div class="review-header d-flex justify-content-between">
                 <div class="user-info d-flex align-items-center">
                   <img :src="review.user.avatar_url || '/default-avatar.png'" 
@@ -135,7 +138,8 @@
                   <div>
                     <strong>{{ review.user.name }}</strong>
                     <div class="rating">
-                      <i v-for="n in 5" :key="n" 
+                      <i v-for="n in 5" 
+                         :key="n"
                          class="fas fa-star"
                          :class="n <= review.rating ? 'text-warning' : 'text-muted'">
                       </i>
@@ -143,65 +147,62 @@
                     <small class="text-muted">{{ formatDate(review.created_at) }}</small>
                   </div>
                 </div>
-                
                 <div class="verification-status">
                   <span v-if="review.is_verified" class="badge bg-success">
                     <i class="fas fa-check-circle"></i> Đã xác minh
                   </span>
-                  <span v-else class="badge bg-secondary">
-                    <i class="fas fa-clock"></i> Chờ xác minh
-                  </span>
                 </div>
               </div>
 
+              <!-- Nội dung đánh giá -->
               <div class="review-content mt-3">
                 <p>{{ review.comment }}</p>
               </div>
 
-              <!-- Phản hồi -->
-              <div v-if="review.reply" class="admin-reply mt-3 ms-4">
-                <div class="reply-content p-3 bg-light rounded">
-                  <div class="reply-header d-flex align-items-center mb-2">
-                    <img :src="review.reply.user.avatar_url || '/admin-avatar.png'" 
+              <!-- Danh sách replies -->
+              <div v-if="review.replies && review.replies.length > 0" class="replies-section mt-3">
+                <div v-for="reply in review.replies" 
+                     :key="reply.id" 
+                     class="reply-item ms-4 mt-2 p-3">
+                  <div class="reply-header d-flex align-items-center">
+                    <img :src="reply.user.avatar_url || '/default-avatar.png'" 
                          class="rounded-circle me-2" 
                          width="30"
                          alt="Reply User">
                     <div>
                       <strong class="reply-user-name">
-                        <i v-if="review.reply.user.is_admin" class="fas fa-shield-alt me-1"></i>
-                        {{ review.reply.user.name }}
+                        <i v-if="reply.user.is_admin" class="fas fa-shield-alt me-1 text-primary"></i>
+                        {{ reply.user.name }}
                       </strong>
-                      <small class="text-muted d-block">
-                        {{ formatDate(review.reply.created_at) }}
-                      </small>
+                      <small class="text-muted d-block">{{ formatDate(reply.created_at) }}</small>
                     </div>
                   </div>
-                  <p class="mb-0">{{ review.reply.content }}</p>
+                  <div class="reply-content mt-2">
+                    {{ reply.content }}
+                  </div>
+                </div>
+              </div>
+
+              <!-- Form reply -->
+              <div v-if="isAuthenticated" class="reply-form mt-3 ms-4">
+                <div class="input-group">
+                  <textarea 
+                    v-model="review.newReplyContent"
+                    class="form-control"
+                    placeholder="Thêm phản hồi của bạn..."
+                    rows="2">
+                  </textarea>
+                  <button 
+                    class="btn btn-primary"
+                    @click="submitReply(review)"
+                    :disabled="!review.newReplyContent?.trim()">
+                    Gửi
+                  </button>
                 </div>
               </div>
             </div>
-
-            <!-- Phân trang -->
-            <div v-if="totalPages > 1" class="pagination justify-content-center mt-4">
-              <button class="btn btn-outline-primary me-2" 
-                      :disabled="currentPage === 1"
-                      @click="changePage(currentPage - 1)">
-                <i class="fas fa-chevron-left"></i>
-              </button>
-              <button v-for="page in totalPages" 
-                      :key="page"
-                      class="btn btn-outline-primary me-2"
-                      :class="{ active: page === currentPage }"
-                      @click="changePage(page)">
-                {{ page }}
-              </button>
-              <button class="btn btn-outline-primary"
-                      :disabled="currentPage === totalPages"
-                      @click="changePage(currentPage + 1)">
-                <i class="fas fa-chevron-right"></i>
-              </button>
-            </div>
           </div>
+
           <div v-else class="text-center py-4">
             <p class="text-muted mb-0">Chưa có đánh giá nào cho sản phẩm này</p>
           </div>
@@ -542,6 +543,23 @@ export default {
       }
     };
 
+    const submitReply = async (review) => {
+      try {
+        const response = await axios.post(`/api/reviews/${review.id}/replies`, {
+          content: review.newReplyContent
+        });
+        
+        if (!review.replies) review.replies = [];
+        review.replies.push(response.data.reply);
+        review.newReplyContent = '';
+        
+        toast.success('Đã gửi phản hồi thành công');
+      } catch (error) {
+        console.error('Error submitting reply:', error);
+        toast.error('Lỗi khi gửi phản hồi: ' + (error.response?.data?.message || error.message));
+      }
+    };
+
     // Lifecycle hooks
     onMounted(() => {
       fetchProductDetail()
@@ -635,7 +653,8 @@ export default {
       handleDistrictChange,
       showReviewForm,
       toastRef,
-      getReviewTooltipMessage
+      getReviewTooltipMessage,
+      submitReply
     }
   }
 }
@@ -1059,6 +1078,54 @@ export default {
   
   .admin-name {
     font-size: 0.85rem;
+  }
+}
+
+.review-item {
+  border-bottom: 1px solid #eee;
+  padding-bottom: 1.5rem;
+}
+
+.reply {
+  position: relative;
+}
+
+.reply::before {
+  content: '';
+  position: absolute;
+  left: -20px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background-color: #e5e7eb;
+}
+
+.reply-content {
+  background-color: #f8f9fa;
+  border-radius: 0.5rem;
+}
+
+.reply-form .input-group {
+  gap: 0.5rem;
+}
+
+.reply-form textarea {
+  border-radius: 0.5rem;
+  resize: none;
+}
+
+.reply-user-name .fa-shield-alt {
+  color: #0d6efd;
+}
+
+@media (max-width: 768px) {
+  .reply-form .input-group {
+    flex-direction: column;
+  }
+  
+  .reply-form button {
+    width: 100%;
+    margin-top: 0.5rem;
   }
 }
 </style>
