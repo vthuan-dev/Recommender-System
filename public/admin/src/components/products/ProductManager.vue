@@ -131,6 +131,7 @@
                   :alt="product.name"
                   class="product-thumbnail"
                   @error="handleImageError"
+                  loading="lazy"
                 >
               </td>
               <td>
@@ -593,22 +594,25 @@ const toggleProductDetails = (productId) => {
   expandedProduct.value = expandedProduct.value === productId ? null : productId
 }
 
-// Sửa lại hàm getImageUrl để không sử dụng path module
+// Sửa lại hàm getImageUrl
 const getImageUrl = (imageUrl) => {
-  if (!imageUrl) return '/assets/images/default-product.png'
-  
-  // Nếu là URL đầy đủ
+  if (!imageUrl) {
+    return '/assets/images/default-product.png'
+  }
+
+  // Nếu là URL tuyệt đối
   if (imageUrl.startsWith('http')) {
     return imageUrl
   }
-  
-  // Nếu là đường dẫn tương đối
+
+  // Đảm bảo đường dẫn bắt đầu bằng /
   return imageUrl.startsWith('/') ? imageUrl : `/${imageUrl}`
 }
 
-const handleImageError = (e) => {
-  e.target.src = 'https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEj2GqhUbpEqRxJvzyk3TvXjZ0drENlUZUtyUEf0SxgT9s6QJfEt2X6WHORiJBreix1VMbi8Qi1Pgqel1G3nWElQywahVfUI8U6kfjMfELukWOsWbJorp0ODdBL2oJXOLft-XRu02-r_WIw/s580/placeholder-image.jpg';
-};
+// Thêm hàm xử lý lỗi ảnh
+const handleImageError = (event) => {
+  event.target.src = '/assets/images/default-product.png'
+}
 
 // Thêm methods xử lý phân trang
 const goToPage = async (page) => {

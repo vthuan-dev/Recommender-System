@@ -98,6 +98,25 @@ router.get('/products/:id', async (req, res) => {
   }
 });
 
+// Thêm hàm helper để format đường dẫn ảnh
+const formatImageUrl = (product) => {
+  if (product.image_url) {
+    // Đảm bảo đường dẫn bắt đầu bằng /
+    product.image_url = product.image_url.startsWith('/') 
+      ? product.image_url 
+      : `/${product.image_url}`
+      
+    // Đảm bảo đường dẫn đúng format
+    if (product.image_url.startsWith('/assets/uploads/')) {
+      product.image_url = product.image_url
+    } else {
+      product.image_url = `/assets/uploads/products/${product.image_url}`
+    }
+  }
+  return product
+}
+
+// Sửa lại route trả về sản phẩm
 router.get('/products', async (req, res) => {
   try {
     const [products] = await pool.query(`
@@ -115,14 +134,16 @@ router.get('/products', async (req, res) => {
       LEFT JOIN categories c ON p.category_id = c.id
       LEFT JOIN productvariants pv ON p.id = pv.product_id
       GROUP BY p.id
-    `);
+    `)
     
-    res.json(products);
+    // Format image URLs before sending response
+    const formattedProducts = products.map(formatImageUrl)
+    res.json(formattedProducts)
   } catch (error) {
-    console.error('Lỗi khi lấy danh sách sản phẩm:', error);
-    res.status(500).json({ message: 'Lỗi lấy danh sách sản phẩm', error: error.message });
+    console.error('Lỗi khi lấy danh sách sản phẩm:', error)
+    res.status(500).json({ message: 'Lỗi lấy danh sách sản phẩm', error: error.message })
   }
-});
+})
 
 // API lọc sản phẩm với phân trang
 router.get('/products/filter', async (req, res) => {
@@ -252,7 +273,7 @@ router.get('/products/new', async (req, res) => {
     const [newProducts] = await pool.query('SELECT * FROM products ORDER BY created_at DESC LIMIT 10');
     res.json(newProducts);
   } catch (error) {
-    res.status(500).json({ message: 'Lỗi lấy sản phẩm mới', error: error.message });
+    res.status(500).json({ message: 'Lỗi lấy sản phm mới', error: error.message });
   }
 });
 
@@ -291,7 +312,7 @@ router.get('/products/brand/:brand', async (req, res) => {
     });
   } catch (error) {
     console.error('Lỗi khi lấy sản phẩm theo thương hiệu:', error);
-    res.status(500).json({ message: 'Lỗi lấy sản phẩm theo thương hiệu', error: error.message });
+    res.status(500).json({ message: 'Lỗi lấy sản phm theo thương hiệu', error: error.message });
   }
 });
 
@@ -850,7 +871,7 @@ router.get('/products/:productId/can-review', authenticateJWT, async (req, res) 
         ? 'Bạn cần mua và nhận sản phẩm này để đánh giá'
         : result[0].hasReview 
           ? 'Bạn đã đánh giá sản phẩm này rồi'
-          : 'Bạn có thể đánh giá sản phẩm này'
+          : 'Bạn c thể đánh giá sản phẩm này'
     });
 
   } catch (error) {

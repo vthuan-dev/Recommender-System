@@ -29,7 +29,12 @@
         <!-- Hình ảnh sản phẩm -->
         <div class="col-md-6">
           <div class="product-image-container">
-            <img :src="product?.image_url" :alt="product?.name" class="img-fluid main-image">
+            <img 
+              :src="getImageUrl(product?.image_url)" 
+              :alt="product?.name" 
+              class="img-fluid main-image"
+              @error="handleImageError"
+            >
             <button class="favorite-btn" @click="toggleFavorite">
               <i class="fas" :class="isFavorited ? 'fa-heart text-danger' : 'fa-heart-o'"></i>
             </button>
@@ -668,6 +673,24 @@ export default {
       }
     }
 
+    const getImageUrl = (imageUrl) => {
+      if (!imageUrl) {
+        return '/assets/images/default-product.png'
+      }
+      
+      // Nếu là URL đầy đủ
+      if (imageUrl.startsWith('http')) {
+        return imageUrl
+      }
+      
+      // Thêm base URL cho đường dẫn tương đối
+      return `http://localhost:3000${imageUrl}`
+    }
+
+    const handleImageError = (event) => {
+      event.target.src = '/assets/images/default-product.png'
+    }
+
     return {
       product,
       selectedVariant,
@@ -712,7 +735,9 @@ export default {
       toastRef,
       getReviewTooltipMessage,
       submitReply,
-      ws
+      ws,
+      getImageUrl,
+      handleImageError
     }
   }
 }

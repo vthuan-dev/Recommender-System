@@ -159,21 +159,35 @@ const googleAuthRoutes = require('./client/auth/google_route');
 app.use('/', googleAuthRoutes);
 
 // Serve static files từ thư mục assets
-app.use('/assets', express.static(path.join(__dirname, 'assets')));
+app.use('/assets', express.static(path.join(__dirname, 'assets'), {
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.webp')) {
+      res.setHeader('Content-Type', 'image/webp')
+    }
+  }
+}))
 
 // Khởi tạo thư mục uploads khi start server
 initUploadDirs().catch(console.error);
 
 // Sửa lại cấu hình serve static files
-app.use('/assets/uploads', express.static(path.join(__dirname, 'assets/uploads')));
-
-// Thêm middleware để handle image MIME types
-app.use((req, res, next) => {
-  if (req.url.match(/\.(jpg|jpeg|png|gif|webp)$/)) {
-    res.type(`image/${path.extname(req.url).slice(1)}`);
+app.use('/assets/uploads', express.static(path.join(__dirname, 'assets/uploads'), {
+  setHeaders: (res, filePath) => {
+    const ext = path.extname(filePath).toLowerCase()
+    switch (ext) {
+      case '.webp':
+        res.setHeader('Content-Type', 'image/webp')
+        break
+      case '.jpg':
+      case '.jpeg':
+        res.setHeader('Content-Type', 'image/jpeg')
+        break
+      case '.png':
+        res.setHeader('Content-Type', 'image/png')
+        break
+    }
   }
-  next();
-});
+}))
 
 // Thêm middleware để log requests (để debug)
 app.use((req, res, next) => {

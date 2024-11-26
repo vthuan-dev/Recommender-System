@@ -10,7 +10,11 @@
       <div class="product-card">
         <div class="card border-0 rounded-4 shadow-hover h-100">
           <div class="product-image">
-            <img :src="product.image_url" :alt="product.name">
+            <img 
+              :src="getImageUrl(product.image_url)" 
+              :alt="product.name"
+              @error="handleImageError"
+            >
             <div class="product-actions">
               <button class="action-btn" @click.prevent="$emit('add-to-wishlist', product)">
                 <i class="fas fa-heart"></i>
@@ -54,6 +58,22 @@ export default {
         style: 'currency',
         currency: 'VND'
       }).format(price)
+    },
+    getImageUrl(imageUrl) {
+      if (!imageUrl) {
+        return '/assets/images/default-product.png'
+      }
+      
+      // Nếu là URL đầy đủ
+      if (imageUrl.startsWith('http')) {
+        return imageUrl
+      }
+      
+      // Thêm base URL cho đường dẫn tương đối
+      return `http://localhost:3000${imageUrl}`
+    },
+    handleImageError(event) {
+      event.target.src = '/assets/images/default-product.png'
     }
   }
 }
