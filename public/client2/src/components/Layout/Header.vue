@@ -181,7 +181,7 @@
               </router-link>
             </div>
 
-            <div class="action-item user-menu">
+            <div class="action-item user-menu" v-if="isLoggedIn">
               <button class="user-btn" @click.stop="toggleDropdown">
                 <div class="avatar">
                   <img v-if="userAvatar" :src="userAvatar" :alt="username">
