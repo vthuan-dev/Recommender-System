@@ -160,21 +160,23 @@
               </div>
 
               <!-- Danh sách replies -->
-              <div v-if="review.replies && review.replies.length > 0" class="replies-section mt-3">
+              <div class="review-replies" v-if="review.replies && review.replies.length > 0">
                 <div v-for="reply in review.replies" 
                      :key="reply.id" 
-                     class="reply-item ms-4 mt-2 p-3">
+                     :id="'reply-' + reply.id"
+                     :class="['reply-item', {'admin-reply': reply.user.is_admin}]">
                   <div class="reply-header d-flex align-items-center">
-                    <img :src="reply.user.avatar_url || '/default-avatar.png'" 
-                         class="rounded-circle me-2" 
-                         width="30"
-                         alt="Reply User">
-                    <div>
-                      <strong class="reply-user-name">
-                        <i v-if="reply.user.is_admin" class="fas fa-shield-alt me-1 text-primary"></i>
-                        {{ reply.user.name }}
-                      </strong>
-                      <small class="text-muted d-block">{{ formatDate(reply.created_at) }}</small>
+                    <img :src="reply.user.is_admin ? '/images/admin-avatar.png' : (reply.user.avatar_url || '/images/default-avatar.png')" 
+                         class="reply-avatar rounded-circle me-2" 
+                         :alt="reply.user.name">
+                    <div class="reply-user-info">
+                      <div class="d-flex align-items-center gap-2">
+                        <strong>{{ reply.user.name }}</strong>
+                        <span v-if="reply.user.is_admin" class="admin-badge">
+                          <i class="fas fa-shield-alt"></i> Admin
+                        </span>
+                      </div>
+                      <small class="text-muted">{{ formatDate(reply.created_at) }}</small>
                     </div>
                   </div>
                   <div class="reply-content mt-2">
@@ -183,8 +185,8 @@
                 </div>
               </div>
 
-              <!-- Form reply -->
-              <div v-if="isAuthenticated" class="reply-form mt-3 ms-4">
+              <!-- Form reply - Chỉ hiển thị khi là admin -->
+              <div v-if="isAdmin" class="reply-form mt-3 ms-4">
                 <div class="input-group">
                   <textarea 
                     v-model="review.newReplyContent"
@@ -269,6 +271,7 @@ export default {
     const showReviewForm = ref(false)
     const toastRef = ref(null)
     const toast = useToast()
+    const ws = ref(null)
 
     // Computed properties
     const hasDiscount = computed(() => {
@@ -545,18 +548,18 @@ export default {
 
     const submitReply = async (review) => {
       try {
-        const response = await axios.post(`/api/reviews/${review.id}/replies`, {
+        const response = await axios.post(`/api/products/reviews/${review.id}/replies`, {
           content: review.newReplyContent
         });
         
-        if (!review.replies) review.replies = [];
-        review.replies.push(response.data.reply);
-        review.newReplyContent = '';
-        
-        toast.success('Đã gửi phản hồi thành công');
+        if (response.data) {
+          // Clear input
+          review.newReplyContent = '';
+          // Reload reviews
+          await fetchReviews();
+        }
       } catch (error) {
         console.error('Error submitting reply:', error);
-        toast.error('Lỗi khi gửi phản hồi: ' + (error.response?.data?.message || error.message));
       }
     };
 
@@ -579,6 +582,7 @@ export default {
           }, 100)
         }
       }
+      connectWebSocket()
     })
 
     const loadProvinces = async () => {
@@ -608,6 +612,59 @@ export default {
         wards.value = response.data
       } catch (error) {
         console.error('Error loading wards:', error)
+      }
+    }
+
+    const connectWebSocket = () => {
+      try {
+        ws.value = new WebSocket('ws://localhost:3000');
+        
+        ws.value.onopen = () => {
+          console.log('Connected to WebSocket');
+          // Subscribe to product updates
+          ws.value.send(JSON.stringify({
+            type: 'subscribe_product',
+            productId: route.params.id
+          }));
+        };
+        
+        ws.value.onmessage = async (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            console.log('WebSocket message received:', data); // Debug log
+
+            if (data.type === 'comment_update') {
+              console.log('Received comment update:', data.data); // Debug log
+              
+              // Refresh reviews immediately
+              await fetchReviews();
+              
+              // Scroll to the new reply if needed
+              if (data.data.type === 'new_reply') {
+                this.$nextTick(() => {
+                  const replyElement = document.querySelector(`#reply-${data.data.reply.id}`);
+                  if (replyElement) {
+                    replyElement.scrollIntoView({ behavior: 'smooth' });
+                  }
+                });
+              }
+            }
+          } catch (error) {
+            console.error('Error handling WebSocket message:', error);
+          }
+        };
+        
+        ws.value.onerror = (error) => {
+          console.error('WebSocket error:', error);
+        };
+        
+        ws.value.onclose = () => {
+          console.log('WebSocket disconnected, attempting to reconnect...');
+          setTimeout(() => this.connectWebSocket(), 3000);
+        };
+      } catch (error) {
+        console.error('Error connecting to WebSocket:', error);
+        setTimeout(() => this.connectWebSocket(), 3000);
       }
     }
 
@@ -654,7 +711,8 @@ export default {
       showReviewForm,
       toastRef,
       getReviewTooltipMessage,
-      submitReply
+      submitReply,
+      ws
     }
   }
 }
@@ -1126,6 +1184,226 @@ export default {
   .reply-form button {
     width: 100%;
     margin-top: 0.5rem;
+  }
+}
+
+.reply-item {
+  padding: 1rem;
+  margin: 0.5rem 0;
+  border-radius: 8px;
+  background-color: #f8f9fa;
+}
+
+.admin-reply {
+  border-left: 3px solid #0d6efd;
+}
+
+.reply-avatar {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  border: 2px solid transparent;
+}
+
+.admin-reply .reply-avatar {
+  border-color: #0d6efd;
+}
+
+.admin-badge {
+  background-color: #0d6efd;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+}
+
+.admin-badge i {
+  font-size: 0.75rem;
+  margin-right: 2px;
+}
+
+.reply-content {
+  margin-left: 40px;
+}
+
+.reply-user-info {
+  flex: 1;
+}
+
+/* Container cho review */
+.review-item {
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  margin-bottom: 24px;
+  transition: all 0.3s ease;
+}
+
+.review-item:hover {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+}
+
+/* Header của review */
+.review-header {
+  padding-bottom: 12px;
+  border-bottom: 1px solid #eee;
+}
+
+.user-info {
+  gap: 12px;
+}
+
+.user-info img {
+  width: 48px;
+  height: 48px;
+  border: 2px solid #fff;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.rating {
+  margin: 4px 0;
+}
+
+.rating .fas.fa-star {
+  font-size: 14px;
+}
+
+.verification-status .badge {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-weight: 500;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Nội dung review */
+.review-content {
+  padding: 16px 0;
+  font-size: 15px;
+  line-height: 1.6;
+  color: #2c3e50;
+}
+
+/* Container cho replies */
+.review-replies {
+  margin-left: 40px;
+  padding-left: 20px;
+  border-left: 2px solid #e0e0e0;
+}
+
+/* Item reply */
+.reply-item {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 16px;
+  margin: 12px 0;
+  transition: all 0.2s ease;
+}
+
+.reply-item:hover {
+  background: #f0f2f5;
+}
+
+/* Admin reply styling */
+.reply-item.admin-reply {
+  background: #ecf5ff;
+  border-left: 4px solid #1890ff;
+}
+
+.reply-header {
+  margin-bottom: 8px;
+}
+
+.reply-avatar {
+  width: 36px;
+  height: 36px;
+  border: 2px solid #fff;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.reply-user-info {
+  flex: 1;
+}
+
+.admin-badge {
+  background: #1890ff;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.reply-content {
+  color: #4a5568;
+  font-size: 14px;
+  line-height: 1.5;
+  padding-left: 48px;
+}
+
+/* Form reply styling */
+.reply-form {
+  margin-top: 16px;
+  padding: 16px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.reply-form textarea {
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 14px;
+  resize: vertical;
+  min-height: 80px;
+}
+
+.reply-form button {
+  padding: 8px 20px;
+  border-radius: 6px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.reply-form button:hover {
+  transform: translateY(-1px);
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.reply-item {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .review-replies {
+    margin-left: 20px;
+    padding-left: 15px;
+  }
+  
+  .reply-content {
+    padding-left: 0;
+  }
+  
+  .user-info img {
+    width: 40px;
+    height: 40px;
   }
 }
 </style>

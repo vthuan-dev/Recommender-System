@@ -9,6 +9,7 @@ const bodyParser = require('body-parser');
 const router = express.Router();
 const cors = require('cors');
 const { authenticateJWT } = require('../../database/dbconfig');
+const { broadcastCommentUpdate } = require('../../websocket');
 dotenv.config();
 
 router.get('/products/bestsellers', async (req, res) => {
@@ -683,60 +684,84 @@ router.get('/products/:id/reviews', async (req, res) => {
     const limit = parseInt(req.query.limit) || 5;
     const offset = (page - 1) * limit;
 
-    // Sửa lại query để phù hợp với cấu trúc CSDL của bạn
+    // Đầm tổng số đánh giá
+    const [totalCount] = await pool.query(
+      'SELECT COUNT(*) as count FROM reviews WHERE product_id = ?',
+      [req.params.id]
+    );
+
+    // Lấy reviews và replies riêng biệt
     const [reviews] = await pool.query(`
       SELECT 
         r.*,
         u.fullname as reviewer_name,
-        u.avatar_url as reviewer_avatar,
-        rr.id as reply_id,
-        rr.content as reply_content,
-        rr.created_at as reply_created_at,
-        reply_user.fullname as reply_user_name,
-        reply_user.avatar_url as reply_user_avatar,
-        reply_user.role_id as reply_user_role,
-        COUNT(*) OVER() as total_count
+        u.avatar_url as reviewer_avatar
       FROM reviews r
       JOIN users u ON r.user_id = u.id
-      LEFT JOIN review_replies rr ON r.id = rr.review_id
-      LEFT JOIN users reply_user ON rr.user_id = reply_user.id
       WHERE r.product_id = ?
       ORDER BY r.created_at DESC
       LIMIT ? OFFSET ?
     `, [req.params.id, limit, offset]);
 
-    const totalReviews = reviews.length > 0 ? reviews[0].total_count : 0;
-    const totalPages = Math.ceil(totalReviews / limit);
+    // Lấy replies cho các reviews
+    const reviewIds = reviews.map(r => r.id);
+    let replies = [];
+    
+    if (reviewIds.length > 0) {
+      const [reviewReplies] = await pool.query(`
+        SELECT 
+          rr.*,
+          u.fullname as user_name,
+          u.avatar_url as user_avatar,
+          u.role_id as user_role,
+          CASE 
+            WHEN u.role_id = 1 THEN true 
+            ELSE false 
+          END as is_admin
+        FROM review_replies rr
+        JOIN users u ON rr.user_id = u.id
+        WHERE rr.review_id IN (?)
+        ORDER BY rr.created_at ASC
+      `, [reviewIds]);
+      
+      replies = reviewReplies;
+    }
 
     // Format lại dữ liệu trả về
-    const formattedReviews = reviews.map(review => ({
-      id: review.id,
-      rating: review.rating,
-      comment: review.comment,
-      created_at: review.created_at,
-      is_verified: review.is_verified,
-      user: {
-        name: review.reviewer_name,
-        avatar_url: review.reviewer_avatar
-      },
-      reply: review.reply_id ? {
-        id: review.reply_id,
-        content: review.reply_content,
-        created_at: review.reply_created_at,
+    const formattedReviews = reviews.map(review => {
+      const reviewReplies = replies
+        .filter(reply => reply.review_id === review.id)
+        .map(reply => ({
+          id: reply.id,
+          content: reply.content,
+          created_at: reply.created_at,
+          user: {
+            name: reply.user_name,
+            avatar_url: reply.is_admin ? 'https://png.pngtree.com/png-vector/20190629/ourmid/pngtree-office-work-user-icon-avatar-png-image_1527655.jpg' : (reply.user_avatar || '/default-avatar.png'),
+            is_admin: reply.is_admin
+          }
+        }));
+
+      return {
+        id: review.id,
+        rating: review.rating,
+        comment: review.comment,
+        created_at: review.created_at,
+        is_verified: review.is_verified,
         user: {
-          name: review.reply_user_name,
-          avatar_url: review.reply_user_avatar,
-          is_admin: review.reply_user_role === 1 // Giả sử role_id = 1 là admin
-        }
-      } : null
-    }));
+          name: review.reviewer_name,
+          avatar_url: review.reviewer_avatar
+        },
+        replies: reviewReplies
+      };
+    });
 
     res.json({
       reviews: formattedReviews,
       pagination: {
         currentPage: page,
-        totalPages,
-        totalItems: totalReviews
+        totalPages: Math.ceil(totalCount[0].count / limit),
+        totalItems: totalCount[0].count
       }
     });
 
@@ -1120,8 +1145,32 @@ router.get('/reviews/:reviewId/replies', async (req, res) => {
   }
 });
 
-// Thêm reply mới
-router.post('/reviews/:reviewId/replies', authenticateJWT, async (req, res) => {
+// Middleware kiểm tra admin
+const checkAdminRole = async (req, res, next) => {
+  try {
+    const userId = req.user.id; // Lấy từ JWT token
+    const [rows] = await pool.query(
+      'SELECT role_id FROM users WHERE id = ?',
+      [userId]
+    );
+
+    if (!rows.length || rows[0].role_id !== 1) {
+      return res.status(403).json({
+        message: 'Chỉ admin mới có quyền thực hiện hành động này'
+      });
+    }
+
+    next();
+  } catch (error) {
+    res.status(500).json({
+      message: 'Lỗi server',
+      error: error.message
+    });
+  }
+};
+
+// Thêm middleware vào route xử lý reply
+router.post('/products/reviews/:reviewId/replies', authenticateJWT, checkAdminRole, async (req, res) => {
   try {
     const { reviewId } = req.params;
     const { content } = req.body;
@@ -1148,19 +1197,35 @@ router.post('/reviews/:reviewId/replies', authenticateJWT, async (req, res) => {
       WHERE rr.id = ?
     `, [result.insertId]);
 
+    // Sau khi thêm reply thành công
+    const [review] = await pool.query(
+      'SELECT product_id FROM reviews WHERE id = ?',
+      [req.params.reviewId]
+    );
+
+    // Broadcast update
+    if (review[0]) {
+      broadcastCommentUpdate(review[0].product_id, {
+        type: 'new_reply',
+        reviewId: req.params.reviewId,
+        reply: {
+          id: result.insertId,
+          content: req.body.content,
+          created_at: new Date(),
+          user: {
+            name: req.user.fullname,
+            avatar_url: req.user.avatar_url,
+            is_admin: true
+          }
+        }
+      });
+    }
+
     res.status(201).json({
       message: 'Đã thêm phản hồi thành công',
-      reply: {
-        id: reply[0].id,
-        content: reply[0].content,
-        created_at: reply[0].created_at,
-        user: {
-          name: reply[0].fullname,
-          avatar_url: reply[0].avatar_url,
-          is_admin: reply[0].role_id === 1
-        }
-      }
+      replyId: result.insertId
     });
+
   } catch (error) {
     res.status(500).json({ 
       message: 'Lỗi khi thêm phản hồi',

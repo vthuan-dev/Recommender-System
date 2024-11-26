@@ -1116,6 +1116,7 @@ router.post('/orders/:orderId/products/:productId/review', authenticateJWT, asyn
   router.get('/calculate-total', authenticateJWT, async (req, res) => {
     try {
       const items = JSON.parse(req.query.items);
+      const discountCode = req.query.discountCode;
       
       if (!Array.isArray(items)) {
         return res.status(400).json({
@@ -1126,11 +1127,19 @@ router.post('/orders/:orderId/products/:productId/review', authenticateJWT, asyn
       // Tính toán tổng tiền
       const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
       const shippingFee = 30000;
-      const total = subtotal + shippingFee;
+      
+      // Tính giảm giá nếu có
+      let discount = 0;
+      if (discountCode && discountCode.toLowerCase() === 'ct501h') {
+        discount = subtotal * 0.5;
+      }
+
+      const total = subtotal + shippingFee - discount;
 
       res.json({
         subtotal,
         shipping_fee: shippingFee,
+        discount,
         total,
         items: items
       });
@@ -1304,6 +1313,37 @@ router.post('/orders/:orderId/products/:productId/review', authenticateJWT, asyn
     } catch (error) {
       console.error('PayPal Capture Error:', error);
       res.status(500).json({ error: 'Failed to capture PayPal payment' });
+    }
+  });
+
+  // Thêm route kiểm tra mã giảm giá
+  router.post('/validate-discount', authenticateJWT, async (req, res) => {
+    try {
+      const { code, total } = req.body;
+      
+      // Kiểm tra mã giảm giá CT501H
+      if (code.toLowerCase() === 'ct501h') {
+        const discount = total * 0.5; // Giảm 50%
+        
+        res.json({
+          valid: true,
+          discount,
+          message: 'Mã giảm giá hợp lệ - Giảm 50% tổng đơn hàng',
+          code: code
+        });
+      } else {
+        res.json({
+          valid: false,
+          discount: 0,
+          message: 'Mã giảm giá không hợp lệ',
+          code: code
+        });
+      }
+    } catch (error) {
+      res.status(500).json({
+        message: 'Lỗi kiểm tra mã giảm giá',
+        error: error.message
+      });
     }
   });
 

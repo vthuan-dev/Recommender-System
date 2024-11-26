@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { pool, authenticateJWT } = require('../../database/dbconfig');
+const { broadcastCommentUpdate } = require('../../websocket');
 
 // Middleware kiểm tra quyền admin
 async function checkAdminRole(req, res, next) {
@@ -321,6 +322,83 @@ router.post('/reviews/:reviewId/replies', authenticateJWT, checkAdminRole, async
     res.status(500).json({ 
       message: 'Lỗi khi thêm phản hồi',
       error: error.message 
+    });
+  }
+});
+
+// API để admin reply review
+router.post('/reviews/:reviewId/reply', authenticateJWT, async (req, res) => {
+  try {
+    const { reviewId } = req.params;
+    const { content } = req.body;
+    const adminId = req.user.userId;
+
+    // Kiểm tra quyền admin
+    const [adminCheck] = await pool.query(
+      'SELECT role_id FROM users WHERE id = ?',
+      [adminId]
+    );
+
+    if (!adminCheck[0] || adminCheck[0].role_id !== 1) {
+      return res.status(403).json({ message: 'Chỉ admin mới có quyền reply' });
+    }
+
+    // Thêm reply vào database
+    const [result] = await pool.query(
+      `INSERT INTO review_replies (review_id, user_id, content) 
+       VALUES (?, ?, ?)`,
+      [reviewId, adminId, content]
+    );
+
+    // Lấy thông tin reply vừa tạo kèm thông tin user
+    const [newReply] = await pool.query(`
+      SELECT 
+        rr.*,
+        u.fullname as user_name,
+        u.avatar_url,
+        u.role_id
+      FROM review_replies rr
+      JOIN users u ON rr.user_id = u.id
+      WHERE rr.id = ?
+    `, [result.insertId]);
+
+    // Lấy product_id từ review
+    const [review] = await pool.query(
+      'SELECT product_id FROM reviews WHERE id = ?',
+      [reviewId]
+    );
+
+    if (review[0]) {
+      // Format dữ liệu reply để broadcast
+      const replyData = {
+        id: newReply[0].id,
+        content: newReply[0].content,
+        created_at: newReply[0].created_at,
+        user: {
+          name: newReply[0].user_name,
+          avatar_url: newReply[0].avatar_url,
+          is_admin: newReply[0].role_id === 1
+        }
+      };
+
+      // Broadcast update qua WebSocket
+      broadcastCommentUpdate(review[0].product_id, {
+        type: 'new_reply',
+        reviewId: reviewId,
+        reply: replyData
+      });
+    }
+
+    res.status(201).json({
+      message: 'Reply added successfully',
+      reply: newReply[0]
+    });
+
+  } catch (error) {
+    console.error('Error adding reply:', error);
+    res.status(500).json({
+      message: 'Error adding reply',
+      error: error.message
     });
   }
 });
