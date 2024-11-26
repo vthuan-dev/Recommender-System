@@ -36,26 +36,50 @@
         <div v-if="currentStep === 1">
           <div class="row">
             <div class="col-lg-8">
-              <div class="card shadow-sm mb-4">
-                <div class="card-header bg-white">
-                  <h5 class="mb-0">Thông tin đơn hàng</h5>
+              <div class="order-card">
+                <div class="order-header">
+                  <div class="header-content">
+                    <i class="fas fa-shopping-cart"></i>
+                    <h5>Thông tin đơn hàng</h5>
+                  </div>
                 </div>
-                <div class="card-body">
-                  <div v-for="item in checkoutItems" :key="item.variantId" class="checkout-item">
-                    <div class="d-flex align-items-center">
-                      <img :src="formatImageUrl(item.image_url)" :alt="item.name" class="item-image">
-                      <div class="item-details ms-3">
-                        <h6 class="mb-1">{{ item.name }}</h6>
-                        <p class="text-muted mb-1">Phiên bản: {{ item.variantName }}</p>
-                        <div class="d-flex align-items-center">
+                
+                <div class="order-body">
+                  <div v-for="item in checkoutItems" 
+                       :key="item.product_id" 
+                       class="checkout-item">
+                    <div class="item-container">
+                      <div class="item-image-wrapper">
+                        <img 
+                          :src="`http://localhost:3000${item.image_url}`"
+                          :alt="item.name" 
+                          class="item-image"
+                          @error="handleImageError"
+                        >
+                      </div>
+                      
+                      <div class="item-details">
+                        <h6 class="item-name">{{ item.name }}</h6>
+                        <p class="item-variant">Phiên bản: {{ item.variantName }}</p>
+                        
+                        <div class="item-controls">
                           <div class="quantity-control">
-                            <button @click="updateQuantity(item, -1)" :disabled="item.quantity <= 1">-</button>
-                            <span>{{ item.quantity }}</span>
-                            <button @click="updateQuantity(item, 1)">+</button>
+                            <button 
+                              class="qty-btn"
+                              :disabled="item.quantity <= 1"
+                              @click="updateQuantity(item.id, item.quantity - 1)"
+                            >
+                              <i class="fas fa-minus"></i>
+                            </button>
+                            <span class="qty-value">{{ item.quantity }}</span>
+                            <button 
+                              class="qty-btn"
+                              @click="updateQuantity(item.id, item.quantity + 1)"
+                            >
+                              <i class="fas fa-plus"></i>
+                            </button>
                           </div>
-                          <div class="price ms-3">
-                            {{ formatPrice(item.price * item.quantity) }}
-                          </div>
+                          <div class="item-price">{{ formatPrice(item.price * item.quantity) }}</div>
                         </div>
                       </div>
                     </div>
@@ -326,7 +350,7 @@
                   <button class="checkout-button" 
                           @click="handleNextStep" 
                           :disabled="!selectedPaymentMethod">
-                    <span>Ti��p t��c</span>
+                    <span>Tiếp tục</span>
                     <i class="material-icons">arrow_forward</i>
                   </button>
                 </div>
@@ -2490,5 +2514,204 @@ watch(checkoutItems, (items) => {
   /* Thêm style cho trường hợp ảnh lỗi */
   .confirmation-item-image[src=''] {
     display: none;
+  }
+
+  .order-card {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+    margin-bottom: 1.5rem;
+  }
+
+  .order-header {
+    padding: 1.25rem;
+    border-bottom: 1px solid #e2e8f0;
+  }
+
+  .header-content {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .header-content i {
+    font-size: 1.25rem;
+    color: #3b82f6;
+  }
+
+  .header-content h5 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #1e293b;
+  }
+
+  .order-body {
+    padding: 1rem;
+  }
+
+  .checkout-item {
+    padding: 1rem;
+    border-bottom: 1px solid #f1f5f9;
+  }
+
+  .checkout-item:last-child {
+    border-bottom: none;
+  }
+
+  .item-container {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+  }
+
+  .item-image-wrapper {
+    flex-shrink: 0;
+    width: 100px;
+    height: 100px;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+  }
+
+  .item-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .item-details {
+    flex-grow: 1;
+  }
+
+  .item-name {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 0.5rem;
+  }
+
+  .item-variant {
+    font-size: 0.9rem;
+    color: #64748b;
+    margin-bottom: 0.75rem;
+  }
+
+  .item-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .quantity-control {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: #f8fafc;
+    padding: 0.25rem;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+  }
+
+  .qty-btn {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: white;
+    border-radius: 6px;
+    color: #64748b;
+    transition: all 0.2s ease;
+  }
+
+  .qty-btn:not(:disabled):hover {
+    background: #3b82f6;
+    color: white;
+  }
+
+  .qty-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .qty-value {
+    min-width: 30px;
+    text-align: center;
+    font-weight: 500;
+    color: #1e293b;
+  }
+
+  .item-price {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #3b82f6;
+  }
+
+  /* Dark mode */
+  @media (prefers-color-scheme: dark) {
+    .order-card {
+      background: #1e293b;
+    }
+
+    .order-header {
+      border-color: #334155;
+    }
+
+    .header-content h5 {
+      color: #f1f5f9;
+    }
+
+    .checkout-item {
+      border-color: #334155;
+    }
+
+    .item-name {
+      color: #f1f5f9;
+    }
+
+    .item-variant {
+      color: #94a3b8;
+    }
+
+    .quantity-control {
+      background: #0f172a;
+      border-color: #334155;
+    }
+
+    .qty-btn {
+      background: #1e293b;
+      color: #94a3b8;
+    }
+
+    .qty-value {
+      color: #f1f5f9;
+    }
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .item-container {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .item-image-wrapper {
+      width: 100%;
+      height: 200px;
+    }
+
+    .item-controls {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 1rem;
+    }
+
+    .item-price {
+      align-self: flex-end;
+    }
   }
   </style>

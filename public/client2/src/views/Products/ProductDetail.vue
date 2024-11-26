@@ -178,6 +178,42 @@
         <div class="reviews-section mt-4">
           <h3>Đánh giá sản phẩm</h3>
           
+          <!-- Form đánh giá -->
+          <div v-if="isAuthenticated" class="review-form-section mb-4">
+            <div v-if="canReview" class="review-form p-4 border rounded">
+              <h5>Viết đánh giá của bạn</h5>
+              <div class="rating-input mb-3">
+                <span>Đánh giá của bạn:</span>
+                <div class="stars">
+                  <i v-for="n in 5" 
+                     :key="n" 
+                     class="fas fa-star"
+                     :class="{ 'text-warning': n <= newReview.rating }"
+                     @click="newReview.rating = n"
+                     style="cursor: pointer">
+                  </i>
+                </div>
+              </div>
+              <div class="form-group mb-3">
+                <textarea 
+                  v-model="newReview.content"
+                  class="form-control"
+                  rows="3"
+                  placeholder="Chia sẻ trải nghiệm của bạn về sản phẩm...">
+                </textarea>
+              </div>
+              <button 
+                class="btn btn-primary"
+                @click="submitReview"
+                :disabled="!newReview.rating || !newReview.content.trim()">
+                Gửi đánh giá
+              </button>
+            </div>
+            <div v-else class="alert alert-info">
+              {{ reviewStatusMessage }}
+            </div>
+          </div>
+          
           <!-- Danh sách đánh giá -->
           <div v-if="reviews.length > 0">
             <div v-for="review in reviews" :key="review.id" class="review-item mb-4">
@@ -530,13 +566,13 @@ export default {
         console.log('Can review response:', response.data);
         canReview.value = response.data.canReview;
         
-        // Hiển thị thông báo nếu cần
         if (!canReview.value) {
-          toastRef.value.showToast('Bạn cần mua và nhận sản phẩm này để có thể đánh giá', 'info');
+          toast.info(response.data.message);
         }
       } catch (error) {
         console.error('Error checking review permission:', error);
         canReview.value = false;
+        toast.error('Không thể kiểm tra quyền đánh giá');
       }
     };
 
@@ -739,6 +775,17 @@ export default {
       event.target.src = '/assets/images/default-product.png'
     }
 
+    // Thêm computed property để hiển thị message
+    const reviewStatusMessage = computed(() => {
+      if (!isAuthenticated.value) {
+        return 'Vui lòng đăng nhập để đánh giá sản phẩm';
+      }
+      if (hasReviewed.value) {
+        return 'Bạn đã đánh giá sản phẩm này rồi';
+      }
+      return 'Bạn cần mua và nhận hàng trước khi đánh giá sản phẩm này';
+    });
+
     return {
       product,
       selectedVariant,
@@ -785,7 +832,8 @@ export default {
       submitReply,
       ws,
       getImageUrl,
-      handleImageError
+      handleImageError,
+      reviewStatusMessage
     }
   }
 }
