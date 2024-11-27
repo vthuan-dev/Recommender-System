@@ -51,7 +51,7 @@
                   <div class="item-container">
                     <div class="item-image-wrapper">
                       <img 
-                        :src="`http://localhost:3000${item.image_url}`"
+                        :src="formatImageUrl(item.image)"
                         :alt="item.name" 
                         class="item-image"
                         @error="handleImageError"
@@ -224,7 +224,7 @@
                   class="btn btn-primary w-100 mt-3"
                   :disabled="!selectedAddress"
                 >
-                  Tiếp tục <i class="fas fa-arrow-right"></i>
+                  Ti���p tục <i class="fas fa-arrow-right"></i>
                 </button>
               </div>
             </div>
@@ -517,38 +517,46 @@
             <form @submit.prevent="submitNewAddress" class="address-form">
               <!-- Thông tin người nhận -->
               <div class="form-floating mb-3 fade-in">
-                <input type="text" 
-                       class="form-control custom-input" 
-                       id="recipientName" 
-                       required
-                       v-model="newAddress.recipient_name"
-                       placeholder="Tên người nhận">
+                <input 
+                  v-model="newAddress.recipient_name"
+                  type="text"
+                  class="form-control custom-input"
+                  id="recipientName"
+                  required
+                  placeholder="Tên người nhận"
+                >
                 <label for="recipientName">Tên người nhận <span class="text-danger">*</span></label>
               </div>
 
               <div class="form-floating mb-3 fade-in">
-                <input type="tel" 
-                       class="form-control custom-input" 
-                       id="recipientPhone" 
-                       required
-                       v-model="newAddress.recipient_phone"
-                       pattern="[0-9]{10}"
-                       placeholder="Số điện thoại người nhận">
+                <input 
+                  v-model="newAddress.recipient_phone"
+                  type="tel"
+                  class="form-control custom-input"
+                  id="recipientPhone"
+                  required
+                  placeholder="Số điện thoại người nhận"
+                  pattern="[0-9]{10}"
+                >
                 <label for="recipientPhone">Số điện thoại <span class="text-danger">*</span></label>
                 <small class="text-muted">Vui lòng nhập số điện thoại 10 số</small>
               </div>
 
               <!-- Tỉnh/Thành phố -->
               <div class="form-floating mb-3 fade-in">
-                <select class="form-select custom-select" 
-                        id="province" 
-                        required
-                        v-model="selectedProvince"
-                        @change="handleProvinceChange">
+                <select 
+                  v-model="selectedProvince.value"
+                  class="form-select custom-select"
+                  id="province"
+                  required
+                  @change="handleProvinceChange"
+                >
                   <option value="">Chọn tỉnh/thành phố</option>
-                  <option v-for="province in provinces" 
-                          :key="province.code" 
-                          :value="province.name">
+                  <option 
+                    v-for="province in provinces" 
+                    :key="province.code"
+                    :value="province.name"
+                  >
                     {{ province.name }}
                   </option>
                 </select>
@@ -556,17 +564,21 @@
               </div>
 
               <!-- Quận/Huyện -->
-              <div class="form-floating mb-3 fade-in">
-                <select class="form-select custom-select" 
-                        id="district" 
-                        required
-                        v-model="selectedDistrict"
-                        @change="handleDistrictChange"
-                        :disabled="!selectedProvince">
+              <div class="form-floating mb-3 fade-in" style="animation-delay: 0.1s">
+                <select 
+                  v-model="selectedDistrict.value"
+                  class="form-select custom-select"
+                  id="district"
+                  required
+                  @change="handleDistrictChange"
+                  :disabled="!selectedProvince"
+                >
                   <option value="">Chọn quận/huyện</option>
-                  <option v-for="district in districts" 
-                          :key="district.code" 
-                          :value="district.name">
+                  <option 
+                    v-for="district in districts" 
+                    :key="district.code"
+                    :value="district.name"
+                  >
                     {{ district.name }}
                   </option>
                 </select>
@@ -574,72 +586,92 @@
               </div>
 
               <!-- Phường/Xã -->
-              <div class="form-floating mb-3 fade-in">
-                <select class="form-select custom-select" 
-                        id="ward" 
-                        required
-                        v-model="selectedWard"
-                        :disabled="!selectedDistrict">
+              <div class="form-floating mb-3 fade-in" style="animation-delay: 0.2s">
+                <select 
+                  v-model="selectedWard.value"
+                  class="form-select custom-select"
+                  id="ward"
+                  required
+                  :disabled="!selectedDistrict"
+                >
                   <option value="">Chọn phường/xã</option>
-                  <option v-for="ward in wards" 
-                          :key="ward.code" 
-                          :value="ward.name">
+                  <option 
+                    v-for="ward in wards" 
+                    :key="ward.code"
+                    :value="ward.name"
+                  >
                     {{ ward.name }}
                   </option>
                 </select>
                 <label for="ward">Phường/Xã <span class="text-danger">*</span></label>
               </div>
 
-              <!-- Địa chỉ chi tiết -->
-              <div class="form-floating mb-3 fade-in">
-                <input type="text" 
-                       class="form-control custom-input" 
-                       id="address1" 
-                       required
-                       v-model="newAddress.address_line1"
-                       placeholder="Số nhà, tên đường">
+              <!-- Địa ch chi tiết -->
+              <div class="form-floating mb-3 fade-in" style="animation-delay: 0.3s">
+                <input 
+                  v-model="newAddress.address_line1"
+                  type="text"
+                  class="form-control custom-input"
+                  id="address1"
+                  required
+                  placeholder="Số nhà, tên đường"
+                >
                 <label for="address1">Địa chỉ chi tiết <span class="text-danger">*</span></label>
               </div>
-
+              
               <!-- Địa chỉ bổ sung -->
-              <div class="form-floating mb-3 fade-in">
-                <input type="text" 
-                       class="form-control custom-input" 
-                       id="address2"
-                       v-model="newAddress.address_line2"
-                       placeholder="Căn hộ, tầng, tòa nhà (nếu có)">
+              <div class="form-floating mb-3 fade-in" style="animation-delay: 0.4s">
+                <input 
+                  v-model="newAddress.address_line2"
+                  type="text"
+                  class="form-control custom-input"
+                  id="address2"
+                  placeholder="Căn hộ, tầng, tòa nhà (nếu có)"
+                >
                 <label for="address2">Địa chỉ bổ sung</label>
               </div>
 
               <!-- Mã bưu điện -->
-              <div class="form-floating mb-4 fade-in">
-                <input type="text" 
-                       class="form-control custom-input" 
-                       id="postal" 
-                       required
-                       v-model="newAddress.postal_code"
-                       placeholder="Mã bưu điện">
+              <div class="form-floating mb-4 fade-in" style="animation-delay: 0.5s">
+                <input 
+                  v-model="newAddress.postal_code"
+                  type="text"
+                  class="form-control custom-input"
+                  id="postal"
+                  required
+                  placeholder="Mã bưu điện"
+                >
                 <label for="postal">Mã bưu điện <span class="text-danger">*</span></label>
               </div>
 
               <!-- Đặt làm địa chỉ mặc định -->
-              <div class="form-check mb-4 fade-in">
-                <input type="checkbox" 
-                       class="form-check-input custom-checkbox" 
-                       id="isDefault"
-                       v-model="newAddress.is_default">
+              <div class="form-check mb-4 fade-in" style="animation-delay: 0.6s">
+                <input 
+                  type="checkbox"
+                  class="form-check-input custom-checkbox"
+                  id="isDefault"
+                  v-model="newAddress.is_default"
+                >
                 <label class="form-check-label" for="isDefault">
                   Đặt làm địa chỉ mặc định
                 </label>
               </div>
 
               <div class="d-flex justify-content-end gap-2">
-                <button type="button" class="btn btn-light" data-bs-dismiss="modal">
+                <button 
+                  type="button" 
+                  class="btn btn-light" 
+                  data-bs-dismiss="modal"
+                >
                   Hủy
                 </button>
-                <button type="submit" class="btn btn-primary" :disabled="isSubmitting">
-                  <span v-if="isSubmitting">Đang xử lý...</span>
-                  <span v-else>Thêm địa chỉ</span>
+                <button 
+                  type="submit" 
+                  class="btn btn-primary"
+                  :disabled="isSubmitting"
+                >
+                  <span v-if="isSubmitting" class="spinner-border spinner-border-sm me-2"></span>
+                  {{ isSubmitting ? 'Đang xử lý...' : 'Thêm địa chỉ' }}
                 </button>
               </div>
             </form>
@@ -1399,30 +1431,32 @@ watch(selectedPaymentMethod, (newValue) => {
 
 // Thêm hàm formatImageUrl giống như trong Cart.vue
 const formatImageUrl = (imageUrl) => {
-  if (!imageUrl) return ''; // Trả về ảnh mặc định nếu không có ảnh
+  if (!imageUrl) return '/placeholder-image.jpg';
   
-  // Nếu đã là URL đầy đủ thì trả v�� nguyên bản
+  // Nếu đã là đường dẫn đầy đủ, trả về nguyên bản
   if (imageUrl.startsWith('http')) {
     return imageUrl;
   }
-  
+
   // Đảm bảo đường dẫn bắt đầu bằng /
-  let formattedUrl = imageUrl.startsWith('/') ? imageUrl : `/${imageUrl}`;
-  
-  // Thêm prefix nếu cần
-  if (!formattedUrl.startsWith('/assets/uploads/')) {
-    formattedUrl = `/assets/uploads/products/${formattedUrl}`;
+  if (!imageUrl.startsWith('/')) {
+    imageUrl = `/${imageUrl}`;
   }
-  
-  // Thêm base URL của server
-  return `http://localhost:3000${formattedUrl}`;
-}
+
+  // Kiểm tra và thêm prefix nếu cần
+  if (!imageUrl.startsWith('/assets/uploads/')) {
+    imageUrl = `/assets/uploads/products${imageUrl}`;
+  }
+
+  // Thêm base URL
+  return `http://localhost:3000${imageUrl}`;
+};
 
 // Thêm hàm xử lý lỗi ảnh
 const handleImageError = (e) => {
-  // Gán ảnh mặc định khi load ảnh bị lỗi
-  e.target.src = '/placeholder-image.jpg'; // Thay đường dẫn này bằng ảnh mặc định của bạn
-}
+  e.target.src = '/placeholder-image.jpg';
+  console.log('Image load error, using placeholder');
+};
 
 // Thêm computed property để hiển thị địa chỉ đẹp hơn
 const formatAddress = (address) => {
