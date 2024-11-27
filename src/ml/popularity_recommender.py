@@ -7,7 +7,7 @@ class PopularityRecommender:
         self.recommendations = None
         self.all_products = None
         
-    def fit(self, ratings_data):
+    def fit(self, ratings_data, products_data):
         """Train popularity model với nhiều metrics và normalization"""
         # Convert ProductId to int if needed
         ratings_data['ProductId'] = ratings_data['ProductId'].astype(int)
@@ -29,12 +29,34 @@ class PopularityRecommender:
             product_ratings[f'{col}_norm'] = (product_ratings[col] - product_ratings[col].min()) / \
                                            (product_ratings[col].max() - product_ratings[col].min())
         
-        # Tính popularity score cải tiến
-        product_ratings['popularity_score'] = (
-            0.35 * product_ratings['count_norm'] +          # Giảm weight của count
-            0.35 * product_ratings['mean_norm'] +           # Tăng weight của rating
-            0.30 * product_ratings['unique_users_norm']     # Tăng weight của unique users
-        )
+        # Thêm metrics mới
+        product_metrics = {
+            'rating_count': ratings_data.groupby('ProductId').size(),
+            'avg_rating': ratings_data.groupby('ProductId')['Rating'].mean(),
+            'unique_users': ratings_data.groupby('ProductId')['UserId'].nunique(),
+            'sales_count': products_data['sold_count'],
+            'price_score': self._calculate_price_score(products_data['price']),
+            'recency_score': self._calculate_recency_score(ratings_data),
+            'stock_level': products_data['initial_stock']
+        }
+        
+        # Công thức mới
+        if len(ratings_data) < 100:  # Dataset nhỏ
+            # Giảm weight của các metrics phức tạp
+            popularity_score = (
+                0.50 * count_norm +      # Tăng weight cho số lượng đánh giá
+                0.30 * mean_norm +       # Giảm weight cho rating trung bình
+                0.20 * unique_users_norm # Giảm weight cho số users
+            )
+        else:
+            # Công thức gốc cho dataset lớn
+            popularity_score = (
+                0.30 * rating_score +
+                0.25 * sales_score +
+                0.20 * recency_score +
+                0.15 * price_score +
+                0.10 * stock_score
+            )
         
         self.all_products = product_ratings
         self.recommendations = product_ratings.sort_values(
@@ -42,22 +64,24 @@ class PopularityRecommender:
             ascending=False
         )
         
-    def recommend(self, n_items=10, min_ratings=30, min_rating=3.5):
-        """Get recommendations với ngưỡng thấp hơn và xử lý edge cases"""
+    def recommend(self, n_items=10):
         try:
+            # Giảm ngưỡng để phù hợp với dataset nhỏ
+            min_ratings = 1  # Thay vì 30
+            min_rating = 1.0  # Thay vì 3.5
+            
             qualified = self.recommendations[
                 (self.recommendations['count'] >= min_ratings) &
                 (self.recommendations['mean'] >= min_rating)
             ]
             
             if len(qualified) < n_items:
+                # Fallback: lấy tất cả sản phẩm có ít nhất 1 đánh giá
                 qualified = self.recommendations[
-                    (self.recommendations['count'] >= min_ratings//2) &
-                    (self.recommendations['mean'] >= min_rating-0.5)
+                    self.recommendations['count'] >= 1
                 ]
             
             return qualified.head(n_items)
-            
         except Exception as e:
             print(f"Lỗi trong recommend: {str(e)}")
             return pd.DataFrame()
@@ -115,3 +139,16 @@ class PopularityRecommender:
         except Exception as e:
             print(f"Lỗi trong get_diverse_recommendations: {str(e)}")
             return pd.DataFrame()
+        
+    def recommend_with_context(self, context=None):
+        """
+        context = {
+            'time_of_day': 'morning/afternoon/evening',
+            'day_of_week': 1-7,
+            'season': 'spring/summer/fall/winter',
+            'special_event': 'tet/christmas/blackfriday'
+        }
+        """
+        base_recommendations = self.recommend()
+        if context:
+            return self._apply_context_rules(base_recommendations, context)
