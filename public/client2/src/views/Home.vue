@@ -202,6 +202,11 @@
         </div>
       </div>
     </section>
+
+    <RecommendedProducts 
+      @add-to-wishlist="handleAddToWishlist"
+      @add-to-cart="handleAddToCart"
+    />
   </div>
 </template>
 
@@ -210,11 +215,13 @@ import { ref, onMounted, computed } from 'vue'
 import { useStore } from 'vuex'
 import axiosInstance from '@/utils/axios'
 import ProductCard from '@/components/Product/ProductCard.vue'
+import RecommendedProducts from '@/components/Product/RecommendedProducts.vue'
 
 export default {
   name: 'HomeComponent',
   components: {
-    ProductCard
+    ProductCard,
+    RecommendedProducts
   },
   setup() {
     const store = useStore()
@@ -341,6 +348,14 @@ export default {
       addToCart,
       addToWishlist,
       getCategoryIcon
+    }
+  },
+  methods: {
+    handleAddToWishlist(product) {
+      // Xử lý thêm vào wishlist
+    },
+    handleAddToCart(product) {
+      // Xử lý thêm vào giỏ hàng
     }
   }
 }

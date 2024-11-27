@@ -1,5 +1,5 @@
 # src/ml/app.py
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 import pandas as pd
 import mysql.connector
 from popularity_recommender import PopularityRecommender
@@ -36,92 +36,46 @@ cache = Cache(app, config={'CACHE_TYPE': 'simple'})
 @cache.cached(timeout=300)
 def get_recommendations():
     try:
-        # 1. Lấy dữ liệu ratings
+        # Get query parameters
+        category = request.args.get('category')
+        min_price = float(request.args.get('min_price', 0)) if request.args.get('min_price') else None
+        max_price = float(request.args.get('max_price')) if request.args.get('max_price') else None
+        brand = request.args.get('brand')
+        
+        # 1. Khởi tạo recommender
+        recommender = PopularityRecommender()
+        
+        # 2. Train với DB connection
         conn = mysql.connector.connect(**db_config)
-        query = """
-            SELECT 
-                r.product_id as ProductId,
-                r.user_id as UserId, 
-                r.rating as Rating,
-                r.created_at,
-                pv.sold_count,
-                pv.price,
-                pv.initial_stock
-            FROM reviews r
-            JOIN productvariants pv ON r.product_id = pv.product_id
-            WHERE r.rating IS NOT NULL
-        """
-        ratings_df = pd.read_sql(query, conn)
+        recommender.fit(conn)
         
-        # 2. Lấy recommendations từ model
-        recommendations = model.recommend(n_items=10)
-        
-        # Lấy top 10 sản phẩm có nhiều đánh giá và rating cao
-        fallback_query = """
-            SELECT 
-                p.id,
-                p.name,
-                p.image_url,
-                b.name as brand_name,
-                MIN(pv.price) as min_price,
-                MAX(pv.price) as max_price,
-                COUNT(r.id) as rating_count,
-                AVG(r.rating) as avg_rating
-            FROM products p
-            LEFT JOIN brands b ON p.brand_id = b.id 
-            LEFT JOIN productvariants pv ON p.id = pv.product_id
-            LEFT JOIN reviews r ON p.id = r.product_id
-            GROUP BY p.id, p.name, p.image_url, b.name
-            HAVING rating_count > 0
-            ORDER BY avg_rating DESC, rating_count DESC
-            LIMIT 10
-        """
-        
-        products_df = pd.read_sql(fallback_query, conn)
-        
-        # 3. Format kết quả
-        result = []
-        for _, product in products_df.iterrows():
-            result.append({
-                'id': int(product['id']),
-                'name': str(product['name']),
-                'brand': str(product['brand_name']),
-                'image_url': str(product['image_url']),
-                'price_range': {
-                    'min': float(product['min_price']) if pd.notnull(product['min_price']) else 0,
-                    'max': float(product['max_price']) if pd.notnull(product['max_price']) else 0
-                },
-                'metrics': {
-                    'rating_count': int(product['rating_count']),
-                    'avg_rating': float(product['avg_rating'])
-                }
-            })
-        
-        # Log thông tin để debug
-        print("Ratings data:")
-        print(ratings_df.describe())
-        
-        print("Products data:")
-        print(products_df)
+        # 3. Lấy recommendations với filters
+        recommendations = recommender.recommend(
+            n_items=10,
+            category=category,
+            min_price=min_price,
+            max_price=max_price,
+            brand=brand
+        )
         
         return jsonify({
             'success': True,
-            'recommendations': result,
-            'metrics': {
-                'total_products': int(len(ratings_df['ProductId'].unique())),
-                'total_users': int(len(ratings_df['UserId'].unique())),
-                'total_ratings': int(len(ratings_df)),
-                'avg_rating': float(ratings_df['Rating'].mean()),
-                'rating_distribution': ratings_df['Rating'].value_counts().to_dict()
+            'recommendations': recommendations,
+            'metadata': {
+                'model_type': 'Popularity-based',
+                'total_products': len(recommendations),
+                'features_used': [
+                    'ratings',
+                    'reviews',
+                    'orders',
+                    'sales'
+                ]
             }
         })
 
     except Exception as e:
-        print(f"Error in get_recommendations: {str(e)}")
-        return jsonify({
-            'error': str(e),
-            'stack_trace': traceback.format_exc()
-        }), 500
+        print(f"Error: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 # Thêm route để test diverse recommendations
 @app.route('/api/recommendations/diverse', methods=['GET'])
@@ -279,6 +233,26 @@ def get_fallback_recommendations():
         ORDER BY review_count DESC, avg_rating DESC
         LIMIT 10
     """
+
+@app.route('/api/home-recommendations', methods=['GET'])
+@cache.cached(timeout=300)  # Cache 5 phút
+def get_home_recommendations():
+    try:
+        # Khởi tạo recommender
+        recommender = PopularityRecommender()
+        conn = mysql.connector.connect(**db_config)
+        recommender.fit(conn)
+        
+        # Lấy recommendations với số lượng giới hạn cho trang chủ
+        recommendations = recommender.recommend(n_items=8)  # Lấy 8 sản phẩm
+        
+        return jsonify({
+            'success': True,
+            'recommendations': recommendations
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)

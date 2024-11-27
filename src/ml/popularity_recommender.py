@@ -1,211 +1,217 @@
 # src/ml/popularity_recommender.py
 import pandas as pd
 import numpy as np
+from sklearn.preprocessing import MinMaxScaler
 from datetime import datetime
 
 class PopularityRecommender:
     def __init__(self):
         self.recommendations = None
-        self.all_products = None
+        self.products_df = None
         
-    def _calculate_price_score(self, prices):
-        """Tính điểm giá (cao hơn cho giá trung bình)"""
+    def fit(self, conn):
+        """Train model với data từ DB"""
         try:
-            mean_price = prices.mean()
-            std_price = prices.std()
-            if std_price == 0:
-                return pd.Series(1, index=prices.index)
-            return 1 - abs(prices - mean_price) / (2 * std_price)
-        except Exception as e:
-            print(f"Lỗi trong _calculate_price_score: {str(e)}")
-            return pd.Series(0, index=prices.index)
-
-    def _calculate_recency_score(self, ratings_data):
-        """Tính điểm độ mới của ratings"""
-        try:
-            if 'created_at' not in ratings_data.columns:
-                return pd.Series(1, index=ratings_data['ProductId'].unique())
+            # 1. Sửa lại query
+            query = """
+                SELECT 
+                    p.id as product_id,
+                    p.name,
+                    p.image_url,
+                    b.name as brand_name,
+                    c.name as category_name,
+                    COUNT(DISTINCT r.id) as review_count,
+                    AVG(r.rating) as avg_rating,
+                    COUNT(DISTINCT o.id) as order_count,
+                    SUM(pv.sold_count) as sold_count,
+                    MIN(pv.price) as min_price,
+                    MAX(pv.price) as max_price
+                FROM products p
+                LEFT JOIN brands b ON p.brand_id = b.id
+                LEFT JOIN categories c ON p.category_id = c.id
+                LEFT JOIN reviews r ON p.id = r.product_id
+                LEFT JOIN productvariants pv ON p.id = pv.product_id
+                LEFT JOIN orderitems oi ON p.id = oi.product_id
+                LEFT JOIN orders o ON oi.order_id = o.id
+                GROUP BY 
+                    p.id, 
+                    p.name, 
+                    p.image_url, 
+                    b.name, 
+                    c.name
+                HAVING 
+                    COUNT(DISTINCT r.id) > 0 
+                    OR COUNT(DISTINCT o.id) > 0 
+                    OR SUM(pv.sold_count) > 0
+            """
+            
+            products_df = pd.read_sql(query, conn)
+            
+            # 2. Kiểm tra dữ liệu
+            print(f"Loaded {len(products_df)} products")
+            print("Columns:", products_df.columns.tolist())
+            
+            # 3. Xử lý missing values
+            products_df['review_count'] = products_df['review_count'].fillna(0)
+            products_df['avg_rating'] = products_df['avg_rating'].fillna(0)
+            products_df['order_count'] = products_df['order_count'].fillna(0)
+            products_df['sold_count'] = products_df['sold_count'].fillna(0)
+            
+            # 4. Tính popularity score
+            scaler = MinMaxScaler()
+            
+            # Chuẩn hóa các metrics nếu có dữ liệu
+            if len(products_df) > 0:
+                products_df['review_score'] = scaler.fit_transform(products_df[['review_count']])
+                products_df['rating_score'] = scaler.fit_transform(products_df[['avg_rating']])
+                products_df['order_score'] = scaler.fit_transform(products_df[['order_count']])
+                products_df['sales_score'] = scaler.fit_transform(products_df[['sold_count']])
                 
-            latest_date = pd.to_datetime(ratings_data['created_at']).max()
-            ratings_data['days_old'] = (latest_date - pd.to_datetime(ratings_data['created_at'])).dt.days
-            
-            recency_scores = ratings_data.groupby('ProductId')['days_old'].mean()
-            max_days = recency_scores.max()
-            
-            if max_days == 0:
-                return pd.Series(1, index=recency_scores.index)
-                
-            return 1 - (recency_scores / max_days)
-        except Exception as e:
-            print(f"Lỗi trong _calculate_recency_score: {str(e)}")
-            return pd.Series(1, index=ratings_data['ProductId'].unique())
-        
-    def fit(self, ratings_data, products_data):
-        """Train popularity model với nhiều metrics và normalization"""
-        try:
-            if ratings_data is None or len(ratings_data) == 0:
-                print("Không có dữ liệu ratings")
-                return False
-                
-            # Convert ProductId to int if needed
-            ratings_data['ProductId'] = ratings_data['ProductId'].astype(int)
-            
-            # Tính toán các metrics cơ bản
-            product_ratings = pd.DataFrame(
-                ratings_data.groupby('ProductId').agg({
-                    'Rating': ['count', 'mean', 'std'],
-                    'UserId': 'nunique'
-                })
-            )
-            product_ratings.columns = ['count', 'mean', 'std', 'unique_users']
-            
-            # Xử lý null values
-            product_ratings['std'] = product_ratings['std'].fillna(0)
-            
-            # Normalize các metrics
-            for col in ['count', 'mean', 'unique_users']:
-                if product_ratings[col].max() - product_ratings[col].min() > 0:
-                    product_ratings[f'{col}_norm'] = (product_ratings[col] - product_ratings[col].min()) / \
-                                                   (product_ratings[col].max() - product_ratings[col].min())
-                else:
-                    product_ratings[f'{col}_norm'] = 0
-            
-            # Tính các scores
-            rating_score = product_ratings['mean_norm']
-            count_score = product_ratings['count_norm']
-            user_score = product_ratings['unique_users_norm']
-            
-            # Tính popularity score dựa trên size dataset
-            if len(ratings_data) < 100:  # Dataset nhỏ
-                product_ratings['popularity_score'] = (
-                    0.50 * count_score +      
-                    0.30 * rating_score +      
-                    0.20 * user_score 
+                # Tính tổng popularity score
+                products_df['popularity_score'] = (
+                    0.3 * products_df['rating_score'] +
+                    0.3 * products_df['sales_score'] +
+                    0.2 * products_df['review_score'] +
+                    0.2 * products_df['order_score']
                 )
-            else:
-                # Thêm metrics từ products_data nếu có
-                if products_data is not None:
-                    sales_score = self._normalize_series(products_data['sold_count'])
-                    price_score = self._calculate_price_score(products_data['price'])
-                    stock_score = self._normalize_series(products_data['initial_stock'])
-                    recency_score = self._calculate_recency_score(ratings_data)
-                    
-                    product_ratings['popularity_score'] = (
-                        0.30 * rating_score +
-                        0.25 * sales_score +
-                        0.20 * recency_score +
-                        0.15 * price_score +
-                        0.10 * stock_score
-                    )
-                else:
-                    product_ratings['popularity_score'] = (
-                        0.40 * rating_score +
-                        0.35 * count_score +
-                        0.25 * user_score
-                    )
             
-            self.all_products = product_ratings
-            self.recommendations = product_ratings.sort_values(
+            # 5. Lưu recommendations
+            self.recommendations = products_df.sort_values(
                 'popularity_score', 
                 ascending=False
             )
             
+            print(f"Trained successfully with {len(products_df)} products")
             return True
             
         except Exception as e:
-            print(f"Lỗi trong fit: {str(e)}")
+            print(f"Lỗi trong quá trình training: {str(e)}")
             return False
-
-    def _normalize_series(self, series):
-        """Helper function để normalize một series"""
-        if series.max() - series.min() > 0:
-            return (series - series.min()) / (series.max() - series.min())
-        return pd.Series(0, index=series.index)
-
-    def recommend(self, n_items=10):
+            
+    def recommend(self, n_items=10, category=None, min_price=None, max_price=None, brand=None):
+        """Trả về top n sản phẩm phổ biến nhất với filters"""
         try:
-            # Giảm ngưỡng để phù hợp với dataset nhỏ
-            min_ratings = 1  # Thay vì 30
-            min_rating = 1.0  # Thay vì 3.5
+            if self.recommendations is None or len(self.recommendations) == 0:
+                print("No recommendations available")
+                return []
             
-            qualified = self.recommendations[
-                (self.recommendations['count'] >= min_ratings) &
-                (self.recommendations['mean'] >= min_rating)
-            ]
+            # Bắt đầu với toàn bộ recommendations
+            filtered_recs = self.recommendations.copy()
             
-            if len(qualified) < n_items:
-                # Fallback: lấy tất cả sản phẩm có ít nhất 1 đánh giá
-                qualified = self.recommendations[
-                    self.recommendations['count'] >= 1
-                ]
+            # Apply filters
+            if category:
+                filtered_recs = filtered_recs[filtered_recs['category_name'] == category]
+                
+            if brand:
+                filtered_recs = filtered_recs[filtered_recs['brand_name'] == brand]
+                
+            if min_price is not None:
+                filtered_recs = filtered_recs[filtered_recs['min_price'] >= min_price]
+                
+            if max_price is not None:
+                filtered_recs = filtered_recs[filtered_recs['max_price'] <= max_price]
             
-            return qualified.head(n_items)
+            # Get top n items
+            result = filtered_recs.head(n_items).to_dict('records')
+            
+            # Add recommendation reasons
+            for item in result:
+                item['reason'] = self._get_recommendation_reason(item)
+                
+            return result
+            
         except Exception as e:
             print(f"Lỗi trong recommend: {str(e)}")
-            return pd.DataFrame()
+            return []
+            
+    def _get_recommendation_reason(self, product):
+        """Tạo lý do gợi ý cho mỗi sản phẩm"""
+        reasons = []
         
-    def get_diverse_recommendations(self, n_items=10, min_ratings=30, min_rating=4.0):
-        """Lấy diverse recommendations với nhiều cải tiến và xử lý edge cases"""
+        if product['avg_rating'] >= 4.5:
+            reasons.append("Đánh giá rất cao")
+        elif product['avg_rating'] >= 4.0:
+            reasons.append("Đánh giá tốt")
+            
+        if product['sold_count'] >= 1000:
+            reasons.append("Bán chạy nhất")
+        elif product['sold_count'] >= 500:
+            reasons.append("Được nhiều người mua")
+            
+        if product['review_count'] >= 10:
+            reasons.append("Nhiều người đánh giá")
+        elif product['review_count'] >= 5:
+            reasons.append("Có nhiều review tích cực")
+            
+        if not reasons:
+            reasons.append("Phù hợp với bạn")
+            
+        return " • ".join(reasons)
+            
+    def diversify_recommendations(self, recommendations, max_per_category=2):
+        """Giới hạn số sản phẩm mỗi danh mục"""
+        category_count = {}
+        diverse_recs = []
+        
+        for product in recommendations:
+            category = product['category']
+            if category_count.get(category, 0) < max_per_category:
+                diverse_recs.append(product)
+                category_count[category] = category_count.get(category, 0) + 1
+                
+        return diverse_recs
+            
+    def calculate_popularity_score(self, product):
+        """Tính popularity score với weights tốt hơn"""
+        
+        # Normalize metrics
+        rating_score = self._normalize(product['avg_rating'], min_val=1, max_val=5)
+        sales_score = self._normalize(product['sold_count'], min_val=0, max_val=max_sales)
+        review_score = self._normalize(product['review_count'], min_val=0, max_val=max_reviews)
+        
+        # Tính recency score (ưu tiên sản phẩm mới)
+        days_since_launch = (datetime.now() - product['created_at']).days
+        recency_score = self._normalize(days_since_launch, inverse=True)
+        
+        # Weighted average
+        return (
+            0.35 * rating_score +     # Tăng weight cho rating
+            0.25 * sales_score +      # Giảm weight cho sales
+            0.20 * review_score +     # Giữ nguyên review weight  
+            0.20 * recency_score      # Thêm recency factor
+        )
+            
+    def get_recommendations_data(self):
+        """Get raw recommendations data for evaluation"""
         try:
-            # 1. Lọc ban đầu với điều kiện linh hoạt
-            df = self.recommendations[
-                (self.recommendations['count'] >= min_ratings) &
-                (self.recommendations['mean'] >= min_rating) &
-                (self.recommendations['std'] <= 1.5)        # Nới lỏng std threshold
-            ].copy()
+            if self.recommendations is None:
+                return []
+                
+            # Convert recommendations DataFrame to list of dicts
+            recommendations = self.recommendations.to_dict('records')
             
-            if len(df) < n_items:
-                df = self.recommendations[
-                    (self.recommendations['count'] >= min_ratings//2) &
-                    (self.recommendations['mean'] >= min_rating-0.5) &
-                    (self.recommendations['std'] <= 2.0)
-                ].copy()
-            
-            # 2. Chia nhóm với xử lý duplicates
-            try:
-                df['group'] = pd.qcut(
-                    df['popularity_score'], 
-                    q=5, 
-                    labels=['Very Low', 'Low', 'Medium', 'High', 'Very High'],
-                    duplicates='drop'
-                )
-            except ValueError:
-                df['group'] = pd.cut(
-                    df['popularity_score'],
-                    bins=5,
-                    labels=['Very Low', 'Low', 'Medium', 'High', 'Very High']
-                )
-            
-            # 3. Điều chỉnh tỷ lệ các nhóm
-            group_sizes = {
-                'Very High': max(2, int(n_items * 0.25)),
-                'High': max(2, int(n_items * 0.25)),
-                'Medium': max(3, int(n_items * 0.30)),
-                'Low': max(2, int(n_items * 0.10)),
-                'Very Low': max(1, int(n_items * 0.10))
-            }
-            
-            # 4. Lấy sản phẩm từ mỗi nhóm
-            diverse_recs = []
-            for group, size in group_sizes.items():
-                group_items = df[df['group'] == group].head(size)
-                diverse_recs.append(group_items)
-            
-            result = pd.concat(diverse_recs)
-            return result.head(n_items)
+            # Format data structure
+            formatted_recs = []
+            for rec in recommendations:
+                formatted_rec = {
+                    'product_id': rec['product_id'],
+                    'name': rec['name'],
+                    'brand_name': rec['brand_name'],
+                    'category_name': rec['category_name'],
+                    'image_url': rec['image_url'],
+                    'min_price': rec['min_price'],
+                    'max_price': rec['max_price'],
+                    'metrics': {
+                        'avg_rating': rec['avg_rating'],
+                        'review_count': rec['review_count'],
+                        'sold_count': rec['sold_count'],
+                        'popularity_score': rec['popularity_score']
+                    }
+                }
+                formatted_recs.append(formatted_rec)
+                
+            return formatted_recs
             
         except Exception as e:
-            print(f"Lỗi trong get_diverse_recommendations: {str(e)}")
-            return pd.DataFrame()        
-    def recommend_with_context(self, context=None):
-        """
-        context = {
-            'time_of_day': 'morning/afternoon/evening',
-            'day_of_week': 1-7,
-            'season': 'spring/summer/fall/winter',
-            'special_event': 'tet/christmas/blackfriday'
-        }
-        """
-        base_recommendations = self.recommend()
-        if context:
-            return self._apply_context_rules(base_recommendations, context)
+            print(f"Error getting recommendations data: {str(e)}")
+            return []
