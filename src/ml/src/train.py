@@ -11,7 +11,7 @@ from tqdm import tqdm
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from utils.metrics import calculate_precision, calculate_recall
-from models.popularity import PopularityRecommender
+from ml.popularity_recommender import PopularityRecommender
 from models.collaborative import CollaborativeFiltering
 from src.data_loader import DataLoader
 
