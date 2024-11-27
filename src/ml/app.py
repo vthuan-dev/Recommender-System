@@ -3,8 +3,10 @@ from flask import Flask, jsonify
 import pandas as pd
 import mysql.connector
 from popularity_recommender import PopularityRecommender
+
 import joblib
 from flask_caching import Cache
+import traceback
 
 app = Flask(__name__)
 
@@ -25,6 +27,7 @@ db_config = {
     'port': 3307,
     'auth_plugin': 'mysql_native_password'
 }
+recommender = PopularityRecommender()
 
 # Thêm caching để tránh query database quá nhiều
 cache = Cache(app, config={'CACHE_TYPE': 'simple'})
@@ -39,8 +42,13 @@ def get_recommendations():
             SELECT 
                 r.product_id as ProductId,
                 r.user_id as UserId, 
-                r.rating as Rating
+                r.rating as Rating,
+                r.created_at,
+                pv.sold_count,
+                pv.price,
+                pv.initial_stock
             FROM reviews r
+            JOIN productvariants pv ON r.product_id = pv.product_id
             WHERE r.rating IS NOT NULL
         """
         ratings_df = pd.read_sql(query, conn)
@@ -102,14 +110,17 @@ def get_recommendations():
             'metrics': {
                 'total_products': int(len(ratings_df['ProductId'].unique())),
                 'total_users': int(len(ratings_df['UserId'].unique())),
-                'total_ratings': int(len(ratings_df))
+                'total_ratings': int(len(ratings_df)),
+                'avg_rating': float(ratings_df['Rating'].mean()),
+                'rating_distribution': ratings_df['Rating'].value_counts().to_dict()
             }
         })
 
     except Exception as e:
         print(f"Error in get_recommendations: {str(e)}")
         return jsonify({
-            'error': str(e)
+            'error': str(e),
+            'stack_trace': traceback.format_exc()
         }), 500
 
 # Thêm route để test diverse recommendations

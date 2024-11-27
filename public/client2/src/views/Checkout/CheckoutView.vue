@@ -224,7 +224,7 @@
                   class="btn btn-primary w-100 mt-3"
                   :disabled="!selectedAddress"
                 >
-                  Ti���p tục <i class="fas fa-arrow-right"></i>
+                  Tiếp tục <i class="fas fa-arrow-right"></i>
                 </button>
               </div>
             </div>

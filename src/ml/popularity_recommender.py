@@ -1,69 +1,127 @@
 # src/ml/popularity_recommender.py
 import pandas as pd
 import numpy as np
+from datetime import datetime
 
 class PopularityRecommender:
     def __init__(self):
         self.recommendations = None
         self.all_products = None
         
+    def _calculate_price_score(self, prices):
+        """Tính điểm giá (cao hơn cho giá trung bình)"""
+        try:
+            mean_price = prices.mean()
+            std_price = prices.std()
+            if std_price == 0:
+                return pd.Series(1, index=prices.index)
+            return 1 - abs(prices - mean_price) / (2 * std_price)
+        except Exception as e:
+            print(f"Lỗi trong _calculate_price_score: {str(e)}")
+            return pd.Series(0, index=prices.index)
+
+    def _calculate_recency_score(self, ratings_data):
+        """Tính điểm độ mới của ratings"""
+        try:
+            if 'created_at' not in ratings_data.columns:
+                return pd.Series(1, index=ratings_data['ProductId'].unique())
+                
+            latest_date = pd.to_datetime(ratings_data['created_at']).max()
+            ratings_data['days_old'] = (latest_date - pd.to_datetime(ratings_data['created_at'])).dt.days
+            
+            recency_scores = ratings_data.groupby('ProductId')['days_old'].mean()
+            max_days = recency_scores.max()
+            
+            if max_days == 0:
+                return pd.Series(1, index=recency_scores.index)
+                
+            return 1 - (recency_scores / max_days)
+        except Exception as e:
+            print(f"Lỗi trong _calculate_recency_score: {str(e)}")
+            return pd.Series(1, index=ratings_data['ProductId'].unique())
+        
     def fit(self, ratings_data, products_data):
         """Train popularity model với nhiều metrics và normalization"""
-        # Convert ProductId to int if needed
-        ratings_data['ProductId'] = ratings_data['ProductId'].astype(int)
-        
-        # Tính toán các metrics cơ bản
-        product_ratings = pd.DataFrame(
-            ratings_data.groupby('ProductId').agg({
-                'Rating': ['count', 'mean', 'std'],
-                'UserId': 'nunique'
-            })
-        )
-        product_ratings.columns = ['count', 'mean', 'std', 'unique_users']
-        
-        # Xử lý null values
-        product_ratings['std'] = product_ratings['std'].fillna(0)
-        
-        # Normalize các metrics
-        for col in ['count', 'mean', 'unique_users']:
-            product_ratings[f'{col}_norm'] = (product_ratings[col] - product_ratings[col].min()) / \
-                                           (product_ratings[col].max() - product_ratings[col].min())
-        
-        # Thêm metrics mới
-        product_metrics = {
-            'rating_count': ratings_data.groupby('ProductId').size(),
-            'avg_rating': ratings_data.groupby('ProductId')['Rating'].mean(),
-            'unique_users': ratings_data.groupby('ProductId')['UserId'].nunique(),
-            'sales_count': products_data['sold_count'],
-            'price_score': self._calculate_price_score(products_data['price']),
-            'recency_score': self._calculate_recency_score(ratings_data),
-            'stock_level': products_data['initial_stock']
-        }
-        
-        # Công thức mới
-        if len(ratings_data) < 100:  # Dataset nhỏ
-            # Giảm weight của các metrics phức tạp
-            popularity_score = (
-                0.50 * count_norm +      # Tăng weight cho số lượng đánh giá
-                0.30 * mean_norm +       # Giảm weight cho rating trung bình
-                0.20 * unique_users_norm # Giảm weight cho số users
+        try:
+            if ratings_data is None or len(ratings_data) == 0:
+                print("Không có dữ liệu ratings")
+                return False
+                
+            # Convert ProductId to int if needed
+            ratings_data['ProductId'] = ratings_data['ProductId'].astype(int)
+            
+            # Tính toán các metrics cơ bản
+            product_ratings = pd.DataFrame(
+                ratings_data.groupby('ProductId').agg({
+                    'Rating': ['count', 'mean', 'std'],
+                    'UserId': 'nunique'
+                })
             )
-        else:
-            # Công thức gốc cho dataset lớn
-            popularity_score = (
-                0.30 * rating_score +
-                0.25 * sales_score +
-                0.20 * recency_score +
-                0.15 * price_score +
-                0.10 * stock_score
+            product_ratings.columns = ['count', 'mean', 'std', 'unique_users']
+            
+            # Xử lý null values
+            product_ratings['std'] = product_ratings['std'].fillna(0)
+            
+            # Normalize các metrics
+            for col in ['count', 'mean', 'unique_users']:
+                if product_ratings[col].max() - product_ratings[col].min() > 0:
+                    product_ratings[f'{col}_norm'] = (product_ratings[col] - product_ratings[col].min()) / \
+                                                   (product_ratings[col].max() - product_ratings[col].min())
+                else:
+                    product_ratings[f'{col}_norm'] = 0
+            
+            # Tính các scores
+            rating_score = product_ratings['mean_norm']
+            count_score = product_ratings['count_norm']
+            user_score = product_ratings['unique_users_norm']
+            
+            # Tính popularity score dựa trên size dataset
+            if len(ratings_data) < 100:  # Dataset nhỏ
+                product_ratings['popularity_score'] = (
+                    0.50 * count_score +      
+                    0.30 * rating_score +      
+                    0.20 * user_score 
+                )
+            else:
+                # Thêm metrics từ products_data nếu có
+                if products_data is not None:
+                    sales_score = self._normalize_series(products_data['sold_count'])
+                    price_score = self._calculate_price_score(products_data['price'])
+                    stock_score = self._normalize_series(products_data['initial_stock'])
+                    recency_score = self._calculate_recency_score(ratings_data)
+                    
+                    product_ratings['popularity_score'] = (
+                        0.30 * rating_score +
+                        0.25 * sales_score +
+                        0.20 * recency_score +
+                        0.15 * price_score +
+                        0.10 * stock_score
+                    )
+                else:
+                    product_ratings['popularity_score'] = (
+                        0.40 * rating_score +
+                        0.35 * count_score +
+                        0.25 * user_score
+                    )
+            
+            self.all_products = product_ratings
+            self.recommendations = product_ratings.sort_values(
+                'popularity_score', 
+                ascending=False
             )
-        
-        self.all_products = product_ratings
-        self.recommendations = product_ratings.sort_values(
-            'popularity_score', 
-            ascending=False
-        )
-        
+            
+            return True
+            
+        except Exception as e:
+            print(f"Lỗi trong fit: {str(e)}")
+            return False
+
+    def _normalize_series(self, series):
+        """Helper function để normalize một series"""
+        if series.max() - series.min() > 0:
+            return (series - series.min()) / (series.max() - series.min())
+        return pd.Series(0, index=series.index)
+
     def recommend(self, n_items=10):
         try:
             # Giảm ngưỡng để phù hợp với dataset nhỏ
@@ -138,8 +196,7 @@ class PopularityRecommender:
             
         except Exception as e:
             print(f"Lỗi trong get_diverse_recommendations: {str(e)}")
-            return pd.DataFrame()
-        
+            return pd.DataFrame()        
     def recommend_with_context(self, context=None):
         """
         context = {
