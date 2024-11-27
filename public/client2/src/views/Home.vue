@@ -128,42 +128,11 @@
     </section>
 
     <!-- Recommended Products -->
-    <section v-if="isAuthenticated" class="recommendations-section">
-      <div class="container py-5">
-        <div class="section-header text-center mb-5">
-          <h6 class="text-primary text-uppercase fw-bold">Dành riêng cho bạn</h6>
-          <h2 class="section-title">Gợi ý sản phẩm</h2>
-        </div>
-        
-        <div class="row g-4">
-          <div v-for="product in recommendedProducts" 
-               :key="product.id" 
-               class="col-6 col-md-3">
-            <div class="product-card">
-              <div class="card border-0 rounded-4 shadow-hover h-100">
-                <div class="product-image">
-                  <img :src="product.image" :alt="product.name">
-                  <div class="product-actions">
-                    <button class="action-btn" @click="addToWishlist(product)">
-                      <i class="fas fa-heart"></i>
-                    </button>
-                    <button class="action-btn" @click="addToCart(product)">
-                      <i class="fas fa-shopping-cart"></i>
-                    </button>
-                  </div>
-                </div>
-                <div class="card-body">
-                  <h5 class="product-title">{{ product.name }}</h5>
-                  <div class="product-price">
-                    <span class="new-price">{{ formatPrice(product.price) }}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
+    <RecommendedProducts 
+      v-if="isAuthenticated"
+      @add-to-wishlist="handleAddToWishlist"
+      @add-to-cart="handleAddToCart"
+    />
 
     <!-- Recently Viewed -->
     <section v-if="recentlyViewed.length" class="recent-section">
@@ -202,11 +171,6 @@
         </div>
       </div>
     </section>
-
-    <RecommendedProducts 
-      @add-to-wishlist="handleAddToWishlist"
-      @add-to-cart="handleAddToCart"
-    />
   </div>
 </template>
 
@@ -335,6 +299,37 @@ export default {
       }
     })
 
+    const handleAddToWishlist = async (product) => {
+      if (!isAuthenticated.value) {
+        // Xử lý khi chưa đăng nhập
+        return
+      }
+      try {
+        await store.dispatch('wishlist/addItem', product)
+        // Hiển thị thông báo thành công
+      } catch (error) {
+        console.error('Error adding to wishlist:', error)
+        // Hiển thị thông báo lỗi
+      }
+    }
+
+    const handleAddToCart = async (product) => {
+      if (!isAuthenticated.value) {
+        // Xử lý khi chưa đăng nhập
+        return
+      }
+      try {
+        await store.dispatch('cart/addItem', {
+          productId: product.product_id,
+          quantity: 1
+        })
+        // Hiển thị thông báo thành công
+      } catch (error) {
+        console.error('Error adding to cart:', error)
+        // Hiển thị thông báo lỗi
+      }
+    }
+
     return {
       heroSlides,
       flashDeals,
@@ -347,7 +342,9 @@ export default {
       formatPrice,
       addToCart,
       addToWishlist,
-      getCategoryIcon
+      getCategoryIcon,
+      handleAddToWishlist,
+      handleAddToCart
     }
   },
   methods: {
