@@ -197,6 +197,9 @@ class ContentBasedRecommender:
                 'min_price': product.get('min_price', 0),
                 'description': product.get('description', '')
             }
+            
+            # Detect product type early
+            product_type = self._detect_product_type(product['name'])
 
             idx = self.product_features[
                 self.product_features['id'] == product_id
@@ -222,133 +225,72 @@ class ContentBasedRecommender:
             # Loại bỏ sản phẩm gốc
             scores_df = scores_df[scores_df['index'] != idx].copy()
             
-            # Initial normalization of base similarities to 0-0.4 range
+            # Normalize initial similarities to 0-0.3 range
             max_sim = scores_df['similarity'].max()
             if max_sim > 0:
-                scores_df['similarity'] = scores_df['similarity'] / max_sim * 0.4
+                scores_df['similarity'] = scores_df['similarity'] / max_sim * 0.3
             
-            # Remove duplicates based on product name
-            scores_df = scores_df.drop_duplicates(subset=['name'], keep='first')
+            # Add bonuses sequentially with normalization after each step
             
-            # Add category and brand bonuses (reduced values)
-            scores_df.loc[scores_df['category'] == product['category_name'], 'similarity'] *= 1.25  # +25%
-            scores_df.loc[scores_df['brand'] == product['brand_name'], 'similarity'] *= 1.15      # +15%
+            # 1. Category bonus (max 0.3)
+            scores_df.loc[scores_df['category'] == product['category_name'], 'similarity'] += 0.3
+            scores_df['similarity'] = scores_df['similarity'].clip(0, 0.6)
             
-            # Cap at 0.7 before price range processing
-            scores_df['similarity'] = scores_df['similarity'].clip(0, 0.7)
-            
-            # Price range bonus (reduced)
-            base_price = product['min_price']
-            if base_price > 0:  # Avoid division by zero
-                price_diff = abs(scores_df['price'] - base_price) / base_price
-                # Smaller bonus for similar price range
-                scores_df.loc[price_diff <= 0.3, 'similarity'] *= 1.1  # +10% for ±30% price range
-                # Penalty for very different prices
-                scores_df.loc[price_diff > 0.5, 'similarity'] *= 0.8  # -20% for >50% price difference
-            
-            # Cap at 0.8 before accessory processing
+            # 2. Brand bonus (max 0.2)
+            scores_df.loc[scores_df['brand'] == product['brand_name'], 'similarity'] += 0.2
             scores_df['similarity'] = scores_df['similarity'].clip(0, 0.8)
             
-            # Detect if current product is an accessory
-            is_accessory = any(
-                keyword in product['name'].lower()
-                for acc_list in self.related_accessories.values()
-                for keywords in acc_list.values()
-                for keyword in keywords
-            )
-            
-            # Detect product type
-            product_type = self._detect_product_type(product['name'])
-            scores_df['product_type'] = scores_df['name'].apply(self._detect_product_type)
-            
-            # Brand tiers và bonus
-            premium_brands = ['Apple', 'Samsung', 'Sony']  # Tier 1
-            high_end_brands = ['LG', 'MSI', 'Asus', 'JBL', 'Logitech']  # Tier 2
-            mid_brands = ['OPPO', 'Vivo', 'Xiaomi', 'Lenovo', 'HP']  # Tier 3
-            
-            # Category tiers
-            premium_categories = ['Điện thoại', 'Laptop gaming', 'PC & Linh kiện']
-            high_end_categories = ['Máy tính bảng', 'Camera & Máy ảnh', 'Console & Games']
-            
-            # Brand bonus based on tiers và category
-            brand_bonus = 0
-            if product['brand_name'] in premium_brands:
-                brand_bonus = 0.2 if product['category_name'] in premium_categories else 0.15
-            elif product['brand_name'] in high_end_brands:
-                brand_bonus = 0.15 if product['category_name'] in premium_categories else 0.1
-            elif product['brand_name'] in mid_brands:
-                brand_bonus = 0.1
+            # 3. Price range bonuses (max 0.15)
+            base_price = product['min_price']
+            if base_price > 0:
+                price_diff = abs(scores_df['price'] - base_price) / base_price
                 
-            scores_df.loc[scores_df['brand'] == product['brand_name'], 'similarity'] += brand_bonus
+                # Tăng bonus cho khoảng giá phù hợp
+                scores_df.loc[price_diff <= 0.2, 'similarity'] += 0.15  # Very close
+                scores_df.loc[(price_diff > 0.2) & (price_diff <= 0.3), 'similarity'] += 0.13  # Close
+                scores_df.loc[(price_diff > 0.3) & (price_diff <= 0.5), 'similarity'] += 0.10  # Moderate
+                
+                # Tăng penalty cho khoảng giá xa
+                scores_df.loc[price_diff > 0.5, 'similarity'] *= 0.5  # -50% for far prices
+                
+            # Normalize to 0.9 after price bonuses
+            scores_df['similarity'] = scores_df['similarity'].clip(0, 0.9)
             
-            # Category bonus (dynamic)
-            category_bonus = 0.25 if product['category_name'] in premium_categories else 0.2
-            scores_df.loc[scores_df['category'] == product['category_name'], 'similarity'] += category_bonus
-            
-            # Type bonus (0.25)
-            scores_df.loc[scores_df['product_type'] == product_type, 'similarity'] += 0.25
-            
-            # Add bonus for related accessories or main products
-            if not is_accessory and product_type in self.related_accessories:
-                # Use smaller multiplicative bonuses
+            # 4. Accessory bonuses
+            if product_type in self.related_accessories:
+                acc_bonus = np.zeros(len(scores_df))
+                
+                # Tăng bonus cho phụ kiện
                 for keyword in self.related_accessories[product_type]['primary']:
                     mask = (
                         scores_df['name'].str.lower().str.contains(keyword, na=False) |
                         scores_df['description'].str.lower().str.contains(keyword, na=False)
                     )
-                    scores_df.loc[mask, 'similarity'] *= 1.1  # +10%
+                    acc_bonus = np.where(mask, 0.10, acc_bonus)  # +0.10 for primary
                     
                 for keyword in self.related_accessories[product_type]['secondary']:
                     mask = (
                         scores_df['name'].str.lower().str.contains(keyword, na=False) |
                         scores_df['description'].str.lower().str.contains(keyword, na=False)
                     )
-                    scores_df.loc[mask, 'similarity'] *= 1.05   # +5%
+                    acc_bonus = np.where(mask, 0.07, acc_bonus)  # +0.07 for secondary
                     
-                # Cap similarities at 0.95
-                scores_df['similarity'] = scores_df['similarity'].clip(0, 0.95)
+                # Add accessory bonuses
+                scores_df['similarity'] = scores_df['similarity'] + acc_bonus
                 
-                # Adjust ratio based on product type and price
-                if product_type in ['phone', 'tablet', 'laptop']:
-                    if product['min_price'] > 15000000:  # > 15tr
-                        n_similar = int(n_items * 0.4)  # 40% similar products
-                        n_accessories = n_items - n_similar  # 60% accessories
-                    else:
-                        n_similar = int(n_items * 0.6)  # 60% similar products
-                        n_accessories = n_items - n_similar  # 40% accessories
-                else:
-                    n_similar = int(n_items * 0.7)  # 70% similar products
-                    n_accessories = n_items - n_similar  # 30% accessories
+                # Boost accessories in similar price range
+                if base_price > 0:
+                    price_diff = abs(scores_df['price'] - base_price) / base_price
+                    acc_bonus = np.where(price_diff <= 0.5, acc_bonus * 1.2, acc_bonus)
                     
-                # Get similar products (exclude accessories)
-                similar_products = scores_df[
-                    ~scores_df['name'].str.lower().str.contains('|'.join(
-                        sum([v['primary'] + v['secondary'] for v in self.related_accessories.values()], [])
-                    ), na=False)
-                ].nlargest(n_similar, 'similarity')
-                
-                # Get accessories
-                accessories_mask = scores_df['name'].str.lower().str.contains('|'.join(
-                    sum([v['primary'] + v['secondary'] for v in self.related_accessories.values()], [])
-                ), na=False)
-                accessories = scores_df[accessories_mask].nlargest(n_accessories, 'similarity')
-                
-                # Combine recommendations
-                final_recs = pd.concat([similar_products, accessories])
-            else:
-                # If accessory or unknown type, recommend similar items
-                final_recs = scores_df.nlargest(n_items, 'similarity')
-                
-            # Ensure final scores are <= 0.95
-            final_recs['similarity'] = final_recs['similarity'].clip(0, 0.95)
-            max_final_sim = final_recs['similarity'].max()
-            if max_final_sim > 0.95:
-                final_recs['similarity'] = (final_recs['similarity'] / max_final_sim) * 0.95
+            # Final normalization
+            scores_df['similarity'] = scores_df['similarity'].clip(0, 0.95)
             
             # Sort by similarity
-            final_recs = final_recs.sort_values('similarity', ascending=False)
+            scores_df = scores_df.sort_values('similarity', ascending=False)
             
-            recommendations = self.product_features.iloc[final_recs['index']]
+            # Get top recommendations
+            recommendations = self.product_features.iloc[scores_df.head(n_items)['index']]
             
             return [{
                 'id': int(row['id']),
@@ -417,3 +359,127 @@ class ContentBasedRecommender:
             (recommendations['min_price'] >= min_price) & 
             (recommendations['max_price'] <= max_price)
         ]
+
+    def evaluate_model(self, test_products=None, k=5):
+        """Đánh giá model với các metrics cơ bản"""
+        if test_products is None:
+            # Lấy ngẫu nhiên 20% sản phẩm để test
+            test_products = self.product_features.sample(frac=0.2)['id'].tolist()
+            
+        metrics = {
+            'category_accuracy': [],  # Tỷ lệ gợi ý cùng category
+            'brand_accuracy': [],     # Tỷ lệ gợi ý cùng brand
+            'price_range_accuracy': [],  # Tỷ lệ gợi ý trong khoảng giá phù hợp
+            'accessory_ratio': [],    # Tỷ lệ phụ kiện trong gợi ý
+            'diversity_score': [],    # Độ đa dạng của gợi ý
+            'price_ranges': {         # Phân phối khoảng giá
+                'very_close': 0,    # ±20%
+                'close': 0,         # ±30%
+                'moderate': 0,      # ±50%
+                'far': 0           # >50%
+            }
+        }
+        
+        total_recs = 0  # Tổng số recommendations
+        
+        for product_id in test_products:
+            # Lấy thông tin sản phẩm gốc
+            original = self._get_product_details(product_id)
+            if not original or not original['min_price']:
+                continue
+            
+            # Lấy recommendations
+            recs = self.recommend(product_id, n_items=k)
+            if not recs:
+                continue
+            
+            total_recs += len(recs)
+            
+            # Category accuracy
+            same_category = sum(1 for r in recs if r['category'] == original['category_name'])
+            metrics['category_accuracy'].append(same_category / k)
+            
+            # Brand accuracy
+            same_brand = sum(1 for r in recs if r['brand'] == original['brand_name'])
+            metrics['brand_accuracy'].append(same_brand / k)
+            
+            # Price range accuracy
+            base_price = original['min_price']
+            for rec in recs:
+                diff = abs(rec['price'] - base_price) / base_price
+                if diff <= 0.2:
+                    metrics['price_ranges']['very_close'] += 1
+                elif diff <= 0.3:
+                    metrics['price_ranges']['close'] += 1
+                elif diff <= 0.5:
+                    metrics['price_ranges']['moderate'] += 1
+                else:
+                    metrics['price_ranges']['far'] += 1
+                
+            in_price_range = sum(1 for r in recs 
+                               if 0.5 * base_price <= r['price'] <= 1.5 * base_price)
+            metrics['price_range_accuracy'].append(in_price_range / k)
+            
+            # Accessory ratio
+            is_accessory = any(
+                keyword in original['name'].lower()
+                for acc_list in self.related_accessories.values()
+                for keywords in acc_list.values()
+                for keyword in keywords
+            )
+            
+            if not is_accessory:
+                acc_count = sum(1 for r in recs if any(
+                    keyword in r['name'].lower()
+                    for acc_list in self.related_accessories.values()
+                    for keywords in acc_list.values()
+                    for keyword in keywords
+                ))
+                metrics['accessory_ratio'].append(acc_count / k)
+                
+            # Diversity score
+            unique_cats = len(set(r['category'] for r in recs))
+            unique_brands = len(set(r['brand'] for r in recs))
+            diversity = (unique_cats + unique_brands) / (2 * k)
+            metrics['diversity_score'].append(diversity)
+        
+        # Tính trung bình các metrics
+        results = {
+            'category_accuracy': np.mean(metrics['category_accuracy']),
+            'brand_accuracy': np.mean(metrics['brand_accuracy']),
+            'price_range_accuracy': np.mean(metrics['price_range_accuracy']),
+            'accessory_ratio': np.mean(metrics['accessory_ratio']) if metrics['accessory_ratio'] else 0,
+            'diversity_score': np.mean(metrics['diversity_score'])
+        }
+        
+        # Thêm phân phối khoảng giá
+        if total_recs > 0:
+            results['price_distribution'] = {
+                range_name: count/total_recs 
+                for range_name, count in metrics['price_ranges'].items()
+            }
+        
+        return results
+
+    def evaluate_similarity_distribution(self):
+        """Đánh giá phân phối của similarity scores"""
+        all_scores = []
+        
+        # Lấy mẫu ngẫu nhiên 50 sản phẩm
+        sample_products = self.product_features.sample(n=min(50, len(self.product_features)))
+        
+        for _, product in sample_products.iterrows():
+            recs = self.recommend(product['id'], n_items=5)
+            if recs:
+                scores = [r['similarity_score'] for r in recs]
+                all_scores.extend(scores)
+        
+        if all_scores:
+            return {
+                'mean': np.mean(all_scores),
+                'std': np.std(all_scores),
+                'min': np.min(all_scores),
+                'max': np.max(all_scores),
+                'median': np.median(all_scores)
+            }
+        return {}

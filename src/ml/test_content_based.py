@@ -44,6 +44,28 @@ def test_model():
         # 3. In thống kê model
         evaluate_model_stats(recommender)
 
+        # Đánh giá model
+        print("\nModel Evaluation:")
+        print("=" * 50)
+
+        # Đánh giá metrics
+        metrics = recommender.evaluate_model(k=5)
+        print("\nMetrics:")
+        for metric, value in metrics.items():
+            if metric != 'price_distribution':
+                print(f"- {metric}: {value:.2f}")
+
+        if 'price_distribution' in metrics:
+            print("\nPrice Range Distribution:")
+            for range_name, ratio in metrics['price_distribution'].items():
+                print(f"- {range_name}: {ratio:.2f}")
+
+        # Đánh giá phân phối similarity
+        dist = recommender.evaluate_similarity_distribution()
+        print("\nSimilarity Distribution:")
+        for metric, value in dist.items():
+            print(f"- {metric}: {value:.2f}")
+
     except Exception as e:
         logger.error(f"Error in testing: {str(e)}")
         raise e
