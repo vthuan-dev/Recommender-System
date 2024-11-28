@@ -859,6 +859,11 @@ const validateOrderData = () => {
       });
       throw new Error(`Thông tin sản phẩm không hợp lệ: ${item.name}`);
     }
+    
+    // Kiểm tra số lượng phải là số dương
+    if (parseInt(item.quantity) <= 0) {
+      throw new Error(`Số lượng sản phẩm "${item.name}" không hợp lệ`);
+    }
   });
 };
 
@@ -866,23 +871,14 @@ const placeOrder = async () => {
   try {
     validateOrderData();
 
-    // Lấy thông tin giảm giá từ localStorage
-    const checkoutData = JSON.parse(localStorage.getItem('checkoutItems'));
-    const discountInfo = checkoutData?.discount || { code: null, amount: 0 };
-
+    // Chuẩn bị dữ liệu đơn hàng
     const orderData = {
       addressId: parseInt(selectedAddress.value),
       items: checkoutItems.value.map(item => ({
         productId: parseInt(item.product_id),
         variantId: parseInt(item.variant_id),
-        quantity: parseInt(item.quantity),
-        price: parseFloat(item.price)
-      })),
-      // Thêm thông tin giảm giá vào orderData
-      discountCode: discountInfo.code,
-      discountAmount: discountInfo.amount,
-      subtotal: subtotal.value,
-      total: total.value
+        quantity: parseInt(item.quantity)
+      }))
     };
 
     console.log('Sending order data:', orderData);
@@ -911,8 +907,8 @@ const placeOrder = async () => {
     console.error('Error placing order:', error);
     Swal.fire({
       icon: 'error',
-      title: 'Lỗi',
-      text: error.message || 'Không thể đặt hàng. Vui lòng thử lại.'
+      title: 'Không thể đặt hàng',
+      text: error.response?.data?.message || error.message || 'Vui lòng thử lại sau'
     });
   }
 };

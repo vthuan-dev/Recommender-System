@@ -60,6 +60,31 @@ router.post('/orders', authenticateJWT, async (req, res) => {
         throw new Error('Địa chỉ không hợp lệ');
       }
   
+      // Kiểm tra tồn kho trước khi tạo đơn hàng
+      for (const item of items) {
+        const [variantResult] = await connection.query(
+          `SELECT pv.id, pv.price, pv.initial_stock, COALESCE(pv.sold_count, 0) as sold_count,
+           (pv.initial_stock - COALESCE(pv.sold_count, 0)) as available_quantity,
+           p.name as product_name
+           FROM productvariants pv 
+           JOIN products p ON p.id = pv.product_id
+           WHERE pv.id = ? 
+           FOR UPDATE`,
+          [item.variantId]
+        );
+
+        if (variantResult.length === 0) {
+          throw new Error(`Không tìm thấy sản phẩm với variant ID ${item.variantId}`);
+        }
+
+        const variant = variantResult[0];
+        if (variant.available_quantity < item.quantity) {
+          throw new Error(
+            `Sản phẩm "${variant.product_name}" chỉ còn ${variant.available_quantity} sản phẩm trong kho`
+          );
+        }
+      }
+  
       // Tạo đơn hàng mới
       const [orderResult] = await connection.query(
         'INSERT INTO orders (user_id, address_id, total, status) VALUES (?, ?, ?, ?)',
