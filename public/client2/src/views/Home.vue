@@ -40,6 +40,41 @@
       </div>
     </section>
 
+    <!-- Move Recommended Products Section here -->
+    <section class="recommendations-section">
+      <div class="container py-5">
+        <div class="section-header text-center mb-5">
+          <h6 class="text-primary text-uppercase fw-bold">Dành riêng cho bạn</h6>
+          <h2 class="section-title">Gợi ý sản phẩm</h2>
+        </div>
+        
+        <div class="row g-4">
+          <div v-for="product in recommendedProducts" 
+               :key="product.product_id" 
+               class="col-6 col-md-3">
+            <ProductCard 
+              :product="{
+                id: product.product_id,
+                name: product.name,
+                image_url: product.image_url,
+                min_price: product.min_price,
+                max_price: product.max_price,
+                brand_name: product.brand_name,
+                reason: product.reason,
+                metrics: {
+                  avg_rating: product.metrics?.avg_rating,
+                  review_count: product.metrics?.review_count,
+                  sold_count: product.metrics?.sold_count
+                }
+              }"
+              @add-to-wishlist="handleAddToWishlist"
+              @add-to-cart="handleAddToCart"
+            />
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- Flash Deals Section -->
     <section class="flash-deals-section">
       <div class="container py-5">
@@ -127,13 +162,6 @@
       </div>
     </section>
 
-    <!-- Recommended Products -->
-    <RecommendedProducts 
-      v-if="isAuthenticated"
-      @add-to-wishlist="handleAddToWishlist"
-      @add-to-cart="handleAddToCart"
-    />
-
     <!-- Recently Viewed -->
     <section v-if="recentlyViewed.length" class="recent-section">
       <div class="container py-5">
@@ -171,36 +199,6 @@
         </div>
       </div>
     </section>
-
-    <!-- Recommended Products Section -->
-    <section class="recommended-section" v-if="recommendedProducts.length">
-      <div class="container py-5">
-        <div class="section-header text-center mb-5">
-          <h6 class="text-primary text-uppercase fw-bold">Dành cho bạn</h6>
-          <h2 class="section-title">Gợi ý sản phẩm</h2>
-        </div>
-        
-        <div class="row g-4">
-          <div v-for="product in recommendedProducts" 
-               :key="product.product_id" 
-               class="col-6 col-md-3">
-            <ProductCard 
-              :product="{
-                id: product.product_id,
-                name: product.name,
-                image_url: product.image_url,
-                min_price: product.min_price,
-                max_price: product.max_price,
-                brand_name: product.brand_name,
-                reason: product.reason
-              }"
-              @add-to-wishlist="handleAddToWishlist"
-              @add-to-cart="handleAddToCart"
-            />
-          </div>
-        </div>
-      </div>
-    </section>
   </div>
 </template>
 
@@ -209,13 +207,16 @@ import { ref, onMounted, computed } from 'vue'
 import { useStore } from 'vuex'
 import axiosInstance from '@/utils/axios'
 import ProductCard from '@/components/Product/ProductCard.vue'
-import RecommendedProducts from '@/components/Product/RecommendedProducts.vue'
+// Remove RecommendedProducts import if not needed
+// import RecommendedProducts from '@/components/Product/RecommendedProducts.vue'
+import axios from 'axios'
 
 export default {
   name: 'HomeComponent',
   components: {
     ProductCard,
-    RecommendedProducts
+    // Remove RecommendedProducts from components if not needed
+    // RecommendedProducts
   },
   setup() {
     const store = useStore()
@@ -319,23 +320,18 @@ export default {
         const trendingResponse = await axiosInstance.get('/trending-products')
         trendingProducts.value = trendingResponse.data
 
-        if (isAuthenticated.value) {
-          const loadRecommendations = async () => {
-            try {
-              console.log('Fetching recommendations...');
-              const response = await axiosInstance.get('/api/recommended-products', {
-                params: {
-                  limit: 8,
-                  page: 1
-                }
-              });
-              console.log('Recommendations response:', response.data);
-              recommendedProducts.value = response.data.recommendations || [];
-            } catch (error) {
-              console.error('Error loading recommendations:', error);
-            }
-          };
-          loadRecommendations();
+        console.log('Fetching recommendations...')
+        const response = await axios.get('http://localhost:5001/api/recommended-products', {
+          params: {
+            limit: 8,
+            page: 1
+          }
+        })
+        
+        console.log('Recommendations response:', response.data)
+        
+        if (response.data.success) {
+          recommendedProducts.value = response.data.recommendations
         }
 
       } catch (error) {

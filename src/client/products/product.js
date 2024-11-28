@@ -626,56 +626,60 @@ router.get('/trending-products', async (req, res) => {
   }
 });
 
-// API để lấy recommended products cho user đã đăng nhập
-router.get('/recommended-products', authenticateJWT, async (req, res) => {
+// API để lấy recommended products (popularity-based)
+router.get('/recommended-products', async (req, res) => {
   try {
-    const userId = req.user.userId;
-    
-    // Lấy các category_id mà user đã xem nhiều nhất
-    const [userPreferences] = await pool.query(`
-      SELECT p.category_id, COUNT(*) as view_count
-      FROM user_product_views upv
-      JOIN products p ON upv.product_id = p.id
-      WHERE upv.user_id = ?
-      GROUP BY p.category_id
-      ORDER BY view_count DESC
-      LIMIT 3
-    `, [userId]);
-
-    if (userPreferences.length === 0) {
-      // Nếu chưa có lịch sử xem, trả về sn phm phổ biến
-      const [popularProducts] = await pool.query(`
-        SELECT p.*, b.name as brand_name
-        FROM products p
-        LEFT JOIN brands b ON p.brand_id = b.id
-        ORDER BY RAND()
-        LIMIT 8
-      `);
-      return res.json(popularProducts);
-    }
-
-    // Lấy sản phẩm từ các category ưa thích
-    const categoryIds = userPreferences.map(pref => pref.category_id);
     const [recommendedProducts] = await pool.query(`
-      SELECT DISTINCT p.*, b.name as brand_name
-      FROM products p
-      LEFT JOIN brands b ON p.brand_id = b.id
-      WHERE p.category_id IN (?)
-      AND p.id NOT IN (
-        SELECT product_id 
-        FROM user_product_views 
-        WHERE user_id = ?
-      )
-      ORDER BY RAND()
-      LIMIT 8
-    `, [categoryIds, userId]);
+      SELECT p.*, ...
+      ORDER BY (AVG(r.rating) * 0.4) + (SUM(pv.sold_count) * 0.4) ...
+    `);
 
-    res.json(recommendedProducts);
+    // Format response
+    const formattedProducts = recommendedProducts.map(product => ({
+      product_id: product.product_id,
+      name: product.name,
+      image_url: product.image_url,
+      brand_name: product.brand_name,
+      category_name: product.category_name,
+      min_price: product.min_price,
+      max_price: product.max_price,
+      metrics: {
+        avg_rating: Number(product.avg_rating) || 0,
+        review_count: product.review_count || 0,
+        sold_count: product.sold_count || 0
+      },
+      reason: _getRecommendationReason(product)
+    }));
+
+    res.json({
+      success: true,
+      recommendations: formattedProducts
+    });
   } catch (error) {
     console.error('Lỗi khi lấy recommended products:', error);
-    res.status(500).json({ message: 'Lỗi khi lấy recommended products', error: error.message });
+    res.status(500).json({ 
+      success: false,
+      error: 'Lỗi khi lấy recommended products'
+    });
   }
 });
+
+// Helper function để tạo lý do gợi ý
+function _getRecommendationReason(product) {
+  const reasons = [];
+  
+  if (product.avg_rating >= 4.5 && product.review_count > 0) {
+    reasons.push(`${product.avg_rating.toFixed(1)}★ (${product.review_count} đánh giá)`);
+  }
+  
+  if (product.sold_count >= 100) {
+    reasons.push(`Bán chạy (${product.sold_count} đã bán)`);
+  } else if (product.sold_count >= 50) {
+    reasons.push(`${product.sold_count} đã bán`);
+  }
+  
+  return reasons.join(' • ') || 'Sản phẩm phổ biến';
+}
 
 // 1. API lấy chi tiết variant của sản phẩm
 router.get('/products/:id/variants', async (req, res) => {

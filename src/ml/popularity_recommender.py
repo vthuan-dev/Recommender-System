@@ -149,12 +149,16 @@ class PopularityRecommender:
 
     def recommend(self, limit=8, category=None, min_price=None, max_price=None, brand=None):
         """Trả về sản phẩm phổ biến với lọc thông minh hơn"""
-        if self.recommendations is None:
-            return []
-            
-        filtered_df = self.recommendations.copy()
+        print(f"Getting recommendations with limit={limit}")
         
-        # Áp dụng các bộ lọc cơ bản
+        if self.recommendations is None:
+            print("No recommendations available")
+            return []
+        
+        filtered_df = self.recommendations.copy()
+        print(f"Total products before filtering: {len(filtered_df)}")
+        
+        # Áp dụng các bộ lọc
         if category:
             filtered_df = filtered_df[filtered_df['category_name'] == category]
         if brand:
@@ -163,14 +167,19 @@ class PopularityRecommender:
             filtered_df = filtered_df[filtered_df['min_price'] >= float(min_price)]
         if max_price:
             filtered_df = filtered_df[filtered_df['min_price'] <= float(max_price)]
-
+        
+        print(f"Products after filtering: {len(filtered_df)}")
+        
         # Đa dạng hóa kết quả
         filtered_df = self._diversify_results(filtered_df)
         
         # Thêm lý do gợi ý
         filtered_df['reason'] = filtered_df.apply(self._get_enhanced_reason, axis=1)
         
-        return filtered_df.head(limit).to_dict('records')
+        results = filtered_df.head(limit).to_dict('records')
+        print(f"Returning {len(results)} recommendations")
+        
+        return results
 
     def _diversify_results(self, df, max_per_category=2, max_per_brand=2):
         """Đa dạng hóa kết quả theo danh mục, thương hiệu và phân khúc giá"""

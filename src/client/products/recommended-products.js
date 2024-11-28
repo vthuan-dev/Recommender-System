@@ -4,17 +4,27 @@ const axios = require('axios');
 
 router.get('/recommended-products', async (req, res) => {
     try {
-        console.log('Calling ML service with params:', req.query);
+        console.log('Calling ML service for recommendations...');
         const response = await axios.get('http://localhost:5001/api/recommended-products', {
-            params: req.query,
-            headers: {
-                'Authorization': req.headers.authorization
+            params: {
+                limit: req.query.limit || 8,
+                page: req.query.page || 1
             }
         });
+        
         console.log('ML service response:', response.data);
-        res.json(response.data);
+        
+        if (response.data.success) {
+            res.json({
+                success: true,
+                recommendations: response.data.recommendations,
+                metadata: response.data.metadata
+            });
+        } else {
+            throw new Error('Failed to get recommendations');
+        }
     } catch (error) {
-        console.error('Error details:', error.response?.data || error.message);
+        console.error('Error fetching recommendations:', error);
         res.status(500).json({
             success: false,
             error: 'Failed to fetch recommendations'

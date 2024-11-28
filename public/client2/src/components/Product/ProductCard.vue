@@ -41,6 +41,21 @@
               {{ product.reason }}
             </span>
           </div>
+          
+          <div v-if="product.metrics" class="product-metrics small text-muted mt-2">
+            <span v-if="product.metrics.avg_rating" class="me-2">
+              <i class="fas fa-star text-warning"></i>
+              {{ product.metrics.avg_rating }}
+            </span>
+            <span v-if="product.metrics.review_count" class="me-2">
+              <i class="fas fa-comment-dots"></i>
+              {{ product.metrics.review_count }} đánh giá
+            </span>
+            <span v-if="product.metrics.sold_count">
+              <i class="fas fa-shopping-cart"></i>
+              {{ product.metrics.sold_count }} đã bán
+            </span>
+          </div>
         </div>
       </div>
     </router-link>
@@ -195,5 +210,16 @@ export default {
 .recommendation-reason .badge {
   font-weight: normal;
   padding: 0.5em 0.8em;
+}
+
+.product-metrics {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+}
+
+.product-metrics i {
+  margin-right: 0.25rem;
 }
 </style>
