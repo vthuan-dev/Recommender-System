@@ -16,11 +16,12 @@ logger = logging.getLogger(__name__)
 # CORS config
 CORS(app, resources={
     r"/api/*": {
-        "origins": ["http://localhost:8080", "http://localhost:3000", "http://localhost:5173", "http://localhost:8000"],
+        "origins": ["http://localhost:8080", "http://localhost:3000", "http://localhost:5173"],
         "methods": ["GET", "POST", "OPTIONS"],
         "allow_headers": ["Content-Type", "Authorization"],
         "expose_headers": ["Content-Type"],
-        "supports_credentials": True
+        "supports_credentials": True,
+        "max_age": 3600
     }
 })
 
@@ -191,38 +192,66 @@ def train_collaborative():
         logger.error(f"Error in train_collaborative: {str(e)}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
-@app.route('/api/collaborative/recommend', methods=['GET'])
+@app.route('/api/collaborative/recommend', methods=['GET', 'OPTIONS'])
 def get_collaborative_recommendations():
-    """API để lấy collaborative recommendations"""
+    if request.method == 'OPTIONS':
+        return '', 204
+        
     try:
-        # Kiểm tra user_id
         user_id = request.args.get('user_id')
+        logger.info(f"Received collaborative request for user_id: {user_id}")
+        
         if not user_id:
-            return jsonify({'error': 'Missing user_id parameter'}), 400
+            return get_popularity_recommendations()
             
-        # Kiểm tra model đã được train chưa
-        if collaborative_recommender is None:
-            return jsonify({'error': 'Model not trained yet'}), 400
+        # Kiểm tra xem user có đủ tương tác không
+        has_interactions = check_user_interactions(int(user_id))
+        logger.info(f"User {user_id} has sufficient interactions: {has_interactions}")
+        
+        if not has_interactions:
+            return get_popularity_recommendations()
             
-        # Lấy recommendations
+        # Lấy recommendations từ collaborative model
+        conn = mysql.connector.connect(**db_config)
         recommendations = collaborative_recommender.recommend(
             user_id=int(user_id),
-            n_items=8
+            n_items=int(request.args.get('limit', 8))
         )
         
-        # Query thông tin chi tiết sản phẩm
-        conn = mysql.connector.connect(**db_config)
+        # Format response giống như popularity recommendations
         product_details = get_product_details(conn, recommendations)
         conn.close()
         
+        formatted_recommendations = [{
+            'id': rec['product_id'],  # Thêm id để tương thích với ProductCard
+            'product_id': rec['product_id'],
+            'name': rec['name'],
+            'image_url': rec['image_url'],
+            'brand_name': rec['brand_name'],
+            'category_name': rec['category_name'],
+            'min_price': float(rec['min_price']),  # Convert to float
+            'max_price': float(rec['max_price']),
+            'metrics': {
+                'avg_rating': round(float(rec['avg_rating']), 1),
+                'review_count': int(rec['review_count']),
+                'sold_count': int(rec['sold_count'])
+            },
+            'reason': 'Dựa trên lịch sử mua sắm của bạn'  # Thêm lý do gợi ý
+        } for rec in product_details]
+
         return jsonify({
             'success': True,
-            'recommendations': product_details
+            'recommendations': formatted_recommendations,
+            'metadata': {
+                'source': 'collaborative',
+                'algorithm': 'matrix-factorization',
+                'total_items': len(formatted_recommendations)
+            }
         })
         
     except Exception as e:
-        logger.error(f"Error in get_collaborative_recommendations: {str(e)}")
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"Error in collaborative recommendations: {str(e)}")
+        return get_popularity_recommendations()
 
 @app.route('/api/collaborative/status', methods=['GET'])
 def get_collaborative_status():
@@ -329,27 +358,31 @@ def init_collaborative():
         return False
 
 def check_user_interactions(user_id):
-    """Kiểm tra user có đủ tương tác không"""
+    """Kiểm tra xem user có đủ tương tác để dùng collaborative filtering không"""
     try:
         conn = mysql.connector.connect(**db_config)
-        query = """
-            SELECT 
-                COUNT(DISTINCT product_id) as product_count,
-                SUM(view_count) as total_views
-            FROM user_product_views
-            WHERE user_id = %s
-        """
-        df = pd.read_sql(query, conn, params=[user_id])
+        cursor = conn.cursor()
+        
+        # Đếm số lượng tương tác (view, rating, purchase) của user
+        cursor.execute("""
+            SELECT COUNT(*) as interaction_count 
+            FROM (
+                SELECT user_id FROM user_product_views WHERE user_id = %s
+                UNION ALL
+                SELECT user_id FROM reviews WHERE user_id = %s
+                UNION ALL 
+                SELECT user_id FROM orders WHERE user_id = %s
+            ) interactions
+        """, (user_id, user_id, user_id))
+        
+        result = cursor.fetchone()
+        interaction_count = result[0] if result else 0
+        
+        cursor.close()
         conn.close()
         
-        # Điều kiện để coi là đủ tương tác
-        min_products = 3  # Ít nhất tương tác với 3 sản phẩm
-        min_views = 5     # Ít nhất 5 lượt xem
-        
-        return (
-            df['product_count'].iloc[0] >= min_products and 
-            df['total_views'].iloc[0] >= min_views
-        )
+        # Yêu cầu ít nhất 5 tương tác
+        return interaction_count >= 5
         
     except Exception as e:
         logger.error(f"Error checking user interactions: {str(e)}")
@@ -423,9 +456,62 @@ def get_matrix_info():
             'error': str(e)
         }), 500
 
+@app.route('/api/popularity/recommend', methods=['GET', 'OPTIONS'])
+def get_popularity_recommendations():
+    """API để lấy popularity-based recommendations"""
+    if request.method == 'OPTIONS':
+        return '', 204  # Return empty response for OPTIONS request
+        
+    try:
+        # Lấy limit từ params
+        limit = int(request.args.get('limit', 8))
+        
+        # Lấy recommendations từ popularity recommender
+        recommendations = get_recommender().recommend(
+            limit=limit,
+            category=request.args.get('category'),
+            brand=request.args.get('brand'),
+            min_price=request.args.get('min_price'),
+            max_price=request.args.get('max_price')
+        )
+        
+        # Format response
+        formatted_recommendations = [{
+            'product_id': rec['product_id'],
+            'name': rec['name'],
+            'image_url': rec['image_url'],
+            'brand_name': rec['brand_name'],
+            'category_name': rec['category_name'],
+            'min_price': rec['min_price'],
+            'max_price': rec['max_price'],
+            'metrics': {
+                'avg_rating': round(float(rec['avg_rating']), 1),
+                'review_count': int(rec['review_count']),
+                'sold_count': int(rec['sold_count'])
+            }
+        } for rec in recommendations]
+
+        return jsonify({
+            'success': True,
+            'recommendations': formatted_recommendations,
+            'metadata': {
+                'source': 'popularity',
+                'algorithm': 'weighted-ranking',
+                'total_items': len(formatted_recommendations)
+            }
+        })
+
+    except Exception as e:
+        logger.error(f"Error in get_popularity_recommendations: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 if __name__ == '__main__':
     # Khởi tạo recommender lần đầu
     get_recommender()
-    init_collaborative()  # Collaborative model
-
+    init_collaborative()
+    
+    # Thêm debug mode
     app.run(host='0.0.0.0', port=5001, debug=True)

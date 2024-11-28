@@ -266,11 +266,9 @@ export default {
     const categories = ref([])
     const isDropdownOpen = ref(false)
 
-    const isLoggedIn = computed(() => store.getters.isAuthenticated)
-    const username = computed(() => {
-      const user = store.getters.currentUser
-      return user ? user.fullname : ''
-    })
+    const isLoggedIn = computed(() => store.state.auth.isAuthenticated)
+    const userId = computed(() => store.state.auth.user?.id)
+    const username = computed(() => store.state.auth.user?.username)
     const cartCount = computed(() => store.getters.cartCount)
     const wishlistCount = computed(() => store.getters.wishlistCount)
 
@@ -374,6 +372,7 @@ export default {
       selectedCategory,
       categories,
       isLoggedIn,
+      userId,
       username,
       cartCount,
       wishlistCount,

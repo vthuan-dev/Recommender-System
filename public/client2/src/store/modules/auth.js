@@ -2,62 +2,36 @@ export default {
     namespaced: true,
     
     state: {
-      isAuthenticated: false,
-      user: null,
-      token: null
+      user: JSON.parse(localStorage.getItem('user')) || null,
+      isAuthenticated: !!localStorage.getItem('user')
     },
   
     mutations: {
-      setUser(state, userData) {
-        state.isAuthenticated = true
-        state.user = userData
-        state.token = userData.token
-      },
-      
-      clearUser(state) {
-        state.isAuthenticated = false
-        state.user = null
-        state.token = null
+      SET_USER(state, user) {
+        state.user = user
+        state.isAuthenticated = !!user
+        if (user) {
+          localStorage.setItem('user', JSON.stringify(user))
+        } else {
+          localStorage.removeItem('user')
+        }
       }
     },
   
     actions: {
-      async checkAuthStatus({ commit }) {
-        const token = localStorage.getItem('token')
-        if (!token) {
-          commit('clearUser')
-          return false
-        }
-
-        try {
-          const response = await fetch('http://localhost:3000/api/verify-token', {
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
-          })
-
-          if (!response.ok) {
-            throw new Error('Token invalid')
-          }
-
-          return true
-        } catch (error) {
-          commit('clearUser')
-          localStorage.removeItem('token')
-          localStorage.removeItem('userId')
-          localStorage.removeItem('fullname')
-          localStorage.removeItem('role')
-          return false
+      initializeAuth({ commit }) {
+        const user = JSON.parse(localStorage.getItem('user'))
+        if (user) {
+          commit('SET_USER', user)
         }
       },
-
-      async logout({ commit }) {
-        localStorage.removeItem('token')
-        localStorage.removeItem('userId')
-        localStorage.removeItem('fullname')
-        localStorage.removeItem('role')
-        localStorage.removeItem('rememberMe')
-        commit('clearUser')
+      
+      login({ commit }, userData) {
+        commit('SET_USER', userData)
+      },
+      
+      logout({ commit }) {
+        commit('SET_USER', null)
       }
     }
   }

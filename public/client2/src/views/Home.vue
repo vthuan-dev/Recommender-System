@@ -44,7 +44,9 @@
     <section class="recommendations-section">
       <div class="container py-5">
         <div class="section-header text-center mb-5">
-          <h6 class="text-primary text-uppercase fw-bold">Dành riêng cho bạn</h6>
+          <h6 class="text-primary text-uppercase fw-bold">
+            {{ isAuthenticated ? 'Dành riêng cho bạn' : 'Được nhiều người quan tâm' }}
+          </h6>
           <h2 class="section-title">Gợi ý sản phẩm</h2>
         </div>
         
@@ -60,12 +62,8 @@
                 min_price: product.min_price,
                 max_price: product.max_price,
                 brand_name: product.brand_name,
-                reason: product.reason,
-                metrics: {
-                  avg_rating: product.metrics?.avg_rating,
-                  review_count: product.metrics?.review_count,
-                  sold_count: product.metrics?.sold_count
-                }
+                category_name: product.category_name,
+                metrics: product.metrics || {}
               }"
               @add-to-wishlist="handleAddToWishlist"
               @add-to-cart="handleAddToCart"
@@ -201,14 +199,14 @@
     </section>
 
     <ProductRecommendations 
-      v-if="isLoggedIn"
-      :userId="currentUser.id"
+      v-if="isLoggedIn && currentUser"
+      :userId="currentUser.userId"
     />
   </div>
 </template>
 
 <script>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useStore } from 'vuex'
 import axiosInstance from '@/utils/axios'
 import ProductCard from '@/components/Product/ProductCard.vue'
@@ -325,21 +323,9 @@ export default {
         }))
 
         const trendingResponse = await axiosInstance.get('/trending-products')
-        trendingProducts.value = trendingResponse.data
-
-        console.log('Fetching recommendations...')
-        const response = await axios.get('http://localhost:3000/api/recommended-products', {
-          params: {
-            limit: 8,
-            page: 1
-          }
-        })
         
-        console.log('Recommendations response:', response.data)
-        
-        if (response.data.success) {
-          recommendedProducts.value = response.data.recommendations
-        }
+        // Gọi loadRecommendations thay vì gọi API trực tiếp
+        await loadRecommendations()
 
       } catch (error) {
         console.error('Lỗi khi lấy dữ liệu:', error)
@@ -377,6 +363,72 @@ export default {
       }
     }
 
+    const loadRecommendations = async () => {
+      try {
+        console.log('Fetching recommendations...')
+        const user = store.state.auth.user
+        console.log('Current user:', user)
+        
+        if (!user) {
+          // Thử khôi phục user từ localStorage
+          await store.dispatch('auth/initializeAuth')
+        }
+        
+        const userId = store.state.auth.user?.userId
+        console.log('Current user ID:', userId)
+        console.log('Is authenticated:', store.state.auth.isAuthenticated)
+
+        let response
+        if (store.state.auth.isAuthenticated && userId) {
+          console.log('Calling collaborative recommendations API...')
+          response = await axios.get(`http://localhost:5001/api/collaborative/recommend`, {
+            params: {
+              user_id: userId
+            }
+          })
+        } else {
+          console.log('Calling popularity recommendations API...')
+          response = await axios.get('http://localhost:5001/api/popularity/recommend', {
+            params: { limit: 8 }
+          })
+        }
+
+        if (response.data.success) {
+          recommendedProducts.value = response.data.recommendations
+        }
+      } catch (error) {
+        console.error('Error loading recommendations:', error)
+        // Fallback to popularity
+        try {
+          const fallbackResponse = await axios.get('http://localhost:5001/api/popularity/recommend', {
+            params: { limit: 8 }
+          })
+          if (fallbackResponse.data.success) {
+            recommendedProducts.value = fallbackResponse.data.recommendations
+          }
+        } catch (fallbackError) {
+          console.error('Fallback error:', fallbackError)
+        }
+      }
+    }
+
+    // Gọi initializeAuth khi component mounted
+    onMounted(async () => {
+      await store.dispatch('auth/initializeAuth')
+      loadRecommendations()
+    })
+
+    // Watch auth state changes
+    watch(() => store.state.auth.isAuthenticated, (newValue) => {
+      console.log('Auth state changed:', newValue)
+      loadRecommendations()
+    })
+
+    // Thêm isLoggedIn computed property
+    const isLoggedIn = computed(() => store.state.auth.isAuthenticated)
+
+    const currentUser = computed(() => store.state.auth.user)
+
     return {
       heroSlides,
       flashDeals,
@@ -391,7 +443,10 @@ export default {
       addToWishlist,
       getCategoryIcon,
       handleAddToWishlist,
-      handleAddToCart
+      handleAddToCart,
+      loadRecommendations,
+      isLoggedIn,
+      currentUser
     }
   },
   methods: {

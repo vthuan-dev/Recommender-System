@@ -3,7 +3,7 @@
     <router-link 
       :to="{ 
         name: 'ProductDetail',
-        params: { id: product.product_id || product.id }
+        params: { id: productId }
       }" 
       class="product-link"
     >
@@ -29,10 +29,10 @@
         <div class="card-body">
           <h5 class="product-title">{{ product.name }}</h5>
           <div class="product-price">
-            <span class="new-price">{{ formatPrice(product.min_price) }}</span>
+            <span class="new-price">{{ formattedPrice.min }}</span>
             <span v-if="product.max_price > product.min_price" 
                   class="old-price text-muted text-decoration-line-through ms-2">
-              {{ formatPrice(product.max_price) }}
+              {{ formattedPrice.max }}
             </span>
           </div>
           <div class="product-metrics small text-muted">
@@ -49,8 +49,8 @@
               {{ product.metrics.sold_count }} đã bán
             </span>
           </div>
-          <div v-if="product.reason" class="recommendation-reason mt-2">
-            <span class="badge bg-light text-primary">
+          <div v-if="product.reason" class="recommendation-reason">
+            <span class="badge bg-soft-primary rounded-pill">
               <i class="fas fa-thumbs-up me-1"></i>
               {{ product.reason }}
             </span>
@@ -68,6 +68,19 @@ export default {
     product: {
       type: Object,
       required: true
+    }
+  },
+  computed: {
+    productId() {
+      return this.product.id || this.product.product_id
+    },
+    formattedPrice() {
+      const minPrice = this.product.min_price || 0
+      const maxPrice = this.product.max_price || 0
+      return {
+        min: this.formatPrice(minPrice),
+        max: maxPrice > minPrice ? this.formatPrice(maxPrice) : null
+      }
     }
   },
   methods: {
@@ -253,5 +266,33 @@ export default {
 .product-card:hover .card {
   transform: translateY(-5px);
   box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15);
+}
+
+.recommendation-reason {
+  margin-top: 0.5rem;
+}
+
+.bg-soft-primary {
+  background-color: rgba(13, 110, 253, 0.1);
+  color: #0d6efd;
+  font-size: 0.85rem;
+  padding: 0.35rem 0.75rem;
+  display: inline-block;
+}
+
+.rounded-pill {
+  border-radius: 50rem;
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  line-height: 1;
+  text-align: center;
+  white-space: nowrap;
+  vertical-align: baseline;
+  border-radius: 50rem;
 }
 </style>

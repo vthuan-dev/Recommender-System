@@ -111,7 +111,15 @@ router.get('/recommended-products', async (req, res) => {
         review_count: product.review_count || 0,
         sold_count: product.total_sold || 0
       },
-      reason: _getRecommendationReason(product)
+      reason: _getRecommendationReason({
+        metrics: {
+          avg_rating: Number(product.avg_rating) || 0,
+          review_count: product.review_count || 0,
+          sold_count: product.total_sold || 0
+        },
+        min_price: product.min_price,
+        max_price: product.max_price
+      })
     }));
 
     res.json({
@@ -137,17 +145,39 @@ function formatImageUrl(imageUrl) {
 function _getRecommendationReason(product) {
   const reasons = [];
   
-  if (product.avg_rating >= 4.5 && product.review_count > 0) {
-    reasons.push(`${Number(product.avg_rating).toFixed(1)}★ (${product.review_count} đánh giá)`);
+  // Đánh giá
+  if (product.metrics?.avg_rating >= 4.5) {
+    reasons.push('Đánh giá xuất sắc');
+  } else if (product.metrics?.avg_rating >= 4.0) {
+    reasons.push('Đánh giá tốt');
   }
   
-  if (product.total_sold >= 100) {
-    reasons.push(`Bán chạy (${product.total_sold} đã bán)`);
-  } else if (product.total_sold >= 50) {
-    reasons.push(`${product.total_sold} đã bán`);
+  // Lượt bán
+  if (product.metrics?.sold_count >= 100) {
+    reasons.push('Sản phẩm bán chạy');
+  } else if (product.metrics?.sold_count >= 50) {
+    reasons.push('Được nhiều người mua');
   }
   
-  return reasons.join(' • ') || 'Sản phẩm phổ biến';
+  // Giảm giá
+  const discount = calculateDiscount(product.max_price, product.min_price);
+  if (discount >= 30) {
+    reasons.push('Giảm giá sốc');
+  } else if (discount >= 15) {
+    reasons.push('Đang giảm giá');
+  }
+  
+  // Lượt đánh giá
+  if (product.metrics?.review_count >= 50) {
+    reasons.push('Nhiều đánh giá tích cực');
+  }
+
+  return reasons.length > 0 ? reasons.join(' • ') : 'Phổ biến trong thời gian gần đây';
+}
+
+function calculateDiscount(maxPrice, minPrice) {
+  if (!maxPrice || !minPrice || maxPrice <= minPrice) return 0;
+  return Math.round(((maxPrice - minPrice) / maxPrice) * 100);
 }
 
 module.exports = router;
