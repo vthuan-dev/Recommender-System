@@ -229,7 +229,7 @@ def get_collaborative_recommendations():
 
 @app.route('/api/collaborative/status', methods=['GET'])
 def get_collaborative_status():
-    """API để kiểm tra trạng thái của collaborative model"""
+    """API để kiểm tra trạng thái c���a collaborative model"""
     try:
         if collaborative_recommender is None:
             return jsonify({
@@ -385,6 +385,46 @@ def format_recommendations(recommendations):
     except Exception as e:
         logger.error(f"Error formatting recommendations: {str(e)}")
         return jsonify({'error': str(e)}), 500
+
+@app.route('/api/collaborative/matrix', methods=['GET'])
+def get_matrix_info():
+    """API để xem thông tin chi tiết về ma trận"""
+    try:
+        if collaborative_recommender is None:
+            return jsonify({
+                'success': False,
+                'error': 'Model not initialized'
+            })
+            
+        matrix = collaborative_recommender.user_item_matrix
+        
+        return jsonify({
+            'success': True,
+            'users': [int(x) for x in matrix.index.tolist()],  # Convert to regular int
+            'items': [int(x) for x in matrix.columns.tolist()],
+            'matrix_sample': {
+                str(idx): {
+                    str(col): float(val)  # Convert to regular float
+                    for col, val in row.items()
+                }
+                for idx, row in matrix.head().to_dict('index').items()
+            },
+            'matrix_stats': {
+                'shape': matrix.shape,
+                'non_zero_counts': int((matrix != 0).sum().sum()),
+                'user_interaction_counts': {
+                    int(user): int(count)
+                    for user, count in (matrix != 0).sum(axis=1).items()
+                }
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting matrix info: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
 if __name__ == '__main__':
     # Khởi tạo recommender lần đầu

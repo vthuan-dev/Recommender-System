@@ -114,77 +114,55 @@ class CollaborativeRecommender:
     def recommend(self, user_id, n_items=8):
         """Gợi ý sản phẩm cho user cụ thể"""
         try:
-            # Add logging
+            user_id = int(user_id)  # Convert to int
+            
+            # Debug logs
             logger.info(f"Getting recommendations for user {user_id}")
+            logger.info(f"Matrix shape: {self.user_item_matrix.shape}")
+            logger.info(f"User factors shape: {self.user_factors.shape if self.user_factors is not None else 'None'}")
+            logger.info(f"Item factors shape: {self.item_factors.shape if self.item_factors is not None else 'None'}")
             logger.info(f"User in matrix: {user_id in self.user_item_matrix.index}")
             
-            if user_id not in self.user_item_matrix.index or len(self.user_factors) == 0:
+            if user_id not in self.user_item_matrix.index:
+                logger.warning(f"User {user_id} not in matrix")
                 return []
             
-            # Tính predicted ratings
-            user_pred = self.user_factors[
-                self.user_item_matrix.index.get_loc(user_id)
-            ].dot(self.item_factors.T)
+            if len(self.user_factors) == 0:
+                logger.warning("Model not trained (user_factors empty)")
+                return []
             
-            # Thêm lại mean rating
+            # Get user index
+            user_idx = self.user_item_matrix.index.get_loc(user_id)
+            logger.info(f"User index in matrix: {user_idx}")
+            
+            # Calculate predictions
+            user_pred = self.user_factors[user_idx].dot(self.item_factors.T)
+            logger.info(f"Raw predictions shape: {user_pred.shape}")
+            logger.info(f"Predictions range: {user_pred.min():.2f} to {user_pred.max():.2f}")
+            
+            # Add mean rating
             user_pred += self.mean_ratings[user_id]
+            logger.info(f"After adding mean: {user_pred.min():.2f} to {user_pred.max():.2f}")
             
-            # Lấy các category ưa thích của user
-            query = """
-                SELECT 
-                    c.id,
-                    COUNT(*) as interaction_count,
-                    AVG(COALESCE(r.rating, 0)) as avg_rating
-                FROM user_product_views upv
-                JOIN products p ON upv.product_id = p.id
-                JOIN categories c ON p.category_id = c.id
-                LEFT JOIN reviews r ON upv.user_id = r.user_id 
-                    AND upv.product_id = r.product_id
-                WHERE upv.user_id = %s
-                GROUP BY c.id
-                ORDER BY interaction_count DESC, avg_rating DESC
-                LIMIT 3
-            """
-            
-            preferred_categories = pd.read_sql(query, self.conn, params=[user_id])
-            
-            # Boost scores cho sản phẩm trong preferred categories
-            if not preferred_categories.empty:
-                category_boost = 0.2  # Tăng 20% cho mỗi category ưa thích
-                
-                # Sửa lại cách query products
-                product_ids = ','.join(map(str, self.user_item_matrix.columns))
-                product_categories = pd.read_sql(f"""
-                    SELECT id, category_id 
-                    FROM products 
-                    WHERE id IN ({product_ids})
-                """, self.conn)
-                
-                for _, cat in preferred_categories.iterrows():
-                    products_in_cat = product_categories[
-                        product_categories['category_id'] == cat['id']
-                    ]['id'].values
-                    
-                    # Convert product IDs to matrix indices
-                    product_indices = [
-                        self.user_item_matrix.columns.get_loc(pid) 
-                        for pid in products_in_cat 
-                        if pid in self.user_item_matrix.columns
-                    ]
-                    
-                    # Boost scores
-                    user_pred[product_indices] *= (1 + category_boost)
-            
-            # Lọc bỏ sản phẩm đã tương tác
+            # Get user's interactions
             user_interactions = self.user_item_matrix.loc[user_id].to_numpy()
             already_interacted = np.where(user_interactions > 0)[0]
+            logger.info(f"User has interacted with {len(already_interacted)} items")
+            
+            # Set interacted items to -inf
             user_pred[already_interacted] = -np.inf
+            logger.info(f"After filtering: {user_pred.min():.2f} to {user_pred.max():.2f}")
             
-            # Lấy top-N recommendations
+            # Get top items
             top_items = user_pred.argsort()[-n_items:][::-1]
+            logger.info(f"Top items indices: {top_items}")
             
-            return self.user_item_matrix.columns[top_items].tolist()
+            recommendations = self.user_item_matrix.columns[top_items].tolist()
+            logger.info(f"Final recommendations: {recommendations}")
+            
+            return recommendations
             
         except Exception as e:
             logger.error(f"Error in collaborative recommend: {str(e)}")
+            logger.exception("Full traceback:")  # This will log the full stack trace
             return []
