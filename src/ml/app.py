@@ -2,6 +2,7 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from popularity_recommender import PopularityRecommender
+from collaborative_recommender import CollaborativeRecommender
 import mysql.connector
 from datetime import datetime
 import logging
@@ -34,6 +35,9 @@ db_config = {
 recommender = None
 last_train_time = None
 CACHE_DURATION = 3600  # 1 giờ
+
+# Thêm global variable
+collab_recommender = None
 
 def get_recommender():
     """Lấy recommender từ cache hoặc train mới nếu cần"""
@@ -142,6 +146,33 @@ def retrain_model():
     except Exception as e:
         logger.error(f"Error retraining model: {str(e)}")
         return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/personalized-recommendations', methods=['GET'])
+def get_personalized_recommendations():
+    try:
+        user_id = request.args.get('user_id')
+        if not user_id:
+            return jsonify({'error': 'Missing user_id'}), 400
+            
+        # Kiểm tra user có đủ tương tác không
+        has_interactions = check_user_interactions(user_id)
+        
+        if not has_interactions:
+            # Fallback về popularity-based
+            return get_recommended_products()
+            
+        # Lấy collaborative recommendations
+        recommendations = collab_recommender.recommend(
+            user_id=user_id,
+            n_items=8
+        )
+        
+        # Format response giống popularity-based
+        return format_recommendations(recommendations)
+        
+    except Exception as e:
+        logger.error(f"Error getting personalized recommendations: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     # Khởi tạo recommender lần đầu
