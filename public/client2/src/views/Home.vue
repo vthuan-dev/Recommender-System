@@ -199,6 +199,11 @@
         </div>
       </div>
     </section>
+
+    <ProductRecommendations 
+      v-if="isLoggedIn"
+      :userId="currentUser.id"
+    />
   </div>
 </template>
 
@@ -210,13 +215,15 @@ import ProductCard from '@/components/Product/ProductCard.vue'
 // Remove RecommendedProducts import if not needed
 // import RecommendedProducts from '@/components/Product/RecommendedProducts.vue'
 import axios from 'axios'
+import ProductRecommendations from '../components/Product/ProductRecommendations.vue'
 
 export default {
   name: 'HomeComponent',
   components: {
     ProductCard,
     // Remove RecommendedProducts from components if not needed
-    // RecommendedProducts
+    // RecommendedProducts,
+    ProductRecommendations
   },
   setup() {
     const store = useStore()
@@ -321,7 +328,7 @@ export default {
         trendingProducts.value = trendingResponse.data
 
         console.log('Fetching recommendations...')
-        const response = await axios.get('http://localhost:5001/api/recommended-products', {
+        const response = await axios.get('http://localhost:3000/api/recommended-products', {
           params: {
             limit: 8,
             page: 1

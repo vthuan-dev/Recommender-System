@@ -52,11 +52,11 @@
       </div>
 
       <nav class="mobile-nav">
-        <router-link to="/" @click="toggleMobileMenu" class="nav-item">
+        <router-link to="/" @click="handleMenuClick('home')" class="nav-item">
           <i class="fas fa-home"></i>
           <span>Trang chủ</span>
         </router-link>
-        <router-link to="/categories" @click="toggleMobileMenu" class="nav-item">
+        <router-link to="/categories" @click="handleMenuClick('categories')" class="nav-item">
           <i class="fas fa-th-large"></i>
           <span>Danh mục</span>
         </router-link>
@@ -252,6 +252,7 @@ import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
 import CustomSweetAlert from '@/components/Common/CustomSweetAlert'
+import axios from 'axios'
 
 export default {
   name: 'HeaderComponent',
@@ -282,11 +283,18 @@ export default {
       }
     }
 
-    const handleSearch = () => {
-      if (searchQuery.value.trim()) {
-        router.push(`/search?q=${encodeURIComponent(searchQuery.value.trim())}`)
-        showMobileMenu.value = false
-      }
+    const handleSearch = async () => {
+      if (!searchQuery.value.trim()) return
+      
+      await trackUserInteraction('search', {
+        query: searchQuery.value,
+        results_count: 0
+      })
+
+      router.push({
+        path: '/search',
+        query: { q: searchQuery.value }
+      })
     }
 
     const toggleUserMenu = () => {
@@ -340,6 +348,27 @@ export default {
       document.body.style.overflow = 'auto'
     })
 
+    const trackUserInteraction = async (action, data) => {
+      if (!localStorage.getItem('user_id')) return
+      
+      try {
+        await axios.post('/api/recommendations/track', {
+          user_id: localStorage.getItem('user_id'),
+          action: action,
+          data: data,
+          timestamp: new Date().toISOString()
+        })
+      } catch (error) {
+        console.error('Error tracking interaction:', error)
+      }
+    }
+
+    const handleMenuClick = async (category) => {
+      await trackUserInteraction('category_view', {
+        category_name: category
+      })
+    }
+
     return {
       searchQuery,
       selectedCategory,
@@ -354,7 +383,8 @@ export default {
       toggleUserMenu,
       toggleMobileMenu,
       logout,
-      isDropdownOpen
+      isDropdownOpen,
+      handleMenuClick
     }
   },
   methods: {

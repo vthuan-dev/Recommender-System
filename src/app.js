@@ -9,6 +9,7 @@ const passport = require('./config/passport');
 const { initUploadDirs } = require('./utils/init');
 const { initializeWebSocket } = require('./websocket');
 const http = require('http');
+const axios = require('axios');
 
 const app = express();
 
@@ -210,4 +211,10 @@ app.use('/api/admin', [
 const aiRouter = require('./routes/ai');
 
 app.use('/api/ai', aiRouter);
+
+// Import recommender routes
+const recommendationRoutes = require('./client/products/recommendations.js');
+
+// Sử dụng routes
+app.use('/api/recommendations', recommendationRoutes);
 

@@ -10,6 +10,7 @@ const router = express.Router();
 const cors = require('cors');
 const { authenticateJWT } = require('../../database/dbconfig');
 const { broadcastCommentUpdate } = require('../../websocket');
+const axios = require('axios');
 dotenv.config();
 
 router.get('/products/bestsellers', async (req, res) => {
@@ -140,18 +141,8 @@ router.get('/products', async (req, res) => {
       GROUP BY p.id
     `)
     
-    // Format data trước khi trả về
-    const formattedProducts = products.map(product => ({
-      ...formatImageUrl(product),
-      metrics: {
-        avg_rating: Number(product.avg_rating) || 0,
-        review_count: product.review_count || 0,
-        sold_count: product.total_sold || 0,
-        unique_viewers: product.unique_viewers || 0,
-        total_views: product.total_views || 0
-      }
-    }))
-
+    // Format image URLs before sending response
+    const formattedProducts = products.map(formatImageUrl)
     res.json(formattedProducts)
   } catch (error) {
     console.error('Lỗi khi lấy danh sách sản phẩm:', error)
@@ -640,40 +631,76 @@ router.get('/trending-products', async (req, res) => {
   }
 });
 
-// API để lấy recommended products (popularity-based)
+// API để lấy recommended products (ML-based)
 router.get('/recommended-products', async (req, res) => {
   try {
-    const [recommendedProducts] = await pool.query(`
-      SELECT p.*, ...
-      ORDER BY (AVG(r.rating) * 0.4) + (SUM(pv.sold_count) * 0.4) ...
-    `);
-
-    // Format response
-    const formattedProducts = recommendedProducts.map(product => ({
-      product_id: product.product_id,
-      name: product.name,
-      image_url: product.image_url,
-      brand_name: product.brand_name,
-      category_name: product.category_name,
-      min_price: product.min_price,
-      max_price: product.max_price,
-      metrics: {
-        avg_rating: Number(product.avg_rating) || 0,
-        review_count: product.review_count || 0,
-        sold_count: product.sold_count || 0
-      },
-      reason: _getRecommendationReason(product)
-    }));
-
-    res.json({
-      success: true,
-      recommendations: formattedProducts
+    // Gọi ML service
+    const mlResponse = await axios.get('http://localhost:5001/api/recommended-products', {
+      params: {
+        limit: req.query.limit || 8,
+        category: req.query.category,
+        brand: req.query.brand,
+        min_price: req.query.min_price,
+        max_price: req.query.max_price
+      }
     });
+
+    if (mlResponse.data.success) {
+      res.json({
+        success: true,
+        recommendations: mlResponse.data.recommendations
+      });
+    } else {
+      // Fallback nếu ML service fail
+      const [recommendedProducts] = await pool.query(`
+        SELECT 
+          p.id as product_id,
+          p.name,
+          p.image_url,
+          b.name as brand_name,
+          c.name as category_name,
+          MIN(pv.price) as min_price,
+          MAX(pv.price) as max_price,
+          COUNT(DISTINCT r.id) as review_count,
+          AVG(r.rating) as avg_rating,
+          SUM(pv.sold_count) as sold_count
+        FROM products p
+        LEFT JOIN brands b ON p.brand_id = b.id
+        LEFT JOIN categories c ON p.category_id = c.id
+        LEFT JOIN productvariants pv ON p.id = pv.product_id
+        LEFT JOIN reviews r ON p.id = r.product_id
+        GROUP BY p.id, p.name, p.image_url, b.name, c.name
+        ORDER BY (COALESCE(AVG(r.rating), 0) * 0.4) + (COALESCE(SUM(pv.sold_count), 0) * 0.6) DESC
+        LIMIT 8
+      `);
+
+      const formattedProducts = recommendedProducts.map(product => ({
+        product_id: product.product_id,
+        name: product.name,
+        image_url: formatImageUrl(product.image_url),
+        brand_name: product.brand_name,
+        category_name: product.category_name,
+        min_price: product.min_price,
+        max_price: product.max_price,
+        metrics: {
+          avg_rating: Number(product.avg_rating) || 0,
+          review_count: product.review_count || 0,
+          sold_count: product.sold_count || 0
+        },
+        reason: _getRecommendationReason(product)
+      }));
+
+      res.json({
+        success: true,
+        recommendations: formattedProducts,
+        source: 'fallback'
+      });
+    }
   } catch (error) {
     console.error('Lỗi khi lấy recommended products:', error);
     res.status(500).json({ 
       success: false,
-      error: 'Lỗi khi lấy recommended products'
+      error: error.message
     });
   }
 });

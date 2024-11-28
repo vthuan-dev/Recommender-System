@@ -13,12 +13,14 @@ app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# CORS config giữ nguyên
+# CORS config
 CORS(app, resources={
     r"/api/*": {
-        "origins": ["http://localhost:8080", "http://localhost:3000", "http://localhost:5173"],
+        "origins": ["http://localhost:8080", "http://localhost:3000", "http://localhost:5173", "http://localhost:8000"],
         "methods": ["GET", "POST", "OPTIONS"],
-        "allow_headers": ["Content-Type", "Authorization"]
+        "allow_headers": ["Content-Type", "Authorization"],
+        "expose_headers": ["Content-Type"],
+        "supports_credentials": True
     }
 })
 
@@ -70,69 +72,64 @@ def get_recommender():
 @app.route('/api/recommended-products', methods=['GET', 'OPTIONS'])
 def get_recommended_products():
     if request.method == 'OPTIONS':
-        return '', 204
+        return '', 204  # Return empty response for OPTIONS
         
     try:
-        # Lấy các tham số từ query string
-        page = int(request.args.get('page', 1))
-        limit = int(request.args.get('limit', 8))
-        category = request.args.get('category')
-        brand = request.args.get('brand')
-        min_price = request.args.get('min_price')
-        max_price = request.args.get('max_price')
+        # Lấy user_id từ request
+        user_id = request.args.get('user_id')
         
-        # Lấy recommender từ cache
-        recommender = get_recommender()
-        
-        # Lấy recommendations với các bộ lọc
-        recommendations = recommender.recommend(
-            limit=limit,
-            category=category,
-            brand=brand, 
-            min_price=min_price,
-            max_price=max_price
-        )
-        
-        # Tính toán phân trang
-        total_items = len(recommendations)
-        total_pages = (total_items + limit - 1) // limit
-        
-        # Lọc và format lại recommendations trước khi trả về
+        if user_id and check_user_interactions(user_id):
+            # Nếu có user_id và đủ tương tác -> dùng collaborative
+            recommendations = collaborative_recommender.recommend(
+                user_id=user_id,
+                n_items=int(request.args.get('limit', 8))
+            )
+            source = 'collaborative'
+            algorithm = 'matrix-factorization'
+        else:
+            # Không có user_id hoặc ít tương tác -> dùng popularity
+            recommendations = get_recommender().recommend(
+                limit=int(request.args.get('limit', 8)),
+                category=request.args.get('category'),
+                brand=request.args.get('brand'),
+                min_price=request.args.get('min_price'),
+                max_price=request.args.get('max_price')
+            )
+            source = 'popularity'
+            algorithm = 'weighted-ranking'
+
+        # Format response
         formatted_recommendations = [{
             'product_id': rec['product_id'],
             'name': rec['name'],
+            'image_url': rec['image_url'],
             'brand_name': rec['brand_name'],
             'category_name': rec['category_name'],
-            'image_url': rec['image_url'],
             'min_price': rec['min_price'],
             'max_price': rec['max_price'],
             'metrics': {
-                'avg_rating': round(rec['avg_rating'], 1),
-                'review_count': rec['review_count'],
-                'sold_count': rec['sold_count']
-            },
-            'reason': rec['reason']
+                'avg_rating': round(float(rec['avg_rating']), 1),
+                'review_count': int(rec['review_count']),
+                'sold_count': int(rec['sold_count'])
+            }
         } for rec in recommendations]
 
-        response = jsonify({
+        return jsonify({
             'success': True,
             'recommendations': formatted_recommendations,
             'metadata': {
-                'page': page,
-                'limit': limit,
-                'total_items': total_items,
-                'total_pages': total_pages,
-                'last_trained': last_train_time.isoformat() if last_train_time else None
+                'source': source,
+                'algorithm': algorithm,
+                'total_items': len(formatted_recommendations)
             }
         })
-        
-        return response
-        
+
     except Exception as e:
         logger.error(f"Error in get_recommended_products: {str(e)}")
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': str(e),
+            'source': 'error'
         }), 500
 
 @app.route('/api/retrain', methods=['POST'])
@@ -229,7 +226,7 @@ def get_collaborative_recommendations():
 
 @app.route('/api/collaborative/status', methods=['GET'])
 def get_collaborative_status():
-    """API để kiểm tra trạng thái c���a collaborative model"""
+    """API để kiểm tra trạng thái ca collaborative model"""
     try:
         if collaborative_recommender is None:
             return jsonify({
