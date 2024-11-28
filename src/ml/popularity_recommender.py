@@ -12,11 +12,11 @@ class PopularityRecommender:
         self.products_df = None
         self.tfidf_matrix = None
         self.feature_names = None
+        self.last_train_time = None
         
     def fit(self, conn):
         """Train model với data từ DB"""
         try:
-            # Query tối ưu hơn
             query = """
                 SELECT 
                     p.id as product_id,
@@ -31,7 +31,9 @@ class PopularityRecommender:
                     COALESCE(o.order_count, 0) as order_count,
                     COALESCE(pv.total_sold, 0) as sold_count,
                     COALESCE(pv.min_price, 0) as min_price,
-                    COALESCE(pv.max_price, 0) as max_price
+                    COALESCE(pv.max_price, 0) as max_price,
+                    COALESCE(v.unique_viewers, 0) as unique_viewers,
+                    COALESCE(v.total_views, 0) as total_views
                 FROM products p
                 LEFT JOIN brands b ON p.brand_id = b.id 
                 LEFT JOIN categories c ON p.category_id = c.id
@@ -45,11 +47,12 @@ class PopularityRecommender:
                 ) r ON p.id = r.product_id
                 LEFT JOIN (
                     SELECT 
-                        product_id,
+                        oi.product_id,
                         COUNT(DISTINCT o.id) as order_count
                     FROM orderitems oi
                     JOIN orders o ON oi.order_id = o.id
-                    GROUP BY product_id
+                    WHERE o.status != 'cancelled'
+                    GROUP BY oi.product_id
                 ) o ON p.id = o.product_id
                 LEFT JOIN (
                     SELECT 
@@ -60,19 +63,35 @@ class PopularityRecommender:
                     FROM productvariants
                     GROUP BY product_id
                 ) pv ON p.id = pv.product_id
+                LEFT JOIN (
+                    SELECT 
+                        product_id,
+                        COUNT(DISTINCT user_id) as unique_viewers,
+                        SUM(view_count) as total_views
+                    FROM user_product_views
+                    GROUP BY product_id
+                ) v ON p.id = v.product_id
             """
             
+            # Load và xử lý data
             products_df = pd.read_sql(query, conn)
+            
+            # Debug info
+            print(f"Loaded {len(products_df)} products")
+            print("\nMetrics summary:")
+            print(products_df[['unique_viewers', 'total_views', 'sold_count']].describe())
             
             # Xử lý dữ liệu
             products_df = self._preprocess_data(products_df)
             products_df = self._calculate_enhanced_popularity(products_df)
-            self._create_content_features(products_df)
             
-            # Lưu recommendations
+            # Lưu recommendations và thời gian train
             self.recommendations = products_df.sort_values('popularity_score', ascending=False)
+            self.last_train_time = datetime.now()
             
-            print(f"Trained successfully with {len(products_df)} products")
+            print(f"\nTop 5 products by popularity:")
+            print(self.recommendations[['name', 'popularity_score', 'total_views']].head())
+            
             return True
             
         except Exception as e:
@@ -94,26 +113,70 @@ class PopularityRecommender:
         return df
 
     def _calculate_enhanced_popularity(self, df):
-        """Tính điểm phổ biến với metrics hiện có"""
+        """Tính điểm phổ biến với metrics tốt hơn"""
         scaler = MinMaxScaler()
         
         if len(df) > 0:
             # Chuẩn hóa các metrics
-            metrics = ['review_count', 'avg_rating', 'sold_count', 'days_since_launch']
+            metrics = [
+                'review_count', 'avg_rating', 'sold_count', 
+                'order_count', 'unique_viewers', 'total_views'
+            ]
             for metric in metrics:
                 df[f'{metric}_score'] = scaler.fit_transform(df[[metric]])
-                
-            # Inverse days_since_launch
-            df['recency_score'] = 1 - df['days_since_launch_score']
+            
+            # Tính thời gian tồn tại của sản phẩm
+            df['days_since_launch'] = (datetime.now() - pd.to_datetime(df['created_at'])).dt.days
+            df['recency_score'] = 1 / (1 + df['days_since_launch'] / 30)  # Giảm dần theo tháng
             
             # Tính popularity với trọng số mới
             df['popularity_score'] = (
-                0.40 * df['avg_rating_score'] +     # Tăng trọng số đánh giá
-                0.25 * df['sold_count_score'] +     # Giữ nguyên doanh số
-                0.20 * df['review_count_score'] +   # Tăng trọng số số lượng đánh giá
-                0.15 * df['recency_score']          # Giảm trọng số độ mới
+                0.25 * df['total_views_score'] +      # Views vẫn quan trọng
+                0.20 * df['sold_count_score'] +       # Doanh số quan trọng thứ 2
+                0.15 * df['unique_viewers_score'] +    # Số người xem unique
+                0.15 * df['avg_rating_score'] +        # Rating quan trọng
+                0.15 * df['recency_score'] +          # Thêm độ mới
+                0.10 * df['review_count_score']        # Review ít quan trọng hơn
             )
+            
+            # Thêm reason dựa trên metrics
+            df['reason'] = df.apply(self._get_enhanced_reason, axis=1)
+            
         return df
+
+    def _get_enhanced_reason(self, row):
+        """Tạo lý do gợi ý thông minh hơn"""
+        reasons = []
+        
+        # Views & Engagement
+        if row['total_views'] >= 122:
+            views_ratio = int((row['total_views'] / 111.6 - 1) * 100)
+            if row['unique_viewers'] >= 26:
+                reasons.append(f"Hot {row['total_views']:,} lượt xem • {row['unique_viewers']} người quan tâm")
+            else:
+                reasons.append(f"Hot {row['total_views']:,} lượt xem")
+        elif row['total_views'] >= 112:
+            reasons.append(f"Phổ biến với {row['total_views']:,} lượt xem")
+        
+        # Rating & Reviews    
+        if row['avg_rating'] >= 4.0 and row['review_count'] >= 15:
+            reasons.append(f"Đánh giá xuất sắc {row['avg_rating']:.1f}★ ({row['review_count']} đánh giá)")
+        elif row['avg_rating'] >= 3.5 and row['review_count'] >= 10:
+            reasons.append(f"Đánh giá tốt {row['avg_rating']:.1f}★ ({row['review_count']} đánh giá)")
+            
+        # Doanh số & Độ mới
+        if row['days_since_launch'] <= 30:
+            sales_per_day = row['sold_count'] / max(1, row['days_since_launch'])
+            if sales_per_day >= 2:
+                reasons.append(f"Bán {int(sales_per_day)} sản phẩm/ngày")
+            elif row['sold_count'] >= 29:
+                reasons.append(f"Mới & Bán chạy ({int(row['sold_count'])} đã bán)")
+        elif row['sold_count'] >= 100:
+            reasons.append(f"Best seller ({int(row['sold_count'])} đã bán)")
+        elif row['sold_count'] >= 50:
+            reasons.append(f"Bán chạy ({int(row['sold_count'])} đã bán)")
+        
+        return " • ".join(reasons[:2])
 
     def _get_price_score(self, row):
         """Tính điểm giá dựa trên phân khúc"""
@@ -148,38 +211,63 @@ class PopularityRecommender:
         self.feature_names = tfidf.get_feature_names_out()
 
     def recommend(self, limit=8, category=None, min_price=None, max_price=None, brand=None):
-        """Trả về sản phẩm phổ biến với lọc thông minh hơn"""
-        print(f"Getting recommendations with limit={limit}")
-        
-        if self.recommendations is None:
-            print("No recommendations available")
-            return []
-        
+        """Cải thiện recommendations với phân phối tốt hơn"""
         filtered_df = self.recommendations.copy()
-        print(f"Total products before filtering: {len(filtered_df)}")
         
-        # Áp dụng các bộ lọc
-        if category:
-            filtered_df = filtered_df[filtered_df['category_name'] == category]
-        if brand:
-            filtered_df = filtered_df[filtered_df['brand_name'] == brand]
-        if min_price:
-            filtered_df = filtered_df[filtered_df['min_price'] >= float(min_price)]
-        if max_price:
-            filtered_df = filtered_df[filtered_df['min_price'] <= float(max_price)]
+        # 1. Phân nhóm theo giá chi tiết hơn
+        price_ranges = [
+            (0, 2000000, 'Phổ thông'),
+            (2000000, 5000000, 'Tầm trung thấp'),
+            (5000000, 15000000, 'Tầm trung cao'),
+            (15000000, float('inf'), 'Cao cấp')
+        ]
         
-        print(f"Products after filtering: {len(filtered_df)}")
+        filtered_df['price_segment'] = filtered_df.apply(
+            lambda x: next(
+                (segment for min_p, max_p, segment in price_ranges 
+                 if min_p <= x['min_price'] < max_p), 
+                'Unknown'
+            ),
+            axis=1
+        )
         
-        # Đa dạng hóa kết quả
-        filtered_df = self._diversify_results(filtered_df)
+        # 2. Đa dạng hóa kết quả
+        diverse_results = []
+        seen_categories = set()
+        seen_brands = set()
+        segments_count = {'Cao cấp': 0, 'Tầm trung cao': 0, 'Tầm trung thấp': 0, 'Phổ thông': 0}
+        max_per_segment = 2
         
-        # Thêm lý do gợi ý
-        filtered_df['reason'] = filtered_df.apply(self._get_enhanced_reason, axis=1)
+        # Sort by popularity within each segment
+        for segment in ['Cao cấp', 'Tầm trung cao', 'Tầm trung thấp', 'Phổ thông']:
+            segment_df = filtered_df[filtered_df['price_segment'] == segment]
+            
+            for _, product in segment_df.iterrows():
+                if len(diverse_results) >= limit:
+                    break
+                    
+                if segments_count[segment] >= max_per_segment:
+                    continue
+                    
+                # Kiểm tra category và brand
+                if (product['category_name'] not in seen_categories and 
+                    product['brand_name'] not in seen_brands):
+                    
+                    # Format metrics
+                    product['metrics'] = {
+                        'avg_rating': round(product['avg_rating'], 1),
+                        'review_count': int(product['review_count']),
+                        'sold_count': int(product['sold_count']),
+                        'total_views': int(product['total_views']),
+                        'unique_viewers': int(product['unique_viewers'])
+                    }
+                    
+                    diverse_results.append(product)
+                    seen_categories.add(product['category_name'])
+                    seen_brands.add(product['brand_name'])
+                    segments_count[segment] += 1
         
-        results = filtered_df.head(limit).to_dict('records')
-        print(f"Returning {len(results)} recommendations")
-        
-        return results
+        return diverse_results
 
     def _diversify_results(self, df, max_per_category=2, max_per_brand=2):
         """Đa dạng hóa kết quả theo danh mục, thương hiệu và phân khúc giá"""
@@ -240,69 +328,16 @@ class PopularityRecommender:
         return diverse_df.sort_values(['popularity_score', 'avg_rating'], 
                                     ascending=[False, False])
 
-    def _get_enhanced_reason(self, row):
-        reasons = []
-        
-        # Format số lượng và rating
-        def format_number(n):
-            """Format số lượng gọn hơn"""
-            if isinstance(n, float):
-                n = int(n) if n.is_integer() else n  # Bỏ .0 nếu là số nguyên
-                
-            if n >= 1000:
-                return f"{n/1000:.1f}k"
-            return str(n)
-        
-        rating = round(row['avg_rating'], 1)  # Làm tròn 1 chữ số thập phân
-        
-        # 1. Rating và reviews - Ưu tiên cao nhất
-        if rating >= 4.5 and row['review_count'] > 10:
-            reasons.append(f"Đánh giá xuất sắc {rating}★ ({format_number(row['review_count'])} đánh giá)")
-        elif rating >= 4.0 and row['review_count'] > 5:
-            reasons.append(f"Đánh giá tốt {rating}★ ({format_number(row['review_count'])} đánh giá)")
-        elif rating >= 3.5:
-            reasons.append(f"{rating}★ ({format_number(row['review_count'])} đánh giá)")
-        
-        # 2. Doanh số - Chỉ hiện khi thực sự ấn tượng
-        if row['sold_count'] >= 500:
-            reasons.append(f"Best seller ({format_number(row['sold_count'])} đã bán)")
-        elif row['sold_count'] >= 100:
-            reasons.append(f"Bán chạy ({format_number(row['sold_count'])} đã bán)")
-        
-        # 3. Giá cả - So sánh với trung bình danh mục
-        try:
-            category_df = self.recommendations[
-                self.recommendations['category_name'] == row['category_name']
-            ]
-            if len(category_df) >= 3:
-                avg_price = category_df['min_price'].mean()
-                min_price = category_df['min_price'].min()
-                
-                # Chỉ gắn tag khi thực sự rẻ hơn đáng kể
-                if row['min_price'] <= min_price * 1.1:  # Trong khoảng 110% giá thấp nhất
-                    reasons.append("Giá tốt nhất danh mục")
-                elif row['min_price'] < avg_price * 0.7:  # Rẻ hơn 30% trung bình
-                    reasons.append("Giá tốt")
-        except:
-            pass
-        
-        # Nếu không có lý do nào, thêm lý do mặc định
-        if not reasons:
-            if rating > 0:
-                if row['review_count'] > 1:  # Chỉ hiện số lượng khi > 1
-                    reasons.append(f"{rating}★ ({format_number(row['review_count'])} đánh giá)")
-                else:
-                    reasons.append(f"{rating}★")
-            if row['sold_count'] >= 50:  # Chỉ hiện khi đạt ngưỡng tối thiểu
-                reasons.append(f"{format_number(row['sold_count'])} đã bán")
-        
-        return " • ".join(reasons[:2])
-
     def get_recommendations_data(self):
         """Get raw recommendations data for evaluation"""
         try:
             if self.recommendations is None:
-                return []
+                return {
+                    'recommendations': [],
+                    'metadata': {
+                        'last_trained': None
+                    }
+                }
                 
             # Convert recommendations DataFrame to list of dicts
             recommendations = self.recommendations.to_dict('records')
@@ -327,8 +362,19 @@ class PopularityRecommender:
                 }
                 formatted_recs.append(formatted_rec)
                 
-            return formatted_recs
+            return {
+                'recommendations': formatted_recs,
+                'metadata': {
+                    'last_trained': self.last_train_time.isoformat() if self.last_train_time else None
+                }
+            }
             
         except Exception as e:
             print(f"Error getting recommendations data: {str(e)}")
-            return []
+            return {
+                'recommendations': [],
+                'metadata': {
+                    'last_trained': None,
+                    'error': str(e)
+                }
+            }
