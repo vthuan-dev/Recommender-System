@@ -149,14 +149,8 @@
                     <div class="address-content">
                       <div class="d-flex align-items-start">
                         <div class="flex-grow-1">
-                          <h6 class="mb-1">{{ address.recipient_name }}</h6>
-                          <p class="mb-1">{{ address.recipient_phone }}</p>
-                          <p class="mb-1">{{ address.address_line1 }}</p>
-                          <p class="mb-1" v-if="address.address_line2">
-                            {{ address.address_line2 }}
-                          </p>
-                          <p class="mb-1">{{ address.city }}</p>
-                          <p class="mb-0">{{ address.postal_code }}</p>
+                          <!-- Sử dụng formatAddress ở đây -->
+                          <p class="mb-1">{{ formatAddress(address) }}</p>
                         </div>
                         <div class="address-badge" v-if="address.is_default">
                           <span class="badge bg-primary">Mặc định</span>
@@ -545,7 +539,7 @@
               <!-- Tỉnh/Thành phố -->
               <div class="form-floating mb-3 fade-in">
                 <select 
-                  v-model="selectedProvince.value"
+                  v-model="selectedProvince"
                   class="form-select custom-select"
                   id="province"
                   required
@@ -566,7 +560,7 @@
               <!-- Quận/Huyện -->
               <div class="form-floating mb-3 fade-in" style="animation-delay: 0.1s">
                 <select 
-                  v-model="selectedDistrict.value"
+                  v-model="selectedDistrict"
                   class="form-select custom-select"
                   id="district"
                   required
@@ -588,7 +582,7 @@
               <!-- Phường/Xã -->
               <div class="form-floating mb-3 fade-in" style="animation-delay: 0.2s">
                 <select 
-                  v-model="selectedWard.value"
+                  v-model="selectedWard"
                   class="form-select custom-select"
                   id="ward"
                   required
@@ -727,9 +721,9 @@ const districts = ref([])
 const wards = ref([])
 const currentStep = ref(1)
 const selectedPaymentMethod = ref(null)
-const selectedProvince = ref({ value: '' })
-const selectedDistrict = ref({ value: '' })
-const selectedWard = ref({ value: '' })
+const selectedProvince = ref('')
+const selectedDistrict = ref('')
+const selectedWard = ref('')
 const isExpanded = ref(false)
 const orderNote = ref('')
 // const userInfo = ref(null)
@@ -1065,23 +1059,35 @@ const loadProvinces = async () => {
 // Xử lý khi chọn tỉnh/thành phố
 const handleProvinceChange = async () => {
   try {
+    // Reset các giá trị quận/huyện và phường/xã
     selectedDistrict.value = ''
     selectedWard.value = ''
     districts.value = []
     wards.value = []
     
     if (selectedProvince.value) {
-      // Lấy code của tỉnh/thành phố đã chọn
-      const provinceCode = provinces.value.find(
+      console.log('Selected province:', selectedProvince.value)
+      console.log('Available provinces:', provinces.value)
+      
+      // Lấy thông tin đầy đủ của tỉnh/thành phố đã chọn
+      const selectedProvinceData = provinces.value.find(
         p => p.name === selectedProvince.value
-      )?.code
+      )
 
-      if (!provinceCode) {
+      console.log('Selected province data:', selectedProvinceData)
+
+      if (!selectedProvinceData || !selectedProvinceData.code) {
         throw new Error('Không tìm thấy mã tỉnh/thành phố')
       }
 
-      const response = await axiosInstance.get(`/location/districts/${provinceCode}`)
-      districts.value = response.data.districts
+      // Gọi API với mã tỉnh/thành phố
+      const response = await axiosInstance.get(`/location/districts/${selectedProvinceData.code}`)
+      
+      if (response.data && response.data.districts) {
+        districts.value = response.data.districts
+      } else {
+        throw new Error('Dữ liệu quận/huyện không hợp lệ')
+      }
     }
   } catch (error) {
     console.error('Error loading districts:', error)
@@ -1458,19 +1464,25 @@ const handleImageError = (e) => {
   console.log('Image load error, using placeholder');
 };
 
-// Thêm computed property để hiển thị địa chỉ đẹp hơn
+// Hoàn thiện hàm formatAddress
 const formatAddress = (address) => {
   const parts = []
   if (address.recipient_name) parts.push(address.recipient_name)
   if (address.recipient_phone) parts.push(address.recipient_phone)
   
-  // Tách địa chỉ thành các phần
-  const addressParts = address.address_line1.split(',').map(part => part.trim())
-  parts.push(...addressParts)
+  // Tách địa chỉ thành các phần và nối bằng dấu phẩy
+  const addressParts = [
+    address.address_line1,
+    address.address_line2,
+    address.city,
+    address.state,
+    address.postal_code,
+    address.country
+  ].filter(Boolean) // Loại bỏ các giá trị rỗng/null
   
-  if (address.address_line2) parts.push(address.address_line2)
+  parts.push(addressParts.join(', '))
   
-  return parts.filter(Boolean).join('\n')
+  return parts.join(' | ')
 }
 </script>
 
