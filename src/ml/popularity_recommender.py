@@ -98,26 +98,43 @@ class PopularityRecommender:
         scaler = MinMaxScaler()
         
         if len(df) > 0:
-            # Chuẩn hóa các metrics hiện có
-            metrics = ['review_count', 'avg_rating', 'order_count', 
-                      'sold_count', 'days_since_launch']
-            
+            # Chuẩn hóa các metrics
+            metrics = ['review_count', 'avg_rating', 'sold_count', 'days_since_launch']
             for metric in metrics:
                 df[f'{metric}_score'] = scaler.fit_transform(df[[metric]])
-            
-            # Inverse cho days_since_launch (sản phẩm mới score cao hơn)
+                
+            # Inverse days_since_launch
             df['recency_score'] = 1 - df['days_since_launch_score']
             
-            # Tính popularity score với trọng số mới
+            # Tính popularity với trọng số mới
             df['popularity_score'] = (
-                0.3 * df['avg_rating_score'] +     # Đánh giá
-                0.3 * df['sold_count_score'] +     # Doanh số
-                0.2 * df['review_count_score'] +   # Số đánh giá
-                0.1 * df['order_count_score'] +    # Số đơn hàng
-                0.1 * df['recency_score']          # Độ mới
+                0.40 * df['avg_rating_score'] +     # Tăng trọng số đánh giá
+                0.25 * df['sold_count_score'] +     # Giữ nguyên doanh số
+                0.20 * df['review_count_score'] +   # Tăng trọng số số lượng đánh giá
+                0.15 * df['recency_score']          # Giảm trọng số độ mới
             )
-            
         return df
+
+    def _get_price_score(self, row):
+        """Tính điểm giá dựa trên phân khúc"""
+        category = row['category_name']
+        price = row['min_price']
+        
+        # Định nghĩa phân khúc giá theo danh mục
+        segments = {
+            'Điện thoại': [(0, 5e6, 1), (5e6, 15e6, 0.8), (15e6, float('inf'), 0.6)],
+            'Laptop văn phòng': [(0, 10e6, 1), (10e6, 20e6, 0.8), (20e6, float('inf'), 0.6)],
+            'default': [(0, 2e6, 1), (2e6, 5e6, 0.8), (5e6, float('inf'), 0.6)]
+        }
+        
+        # Lấy phân khúc phù hợp
+        price_ranges = segments.get(category, segments['default'])
+        
+        # Tính điểm
+        for min_price, max_price, score in price_ranges:
+            if min_price <= price < max_price:
+                return score
+        return 0.5
 
     def _create_content_features(self, df):
         """Tạo đặc trưng từ nội dung sản phẩm"""
@@ -155,41 +172,122 @@ class PopularityRecommender:
         
         return filtered_df.head(limit).to_dict('records')
 
-    def _diversify_results(self, df, max_per_category=2):
-        """Đa dạng hóa kết quả theo nhiều tiêu chí"""
+    def _diversify_results(self, df, max_per_category=2, max_per_brand=2):
+        """Đa dạng hóa kết quả theo danh mục, thương hiệu và phân khúc giá"""
         diverse_df = pd.DataFrame()
+        
+        # Định nghĩa phân khúc giá theo danh mục
+        price_segments = {
+            'Điện thoại': [
+                (0, 5000000, 'Phổ thông'),
+                (5000000, 15000000, 'Tầm trung'),
+                (15000000, float('inf'), 'Cao cấp')
+            ],
+            'Laptop văn phòng': [
+                (0, 10000000, 'Phổ thông'),
+                (10000000, 20000000, 'Tầm trung'),
+                (20000000, float('inf'), 'Cao cấp')
+            ],
+            'default': [
+                (0, 2000000, 'Phổ thông'),
+                (2000000, 5000000, 'Tầm trung'),
+                (5000000, float('inf'), 'Cao cấp')
+            ]
+        }
         
         # Đa dạng hóa theo danh mục
         for category in df['category_name'].unique():
             category_df = df[df['category_name'] == category]
-            diverse_df = pd.concat([diverse_df, category_df.head(max_per_category)])
+            
+            # Lấy phân khúc giá phù hợp với danh mục
+            segments = price_segments.get(category, price_segments['default'])
+            
+            # Đa dạng theo thương hiệu và phân khúc giá
+            brand_diverse = pd.DataFrame()
+            for brand in category_df['brand_name'].unique():
+                brand_df = category_df[category_df['brand_name'] == brand]
+                
+                # Đảm bảo mỗi phân khúc giá có đại diện
+                price_diverse = pd.DataFrame()
+                for min_price, max_price, _ in segments:
+                    price_df = brand_df[
+                        (brand_df['min_price'] >= min_price) & 
+                        (brand_df['min_price'] < max_price)
+                    ].head(1)  # Lấy 1 SP mỗi phân khúc
+                    
+                    price_diverse = pd.concat([price_diverse, price_df])
+                
+                brand_diverse = pd.concat([
+                    brand_diverse, 
+                    price_diverse.head(max_per_brand)  # Giới hạn SP/thương hiệu
+                ])
+            
+            diverse_df = pd.concat([
+                diverse_df, 
+                brand_diverse.head(max_per_category)  # Giới hạn SP/danh mục
+            ])
         
-        return diverse_df.sort_values('popularity_score', ascending=False)
+        # Sắp xếp theo điểm phổ biến và đảm bảo đủ limit
+        return diverse_df.sort_values(['popularity_score', 'avg_rating'], 
+                                    ascending=[False, False])
 
     def _get_enhanced_reason(self, row):
-        """Tạo lý do gợi ý chi tiết hơn"""
         reasons = []
         
-        # Đánh giá và reviews
-        if row['avg_rating'] >= 4.5 and row['review_count'] > 10:
-            reasons.append(f"Đánh giá xuất sắc ({row['avg_rating']:.1f}★)")
-        elif row['avg_rating'] >= 4.0 and row['review_count'] > 5:
-            reasons.append(f"Đánh giá tốt ({row['avg_rating']:.1f}★)")
+        # Format số lượng và rating
+        def format_number(n):
+            """Format số lượng gọn hơn"""
+            if isinstance(n, float):
+                n = int(n) if n.is_integer() else n  # Bỏ .0 nếu là số nguyên
+                
+            if n >= 1000:
+                return f"{n/1000:.1f}k"
+            return str(n)
         
-        # Doanh số
-        if row['sold_count'] > 1000:
-            reasons.append(f"Bán chạy nhất ({row['sold_count']} đã bán)")
-        elif row['sold_count'] > 500:
-            reasons.append(f"Bán chạy ({row['sold_count']} đã bán)")
+        rating = round(row['avg_rating'], 1)  # Làm tròn 1 chữ số thập phân
         
-        # Độ mới
-        if row['days_since_launch'] <= 30:
-            reasons.append("Sản phẩm mới")
+        # 1. Rating và reviews - Ưu tiên cao nhất
+        if rating >= 4.5 and row['review_count'] > 10:
+            reasons.append(f"Đánh giá xuất sắc {rating}★ ({format_number(row['review_count'])} đánh giá)")
+        elif rating >= 4.0 and row['review_count'] > 5:
+            reasons.append(f"Đánh giá tốt {rating}★ ({format_number(row['review_count'])} đánh giá)")
+        elif rating >= 3.5:
+            reasons.append(f"{rating}★ ({format_number(row['review_count'])} đánh giá)")
         
+        # 2. Doanh số - Chỉ hiện khi thực sự ấn tượng
+        if row['sold_count'] >= 500:
+            reasons.append(f"Best seller ({format_number(row['sold_count'])} đã bán)")
+        elif row['sold_count'] >= 100:
+            reasons.append(f"Bán chạy ({format_number(row['sold_count'])} đã bán)")
+        
+        # 3. Giá cả - So sánh với trung bình danh mục
+        try:
+            category_df = self.recommendations[
+                self.recommendations['category_name'] == row['category_name']
+            ]
+            if len(category_df) >= 3:
+                avg_price = category_df['min_price'].mean()
+                min_price = category_df['min_price'].min()
+                
+                # Chỉ gắn tag khi thực sự rẻ hơn đáng kể
+                if row['min_price'] <= min_price * 1.1:  # Trong khoảng 110% giá thấp nhất
+                    reasons.append("Giá tốt nhất danh mục")
+                elif row['min_price'] < avg_price * 0.7:  # Rẻ hơn 30% trung bình
+                    reasons.append("Giá tốt")
+        except:
+            pass
+        
+        # Nếu không có lý do nào, thêm lý do mặc định
         if not reasons:
-            reasons.append("Phổ biến trong danh mục")
-            
-        return " • ".join(reasons)
+            if rating > 0:
+                if row['review_count'] > 1:  # Chỉ hiện số lượng khi > 1
+                    reasons.append(f"{rating}★ ({format_number(row['review_count'])} đánh giá)")
+                else:
+                    reasons.append(f"{rating}★")
+            if row['sold_count'] >= 50:  # Chỉ hiện khi đạt ngưỡng tối thiểu
+                reasons.append(f"{format_number(row['sold_count'])} đã bán")
+        
+        return " • ".join(reasons[:2])
 
     def get_recommendations_data(self):
         """Get raw recommendations data for evaluation"""

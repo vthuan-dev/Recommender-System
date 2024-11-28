@@ -171,6 +171,36 @@
         </div>
       </div>
     </section>
+
+    <!-- Recommended Products Section -->
+    <section class="recommended-section" v-if="recommendedProducts.length">
+      <div class="container py-5">
+        <div class="section-header text-center mb-5">
+          <h6 class="text-primary text-uppercase fw-bold">Dành cho bạn</h6>
+          <h2 class="section-title">Gợi ý sản phẩm</h2>
+        </div>
+        
+        <div class="row g-4">
+          <div v-for="product in recommendedProducts" 
+               :key="product.product_id" 
+               class="col-6 col-md-3">
+            <ProductCard 
+              :product="{
+                id: product.product_id,
+                name: product.name,
+                image_url: product.image_url,
+                min_price: product.min_price,
+                max_price: product.max_price,
+                brand_name: product.brand_name,
+                reason: product.reason
+              }"
+              @add-to-wishlist="handleAddToWishlist"
+              @add-to-cart="handleAddToCart"
+            />
+          </div>
+        </div>
+      </div>
+    </section>
   </div>
 </template>
 
@@ -290,8 +320,22 @@ export default {
         trendingProducts.value = trendingResponse.data
 
         if (isAuthenticated.value) {
-          const recommendedResponse = await axiosInstance.get('/recommended-products')
-          recommendedProducts.value = recommendedResponse.data
+          const loadRecommendations = async () => {
+            try {
+              console.log('Fetching recommendations...');
+              const response = await axiosInstance.get('/api/recommended-products', {
+                params: {
+                  limit: 8,
+                  page: 1
+                }
+              });
+              console.log('Recommendations response:', response.data);
+              recommendedProducts.value = response.data.recommendations || [];
+            } catch (error) {
+              console.error('Error loading recommendations:', error);
+            }
+          };
+          loadRecommendations();
         }
 
       } catch (error) {

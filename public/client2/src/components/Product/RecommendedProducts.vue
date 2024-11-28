@@ -43,7 +43,8 @@ export default {
     const loadRecommendations = async () => {
       try {
         const response = await axiosInstance.get('/api/recommended-products')
-        recommendedProducts.value = response.data
+        console.log('API Response:', response.data)
+        recommendedProducts.value = response.data.recommendations || []
       } catch (error) {
         console.error('Error loading recommendations:', error)
       }

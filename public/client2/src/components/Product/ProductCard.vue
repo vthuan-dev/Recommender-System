@@ -3,39 +3,43 @@
     <router-link 
       :to="{ 
         name: 'ProductDetail',
-        params: { id: product.id }
+        params: { id: product.product_id || product.id }
       }" 
       class="product-link"
     >
-      <div class="product-card">
-        <div class="card border-0 rounded-4 shadow-hover h-100">
-          <div class="product-image">
-            <img 
-              :src="getImageUrl(product.image_url)" 
-              :alt="product.name"
-              @error="handleImageError"
-            >
-            <div class="product-actions">
-              <button class="action-btn" @click.prevent="$emit('add-to-wishlist', product)">
-                <i class="fas fa-heart"></i>
-              </button>
-              <button class="action-btn" @click.prevent="$emit('add-to-cart', product)">
-                <i class="fas fa-shopping-cart"></i>
-              </button>
-            </div>
+      <div class="card border-0 rounded-4 shadow-hover h-100">
+        <div class="product-image">
+          <img 
+            :src="getImageUrl(product.image_url)" 
+            :alt="product.name"
+            @error="handleImageError"
+          >
+          <div class="product-actions">
+            <button class="action-btn" @click.prevent="$emit('add-to-wishlist', product)">
+              <i class="fas fa-heart"></i>
+            </button>
+            <button class="action-btn" @click.prevent="$emit('add-to-cart', product)">
+              <i class="fas fa-shopping-cart"></i>
+            </button>
           </div>
-          <div class="card-body">
-            <h5 class="product-title">{{ product.name }}</h5>
-            <div class="product-price">
-              <span class="new-price">{{ formatPrice(product.min_price) }}</span>
-              <span v-if="product.max_price > product.min_price" 
-                    class="old-price text-muted text-decoration-line-through ms-2">
-                {{ formatPrice(product.max_price) }}
-              </span>
-            </div>
-            <div class="brand-name text-muted small">
-              {{ product.brand_name }}
-            </div>
+        </div>
+        <div class="card-body">
+          <h5 class="product-title">{{ product.name }}</h5>
+          <div class="product-price">
+            <span class="new-price">{{ formatPrice(product.min_price) }}</span>
+            <span v-if="product.max_price > product.min_price" 
+                  class="old-price text-muted text-decoration-line-through ms-2">
+              {{ formatPrice(product.max_price) }}
+            </span>
+          </div>
+          <div class="brand-name text-muted small">
+            {{ product.brand_name }}
+          </div>
+          <div v-if="product.reason" class="recommendation-reason mt-2">
+            <span class="badge bg-light text-primary">
+              <i class="fas fa-thumbs-up me-1"></i>
+              {{ product.reason }}
+            </span>
           </div>
         </div>
       </div>
@@ -182,5 +186,14 @@ export default {
 
 .card {
   box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.recommendation-reason {
+  font-size: 0.85rem;
+}
+
+.recommendation-reason .badge {
+  font-weight: normal;
+  padding: 0.5em 0.8em;
 }
 </style>

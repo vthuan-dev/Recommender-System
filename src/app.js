@@ -26,6 +26,8 @@ const cartRoutes = require('./client/carts/cart.js');
 const orderRoutes = require('./client/orders/order.js');
 //client
 const accountRoutesClient = require('./client/users/log.js');
+// Thêm import cho recommended products
+const recommendedProductsRoutes = require('./client/products/recommended-products.js');
 //admin
 const productManagementRoutes = require('./admin/products/product-management.js');
 //admin
@@ -92,7 +94,8 @@ app.use('/api', [
     cartRoutes,
     orderRoutes,
     accountRoutesClient,
-    locationRoutes
+    locationRoutes,
+    recommendedProductsRoutes
 ]);
 app.use('/api/admin', [
     productManagementRoutes,
