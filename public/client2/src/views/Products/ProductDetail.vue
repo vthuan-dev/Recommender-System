@@ -322,7 +322,7 @@
   </div>
 </template>
 <script>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import ProductCard from '@/components/Product/ProductCard.vue'
 import axios from 'axios'
@@ -392,13 +392,13 @@ export default {
     })
 
     // Methods
-    const fetchProductDetail = async () => {
+    const fetchProductDetail = async (id) => {
       try {
         loading.value = true
         error.value = null
-        console.log('Fetching product ID:', route.params.id)
+        console.log('Fetching product ID:', id)
         
-        const response = await axios.get(`http://localhost:3000/api/products/${route.params.id}`)
+        const response = await axios.get(`http://localhost:3000/api/products/${id}`)
         console.log('API Response:', response.data)
         
         product.value = response.data
@@ -410,6 +410,7 @@ export default {
             .filter(Boolean))]
         }
         await fetchReviews()
+        await loadRelatedProducts(id)
       } catch (err) {
         console.error('Error fetching product:', err)
         error.value = 'Không thể tải thông tin sản phẩm'
@@ -692,9 +693,21 @@ export default {
       }
     };
 
+    // Watch for route changes
+    watch(
+      () => route.params.id,
+      async (newId) => {
+        if (newId) {
+          await fetchProductDetail(newId)
+        }
+      }
+    )
+
     // Lifecycle hooks
     onMounted(async () => {
-      fetchProductDetail()
+      if (route.params.id) {
+        await fetchProductDetail(route.params.id)
+      }
       fetchReviews()
       checkCanReview()
       loadProvinces()
@@ -712,8 +725,6 @@ export default {
         }
       }
       connectWebSocket()
-      const productId = route.params.id
-      await loadRelatedProducts(productId)
     })
 
     const loadProvinces = async () => {

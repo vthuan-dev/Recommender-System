@@ -1,7 +1,10 @@
 <template>
   <div class="product-card">
     <router-link 
-      :to="`/products/${product.id}`" 
+      :to="{
+        name: 'ProductDetail',
+        params: { id: product.id }
+      }" 
       class="product-link"
     >
       <div class="card border-0 rounded-4 shadow-hover h-100">
@@ -102,9 +105,6 @@ export default {
     },
     calculateDiscount(oldPrice, newPrice) {
       return Math.round((oldPrice - newPrice) / oldPrice * 100)
-    },
-    handleClick() {
-      this.$router.push(`/products/${this.product.id}`);
     }
   }
 }

@@ -155,22 +155,11 @@ const router = createRouter({
   }
 })
 
-router.beforeEach((to, from, next) => {
-  document.title = to.meta.title || 'T-Store'
-  
-  if (to.matched.some(record => record.meta.requiresAuth)) {
-    const token = localStorage.getItem('token')
-    if (!token) {
-      next({
-        path: '/login',
-        query: { redirect: to.fullPath }
-      })
-    } else {
-      next()
-    }
-  } else {
-    next()
+router.beforeResolve(async (to, from, next) => {
+  if (to.name === from.name && to.params.id !== from.params.id) {
+    to.meta.reload = true
   }
+  next()
 })
 
 export default router
