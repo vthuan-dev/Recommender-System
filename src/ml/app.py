@@ -516,7 +516,6 @@ def get_content_based_recommendations():
         return '', 204
         
     try:
-        # Lấy product_id và số lượng items
         product_id = request.args.get('product_id', type=int)
         n_items = request.args.get('n_items', default=8, type=int)
         
@@ -532,7 +531,7 @@ def get_content_based_recommendations():
             n_items=n_items
         )
         
-        # Format response
+        # Format response giống như collaborative
         formatted_recommendations = []
         conn = mysql.connector.connect(**db_config)
         
@@ -543,13 +542,13 @@ def get_content_based_recommendations():
                 product = product_details[0]
                 formatted_recommendations.append({
                     'id': rec['id'],
+                    'product_id': rec['id'],  # Thêm trường này để đồng nhất
                     'name': product['name'],
                     'image_url': product['image_url'],
                     'brand_name': product['brand_name'],
                     'category_name': product['category_name'],
                     'min_price': float(product['min_price']),
                     'max_price': float(product['max_price']),
-                    'similarity_score': float(rec['similarity_score']),
                     'metrics': {
                         'avg_rating': round(float(product['avg_rating']), 1),
                         'review_count': int(product['review_count']),

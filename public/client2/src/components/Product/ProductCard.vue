@@ -1,10 +1,7 @@
 <template>
   <div class="product-card">
     <router-link 
-      :to="{ 
-        name: 'ProductDetail',
-        params: { id: productId }
-      }" 
+      :to="`/products/${product.id}`" 
       class="product-link"
     >
       <div class="card border-0 rounded-4 shadow-hover h-100">
@@ -71,9 +68,6 @@ export default {
     }
   },
   computed: {
-    productId() {
-      return this.product.id || this.product.product_id
-    },
     formattedPrice() {
       const minPrice = this.product.min_price || 0
       const maxPrice = this.product.max_price || 0
@@ -108,6 +102,9 @@ export default {
     },
     calculateDiscount(oldPrice, newPrice) {
       return Math.round((oldPrice - newPrice) / oldPrice * 100)
+    },
+    handleClick() {
+      this.$router.push(`/products/${this.product.id}`);
     }
   }
 }

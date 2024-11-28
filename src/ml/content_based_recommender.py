@@ -182,7 +182,7 @@ class ContentBasedRecommender:
             logger.error(f"Error calculating similarity: {str(e)}")
             raise e
 
-    def recommend(self, product_id, n_items=6):
+    def recommend(self, product_id, n_items=8):
         try:
             product = self._get_product_details(product_id)
             if not product:

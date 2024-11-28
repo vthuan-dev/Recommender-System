@@ -665,41 +665,32 @@ export default {
         const response = await axios.get(`http://localhost:5001/api/content-based/recommend`, {
           params: {
             product_id: productId,
-            n_items: 4  // Số sản phẩm muốn hiển thị
+            n_items: 8
           }
-        })
+        });
 
         if (response.data.success) {
+          // Map dữ liệu đúng format
           relatedProducts.value = response.data.recommendations.map(product => ({
             id: product.id,
             name: product.name,
             image_url: product.image_url,
-            min_price: product.price,
-            max_price: product.price,
-            category_name: product.category,
-            brand_name: product.brand,
+            brand_name: product.brand_name,
+            category_name: product.category_name,
+            min_price: product.min_price || 0,
+            max_price: product.max_price || 0,
             metrics: {
-              similarity_score: product.similarity_score
+              avg_rating: Number(product.metrics?.avg_rating || 0),
+              review_count: Number(product.metrics?.review_count || 0),
+              sold_count: Number(product.metrics?.sold_count || 0)
             },
-            reason: getSimilarityReason(product) // Thêm lý do gợi ý
-          }))
+            reason: product.reason || 'Có thể bạn thích'
+          }));
         }
       } catch (error) {
-        console.error('Error loading related products:', error)
+        console.error('Error loading related products:', error);
       }
-    }
-
-    const getSimilarityReason = (product) => {
-      const score = product.similarity_score
-      if (score > 0.8) {
-        return 'Rất tương tự'
-      } else if (score > 0.6) {
-        return 'Tương tự'
-      } else if (product.category === product.category_name) {
-        return 'Cùng danh mục'
-      }
-      return 'Có thể bạn thích'
-    }
+    };
 
     // Lifecycle hooks
     onMounted(async () => {

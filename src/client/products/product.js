@@ -843,20 +843,101 @@ router.get('/products/:id/reviews', async (req, res) => {
 // 3. API lấy sản phẩm liên quan
 router.get('/products/:id/related', async (req, res) => {
   try {
-    const [product] = await pool.query('SELECT category_id FROM products WHERE id = ?', [req.params.id]);
-    if (!product.length) return res.status(404).json({ message: 'Không tìm thấy sản phẩm' });
+    const [product] = await pool.query(
+      'SELECT category_id FROM products WHERE id = ?',
+      [req.params.id]
+    );
 
-    const [relatedProducts] = await pool.query(`
-      SELECT p.*, b.name as brand_name
-      FROM products p
-      LEFT JOIN brands b ON p.brand_id = b.id
-      WHERE p.category_id = ? AND p.id != ?
-      LIMIT 8
-    `, [product[0].category_id, req.params.id]);
+    // Gọi content-based API với 8 sản phẩm
+    const mlResponse = await axios.get('http://localhost:5001/api/content-based/recommend', {
+      params: {
+        product_id: req.params.id,
+        n_items: 8
+      }
+    });
 
-    res.json(relatedProducts);
+    if (mlResponse.data.success) {
+      // Lấy thêm thông tin chi tiết cho mỗi sản phẩm
+      const productIds = mlResponse.data.recommendations.map(rec => rec.product_id);
+      const [detailedProducts] = await pool.query(`
+        SELECT 
+          p.*,
+          b.name as brand_name,
+          c.name as category_name,
+          MIN(pv.price) as min_price,
+          MAX(pv.price) as max_price,
+          COALESCE(AVG(r.rating), 0) as avg_rating,
+          COUNT(DISTINCT r.id) as review_count,
+          SUM(pv.sold_count) as sold_count
+        FROM products p
+        LEFT JOIN brands b ON p.brand_id = b.id
+        LEFT JOIN categories c ON p.category_id = c.id
+        LEFT JOIN productvariants pv ON p.id = pv.product_id
+        LEFT JOIN reviews r ON p.id = r.product_id
+        WHERE p.id IN (?)
+        GROUP BY p.id, b.name, c.name
+      `, [productIds]);
+
+      // Format response
+      const formattedProducts = detailedProducts.map(p => ({
+        ...p,
+        image_url: formatImageUrl(p).image_url,
+        metrics: {
+          avg_rating: Number(p.avg_rating).toFixed(1),
+          review_count: p.review_count,
+          sold_count: p.sold_count || 0
+        }
+      }));
+
+      res.json({
+        success: true,
+        products: formattedProducts
+      });
+    } else {
+      // Fallback với query tương tự
+      const [relatedProducts] = await pool.query(`
+        SELECT 
+          p.*,
+          b.name as brand_name,
+          c.name as category_name,
+          MIN(pv.price) as min_price,
+          MAX(pv.price) as max_price,
+          COALESCE(AVG(r.rating), 0) as avg_rating,
+          COUNT(DISTINCT r.id) as review_count,
+          SUM(pv.sold_count) as sold_count
+        FROM products p
+        LEFT JOIN brands b ON p.brand_id = b.id
+        LEFT JOIN categories c ON p.category_id = c.id
+        LEFT JOIN productvariants pv ON p.id = pv.product_id
+        LEFT JOIN reviews r ON p.id = r.product_id
+        WHERE p.category_id = ? AND p.id != ?
+        GROUP BY p.id, b.name, c.name
+        LIMIT 8
+      `, [product[0].category_id, req.params.id]);
+
+      const formattedProducts = relatedProducts.map(p => ({
+        ...p,
+        image_url: formatImageUrl(p).image_url,
+        metrics: {
+          avg_rating: Number(p.avg_rating).toFixed(1),
+          review_count: p.review_count,
+          sold_count: p.sold_count || 0
+        }
+      }));
+
+      res.json({
+        success: true,
+        products: formattedProducts,
+        source: 'fallback'
+      });
+    }
   } catch (error) {
-    res.status(500).json({ message: 'Lỗi khi lấy sản phẩm liên quan', error: error.message });
+    console.error('Lỗi khi lấy sản phẩm liên quan:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Lỗi khi lấy sản phẩm liên quan', 
+      error: error.message 
+    });
   }
 });
 
