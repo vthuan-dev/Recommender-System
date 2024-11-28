@@ -127,17 +127,31 @@ router.get('/products', async (req, res) => {
         MIN(pv.price) as min_price,
         MAX(pv.price) as max_price,
         SUM(pv.sold_count) as total_sold,
-        (SELECT AVG(rating) FROM reviews r WHERE r.product_id = p.id) as avg_rating,
-        (SELECT COUNT(*) FROM reviews r WHERE r.product_id = p.id) as review_count
+        AVG(r.rating) as avg_rating,
+        COUNT(DISTINCT r.id) as review_count,
+        COUNT(DISTINCT upv.user_id) as unique_viewers,
+        SUM(upv.view_count) as total_views
       FROM products p
       LEFT JOIN brands b ON p.brand_id = b.id
       LEFT JOIN categories c ON p.category_id = c.id
       LEFT JOIN productvariants pv ON p.id = pv.product_id
+      LEFT JOIN reviews r ON p.id = r.product_id
+      LEFT JOIN user_product_views upv ON p.id = upv.product_id
       GROUP BY p.id
     `)
     
-    // Format image URLs before sending response
-    const formattedProducts = products.map(formatImageUrl)
+    // Format data trước khi trả về
+    const formattedProducts = products.map(product => ({
+      ...formatImageUrl(product),
+      metrics: {
+        avg_rating: Number(product.avg_rating) || 0,
+        review_count: product.review_count || 0,
+        sold_count: product.total_sold || 0,
+        unique_viewers: product.unique_viewers || 0,
+        total_views: product.total_views || 0
+      }
+    }))
+
     res.json(formattedProducts)
   } catch (error) {
     console.error('Lỗi khi lấy danh sách sản phẩm:', error)

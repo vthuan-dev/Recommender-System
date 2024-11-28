@@ -8,6 +8,9 @@
       class="product-link"
     >
       <div class="card border-0 rounded-4 shadow-hover h-100">
+        <div v-if="product.max_price > product.min_price" class="discount-badge">
+          -{{ calculateDiscount(product.max_price, product.min_price) }}%
+        </div>
         <div class="product-image">
           <img 
             :src="getImageUrl(product.image_url)" 
@@ -32,28 +35,24 @@
               {{ formatPrice(product.max_price) }}
             </span>
           </div>
-          <div class="brand-name text-muted small">
-            {{ product.brand_name }}
+          <div class="product-metrics small text-muted">
+            <span v-if="product.metrics?.avg_rating" class="me-2">
+              <i class="fas fa-star text-warning"></i>
+              {{ product.metrics.avg_rating.toFixed(1) }}
+            </span>
+            <span v-if="product.metrics?.review_count" class="me-2">
+              <i class="fas fa-comment-dots"></i>
+              {{ product.metrics.review_count }} đánh giá
+            </span>
+            <span v-if="product.metrics?.sold_count">
+              <i class="fas fa-shopping-cart"></i>
+              {{ product.metrics.sold_count }} đã bán
+            </span>
           </div>
           <div v-if="product.reason" class="recommendation-reason mt-2">
             <span class="badge bg-light text-primary">
               <i class="fas fa-thumbs-up me-1"></i>
               {{ product.reason }}
-            </span>
-          </div>
-          
-          <div v-if="product.metrics" class="product-metrics small text-muted mt-2">
-            <span v-if="product.metrics.avg_rating" class="me-2">
-              <i class="fas fa-star text-warning"></i>
-              {{ product.metrics.avg_rating }}
-            </span>
-            <span v-if="product.metrics.review_count" class="me-2">
-              <i class="fas fa-comment-dots"></i>
-              {{ product.metrics.review_count }} đánh giá
-            </span>
-            <span v-if="product.metrics.sold_count">
-              <i class="fas fa-shopping-cart"></i>
-              {{ product.metrics.sold_count }} đã bán
             </span>
           </div>
         </div>
@@ -93,6 +92,9 @@ export default {
     },
     handleImageError(event) {
       event.target.src = '/assets/images/default-product.png'
+    },
+    calculateDiscount(oldPrice, newPrice) {
+      return Math.round((oldPrice - newPrice) / oldPrice * 100)
     }
   }
 }
@@ -205,21 +207,51 @@ export default {
 
 .recommendation-reason {
   font-size: 0.85rem;
+  margin-top: 8px;
+  display: block;
 }
 
 .recommendation-reason .badge {
   font-weight: normal;
   padding: 0.5em 0.8em;
+  display: inline-block;
+  white-space: normal;
+  text-align: left;
+  line-height: 1.4;
 }
 
 .product-metrics {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 0.5rem;
   font-size: 0.8rem;
+  margin-top: 8px;
 }
 
 .product-metrics i {
   margin-right: 0.25rem;
+}
+
+.discount-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: #dc3545;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  z-index: 2;
+}
+
+.product-card:hover .product-actions {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.product-card:hover .card {
+  transform: translateY(-5px);
+  box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15);
 }
 </style>
