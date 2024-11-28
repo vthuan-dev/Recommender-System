@@ -3,6 +3,7 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 from popularity_recommender import PopularityRecommender
 from collaborative_recommender import CollaborativeRecommender
+from content_based_recommender import ContentBasedRecommender
 import mysql.connector
 from datetime import datetime
 import logging
@@ -42,6 +43,7 @@ CACHE_DURATION = 3600  # 1 giờ
 
 # Thêm global variable
 collab_recommender = None
+content_based_recommender = None
 
 def get_recommender():
     """Lấy recommender từ cache hoặc train mới nếu cần"""
@@ -508,10 +510,100 @@ def get_popularity_recommendations():
             'error': str(e)
         }), 500
 
+@app.route('/api/content-based/recommend', methods=['GET', 'OPTIONS'])
+def get_content_based_recommendations():
+    if request.method == 'OPTIONS':
+        return '', 204
+        
+    try:
+        # Lấy product_id và số lượng items
+        product_id = request.args.get('product_id', type=int)
+        n_items = request.args.get('n_items', default=8, type=int)
+        
+        if not product_id:
+            return jsonify({
+                'success': False,
+                'error': 'Missing product_id parameter'
+            }), 400
+            
+        # Lấy recommendations từ content-based model
+        recommendations = content_based_recommender.recommend(
+            product_id=product_id,
+            n_items=n_items
+        )
+        
+        # Format response
+        formatted_recommendations = []
+        conn = mysql.connector.connect(**db_config)
+        
+        for rec in recommendations:
+            # Lấy thông tin chi tiết sản phẩm
+            product_details = get_product_details(conn, [rec['id']])
+            if product_details:
+                product = product_details[0]
+                formatted_recommendations.append({
+                    'id': rec['id'],
+                    'name': product['name'],
+                    'image_url': product['image_url'],
+                    'brand_name': product['brand_name'],
+                    'category_name': product['category_name'],
+                    'min_price': float(product['min_price']),
+                    'max_price': float(product['max_price']),
+                    'similarity_score': float(rec['similarity_score']),
+                    'metrics': {
+                        'avg_rating': round(float(product['avg_rating']), 1),
+                        'review_count': int(product['review_count']),
+                        'sold_count': int(product['sold_count'])
+                    },
+                    'reason': get_similarity_reason(rec['similarity_score'])
+                })
+        
+        conn.close()
+
+        return jsonify({
+            'success': True,
+            'recommendations': formatted_recommendations,
+            'metadata': {
+                'source': 'content-based',
+                'algorithm': 'tf-idf-cosine',
+                'total_items': len(formatted_recommendations)
+            }
+        })
+
+    except Exception as e:
+        logger.error(f"Error in content-based recommendations: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+def get_similarity_reason(similarity_score):
+    """Tạo lý do gợi ý dựa trên similarity score"""
+    if similarity_score > 0.8:
+        return 'Rất tương tự với sản phẩm bạn đang xem'
+    elif similarity_score > 0.6:
+        return 'Tương tự với sản phẩm bạn đang xem'
+    elif similarity_score > 0.4:
+        return 'Có thể bạn sẽ thích'
+    return 'Sản phẩm liên quan'
+
+def init_content_based():
+    """Khởi tạo content-based recommender"""
+    global content_based_recommender
+    try:
+        content_based_recommender = ContentBasedRecommender()
+        content_based_recommender.fit()
+        logger.info("Content-based model initialized successfully")
+        return True
+    except Exception as e:
+        logger.error(f"Error initializing content-based model: {str(e)}")
+        return False
+
 if __name__ == '__main__':
-    # Khởi tạo recommender lần đầu
+    # Khởi tạo các recommender
     get_recommender()
     init_collaborative()
+    init_content_based()
     
     # Thêm debug mode
     app.run(host='0.0.0.0', port=5001, debug=True)

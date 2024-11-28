@@ -303,12 +303,19 @@
       <!-- Sản phẩm liên quan -->
       <div class="related-products mt-5">
         <h3>Sản phẩm liên quan</h3>
-        <div class="row">
+        <div v-if="relatedProducts.length > 0" class="row">
           <div v-for="product in relatedProducts" 
                :key="product.id" 
                class="col-md-3">
-            <ProductCard :product="product" />
+            <ProductCard 
+              :product="product"
+              @add-to-wishlist="handleAddToWishlist"
+              @add-to-cart="handleAddToCart"
+            />
           </div>
+        </div>
+        <div v-else class="text-center py-4">
+          <p class="text-muted mb-0">Không tìm thấy sản phẩm tương tự</p>
         </div>
       </div>
     </div>
@@ -572,7 +579,7 @@ export default {
       } catch (error) {
         console.error('Error checking review permission:', error);
         canReview.value = false;
-        toast.error('Không thể kiểm tra quyền đánh giá');
+        toast.error('Không th kiểm tra quyền đánh giá');
       }
     };
 
@@ -652,8 +659,50 @@ export default {
       }
     };
 
+    const loadRelatedProducts = async (productId) => {
+      try {
+        // Gọi API content-based recommendation
+        const response = await axios.get(`http://localhost:5001/api/content-based/recommend`, {
+          params: {
+            product_id: productId,
+            n_items: 4  // Số sản phẩm muốn hiển thị
+          }
+        })
+
+        if (response.data.success) {
+          relatedProducts.value = response.data.recommendations.map(product => ({
+            id: product.id,
+            name: product.name,
+            image_url: product.image_url,
+            min_price: product.price,
+            max_price: product.price,
+            category_name: product.category,
+            brand_name: product.brand,
+            metrics: {
+              similarity_score: product.similarity_score
+            },
+            reason: getSimilarityReason(product) // Thêm lý do gợi ý
+          }))
+        }
+      } catch (error) {
+        console.error('Error loading related products:', error)
+      }
+    }
+
+    const getSimilarityReason = (product) => {
+      const score = product.similarity_score
+      if (score > 0.8) {
+        return 'Rất tương tự'
+      } else if (score > 0.6) {
+        return 'Tương tự'
+      } else if (product.category === product.category_name) {
+        return 'Cùng danh mục'
+      }
+      return 'Có thể bạn thích'
+    }
+
     // Lifecycle hooks
-    onMounted(() => {
+    onMounted(async () => {
       fetchProductDetail()
       fetchReviews()
       checkCanReview()
@@ -672,6 +721,8 @@ export default {
         }
       }
       connectWebSocket()
+      const productId = route.params.id
+      await loadRelatedProducts(productId)
     })
 
     const loadProvinces = async () => {
@@ -1601,5 +1652,39 @@ tr:hover {
     font-size: 0.9rem;
   }
 }
+
+.related-products {
+  background: #f8f9fa;
+  padding: 2rem 0;
+  border-radius: 1rem;
+}
+
+.related-products h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+  color: #333;
+  text-align: center;
+}
+
+/* Animation cho sản phẩm liên quan */
+.col-md-3 {
+  opacity: 0;
+  transform: translateY(20px);
+  animation: fadeInUp 0.5s ease forwards;
+}
+
+@keyframes fadeInUp {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Delay animation cho từng sản phẩm */
+.col-md-3:nth-child(1) { animation-delay: 0.1s; }
+.col-md-3:nth-child(2) { animation-delay: 0.2s; }
+.col-md-3:nth-child(3) { animation-delay: 0.3s; }
+.col-md-3:nth-child(4) { animation-delay: 0.4s; }
 </style>
 
