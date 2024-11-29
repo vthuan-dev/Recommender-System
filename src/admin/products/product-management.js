@@ -201,20 +201,19 @@ router.get('/products', authenticateJWT, checkAdminRole, async (req, res) => {
 
     let query = `
       SELECT 
-        p.id,
-        p.name,
-        p.description,
-        p.image_url,
-        p.category_id,
+        p.*,
         c.name as category_name,
-        p.brand_id,
         b.name as brand_name,
+        (SELECT COUNT(*) FROM user_product_views upv WHERE upv.product_id = p.id) as view_count,
+        (SELECT COUNT(*) FROM reviews r WHERE r.product_id = p.id) as review_count,
+        (SELECT AVG(rating) FROM reviews r WHERE r.product_id = p.id) as avg_rating,
         GROUP_CONCAT(
           JSON_OBJECT(
             'id', pv.id,
             'name', pv.name,
             'price', pv.price,
-            'initial_stock', pv.initial_stock
+            'initial_stock', pv.initial_stock,
+            'sold_count', pv.sold_count
           )
         ) as variants
       FROM products p

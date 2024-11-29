@@ -111,6 +111,9 @@
             <th style="width: 150px">Giá thấp nhất</th>
             <th style="width: 150px">Giá cao nhất</th>
             <th style="width: 120px">Thao tác</th>
+            <th>Lượt xem</th>
+            <th>Đánh giá</th>
+            <th>Đã bán</th>
           </tr>
         </thead>
         <tbody>
@@ -181,6 +184,22 @@
                     <i class="fas fa-trash" v-else></i>
                   </button>
                 </div>
+              </td>
+              <td class="text-center">
+                {{ formatNumber(product.view_count) }}
+              </td>
+              <td class="text-center">
+                <template v-if="product.review_count > 0">
+                  <span class="rating">
+                    {{ formatRating(product.avg_rating) }}
+                    <i class="fas fa-star text-warning"></i>
+                  </span>
+                  <small>({{ formatNumber(product.review_count) }})</small>
+                </template>
+                <span v-else class="text-muted">Chưa có</span>
+              </td>
+              <td class="text-center">
+                {{ formatNumber(calculateTotalSold(product.variants)) }}
               </td>
             </tr>
             
@@ -412,29 +431,33 @@ const visiblePages = computed(() => {
 // Fetch products với xử lý loading state
 const fetchProducts = async () => {
   try {
-    loading.value = true
+    loading.value = true;
     const response = await productService.getProducts({
       page: currentPage.value,
-      limit: perPage.value,
+      limit: itemsPerPage.value,
       search: filters.value.search,
       category: filters.value.category,
       brand: filters.value.brand
-    })
-    
-    if (response.success) {
-      products.value = response.products
-      totalPages.value = response.totalPages
-      totalProducts.value = response.totalProducts
-    } else {
-      throw new Error(response.message || 'Failed to fetch products')
-    }
+    });
+
+    // Parse và format dữ liệu
+    products.value = response.products.map(product => ({
+      ...product,
+      view_count: parseInt(product.view_count) || 0,
+      review_count: parseInt(product.review_count) || 0,
+      avg_rating: parseFloat(product.avg_rating) || 0,
+      variants: Array.isArray(product.variants) ? product.variants : []
+    }));
+
+    totalProducts.value = response.totalProducts;
+    totalPages.value = response.totalPages;
   } catch (error) {
-    console.error('Error fetching products:', error)
-    // Thêm xử lý hiển thị lỗi cho người dùng nếu cần
+    console.error('Error fetching products:', error);
+    products.value = [];
   } finally {
-    loading.value = false
+    loading.value = false;
   }
-}
+};
 
 // Sửa lại hàm fetchBrands với xử lý lỗi
 const fetchBrands = async () => {
@@ -777,6 +800,21 @@ const exportToExcel = async () => {
     })
   }
 }
+
+// Thêm method tính tổng số lượng đã bán
+const calculateTotalSold = (variants) => {
+  if (!variants) return 0;
+  return variants.reduce((total, variant) => total + (variant.sold_count || 0), 0);
+};
+
+// Thêm các hàm format mới
+const formatNumber = (number) => {
+  return number || 0;
+};
+
+const formatRating = (rating) => {
+  return rating ? Number(rating).toFixed(1) : '0.0';
+};
 </script>
 
 <style scoped>
@@ -1444,5 +1482,29 @@ tr:hover {
 
 .fa-spinner {
   margin-right: 0.5rem;
+}
+
+.rating {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 500;
+}
+
+.text-warning {
+  color: #ffc107;
+}
+
+.text-muted {
+  color: #6c757d;
+}
+
+td.text-center {
+  vertical-align: middle;
+}
+
+small {
+  font-size: 0.85em;
+  color: #6c757d;
 }
 </style>
