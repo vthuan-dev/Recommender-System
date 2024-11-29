@@ -76,13 +76,14 @@ class HybridRecommender:
                 logger.info(f"Got {len(collab_recs)} collaborative recs")
                 
                 if collab_recs:
-                    recommendations.extend([
-                        {
+                    for i, rec in enumerate(collab_recs):
+                        weight = 0.6 * (1.0 - i/len(collab_recs) * 0.3)  # Giảm dần theo thứ tự
+                        recommendations.append({
                             'product_id': int(rec),
-                            'weight': 0.4,
-                            'reason': 'Dựa trên lịch sử của bạn'
-                        } for rec in collab_recs
-                    ])
+                            'weight': weight,
+                            'reason': 'collaborative',
+                            'source': 'collaborative'
+                        })
 
                 # Get content-based recommendations
                 logger.info("Getting content-based recommendations...")
@@ -90,13 +91,14 @@ class HybridRecommender:
                 logger.info(f"Got {len(content_recs)} content-based recs")
                 
                 if content_recs:
-                    recommendations.extend([
-                        {
+                    for i, rec in enumerate(content_recs):
+                        weight = 0.3 * (1.0 - i/len(content_recs) * 0.3)
+                        recommendations.append({
                             'product_id': int(rec['id']),
-                            'weight': 0.4,
-                            'reason': 'Sản phẩm tương tự'
-                        } for rec in content_recs
-                    ])
+                            'weight': weight,
+                            'reason': 'content',
+                            'source': 'content'
+                        })
 
                 # Get popularity recommendations
                 logger.info("Getting popularity recommendations...")
@@ -104,13 +106,14 @@ class HybridRecommender:
                 logger.info(f"Got popularity recs: {popular_recs}")
                 
                 if popular_recs:
-                    recommendations.extend([
-                        {
+                    for i, rec in enumerate(popular_recs):
+                        weight = 0.1 * (1.0 - i/len(popular_recs) * 0.3)
+                        recommendations.append({
                             'product_id': int(rec['product_id']),
-                            'weight': 0.2,
-                            'reason': 'Đang thịnh hành'
-                        } for rec in popular_recs
-                    ])
+                            'weight': weight,
+                            'reason': 'popularity',
+                            'source': 'popularity'
+                        })
 
                 # Tạo connection mới và lấy thông tin chi tiết sản phẩm
                 conn = self._get_db_connection()
@@ -122,9 +125,6 @@ class HybridRecommender:
                         return final_recs
                     finally:
                         conn.close()
-                else:
-                    logger.error("Could not establish database connection")
-                    return []
 
             return []
 
@@ -162,49 +162,91 @@ class HybridRecommender:
         return df.set_index('product_id').to_dict('index')
 
     def _combine_recommendations(self, recommendations, n_items, product_details):
-        """Kết hợp và sắp xếp recommendations theo weight"""
+        """Kết hợp và format kết quả cuối cùng"""
         try:
-            logger.info("=== Combining recommendations ===")
-            logger.info(f"Input recommendations: {len(recommendations)}")
+            # Tạo dict để lưu product details theo id
+            details_dict = {str(pid): details for pid, details in product_details.items()}
             
-            # Tạo dict để track unique items
-            unique_recs = {}
-            
+            # Tính weight cho mỗi sản phẩm và lưu source
+            product_info = {}
             for rec in recommendations:
-                product_id = rec.get('product_id')
-                if not product_id:
-                    logger.warning(f"Skipping recommendation without product_id: {rec}")
-                    continue
-                    
-                if product_id not in unique_recs:
-                    details = product_details.get(product_id, {})
-                    unique_recs[product_id] = {
-                        'product_id': product_id,
-                        'name': details.get('name', ''),
-                        'image_url': details.get('image_url', ''),
-                        'brand_name': details.get('brand_name', ''),
-                        'category_name': details.get('category_name', ''),
-                        'min_price': details.get('min_price', 0),
-                        'max_price': details.get('max_price', 0),
-                        'score': rec.get('weight', 0),
-                        'reason': rec.get('reason', '')
+                pid = str(rec['product_id'])
+                if pid not in product_info:
+                    product_info[pid] = {
+                        'weight': rec['weight'],
+                        'source': rec['source']
                     }
                 else:
-                    # Nếu item đã tồn tại, cộng thêm weighted score
-                    unique_recs[product_id]['score'] += rec.get('weight', 0)
+                    # Nếu sản phẩm xuất hiện từ nhiều nguồn, lấy weight cao nhất
+                    if rec['weight'] > product_info[pid]['weight']:
+                        product_info[pid] = {
+                            'weight': rec['weight'],
+                            'source': rec['source']
+                        }
                     
-            logger.info(f"Unique recommendations: {len(unique_recs)}")
+            # Chuẩn hóa weights
+            max_weight = max(info['weight'] for info in product_info.values()) if product_info else 1.0
+            for pid in product_info:
+                product_info[pid]['weight'] /= max_weight
+
+            # Format kết quả cuối
+            final_recs = []
+            seen_products = set()
             
-            # Sort theo score và lấy top n_items
-            sorted_recs = sorted(
-                unique_recs.values(),
-                key=lambda x: x['score'],
-                reverse=True
-            )[:n_items]
-            
-            logger.info(f"Final recommendations: {len(sorted_recs)}")
-            return sorted_recs
-            
+            for rec in recommendations:
+                pid = str(rec['product_id'])
+                
+                if pid in seen_products:
+                    continue
+                    
+                seen_products.add(pid)
+                
+                if pid in details_dict:
+                    product = details_dict[pid]
+                    info = product_info[pid]
+                    weight = info['weight']
+                    source = info['source']
+                    
+                    # Xác định reason dựa trên nguồn và weight
+                    if source == 'collaborative':
+                        if weight > 0.8:
+                            reason = "Rất phù hợp với sở thích của bạn"
+                        elif weight > 0.6:
+                            reason = "Phù hợp với sở thích của bạn"
+                        else:
+                            reason = "Có thể bạn sẽ thích"
+                    elif source == 'content':
+                        if weight > 0.8:
+                            reason = "Rất tương tự với sản phẩm bạn đang xem"
+                        elif weight > 0.6:
+                            reason = "Tương tự với sản phẩm bạn đang xem"
+                        else:
+                            reason = "Sản phẩm liên quan"
+                    else:  # popularity
+                        if weight > 0.8:
+                            reason = "Đang rất thịnh hành"
+                        elif weight > 0.6:
+                            reason = "Đang thịnh hành"
+                        else:
+                            reason = "Được nhiều người quan tâm"
+                    
+                    final_recs.append({
+                        'product_id': int(pid),
+                        'name': product['name'],
+                        'image_url': product['image_url'],
+                        'brand_name': product['brand_name'],
+                        'category_name': product['category_name'],
+                        'min_price': float(product['min_price']),
+                        'max_price': float(product['max_price']),
+                        'reason': reason,
+                        'score': round(weight, 2)
+                    })
+                    
+                    if len(final_recs) >= n_items:
+                        break
+                        
+            return final_recs
+
         except Exception as e:
             logger.error(f"Error combining recommendations: {str(e)}")
             logger.exception("Full traceback:")
