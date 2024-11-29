@@ -41,15 +41,15 @@
             <div class="footer-contact">
               <div class="contact-item">
                 <i class="fas fa-map-marker-alt"></i>
-                <span>123 Đường ABC, Quận XYZ, TP.HCM</span>
+                <span>95/29 Mậu Thân , Xuân Khánh , Ninh Kiều , Cần Thơ</span>
               </div>
               <div class="contact-item">
                 <i class="fas fa-phone-alt"></i>
-                <a href="tel:1900xxxx">1900 xxxx</a>
+                <a href="tel:0706871283">0706871283</a>
               </div>
               <div class="contact-item">
                 <i class="fas fa-envelope"></i>
-                <a href="mailto:contact@tstore.com">contact@tstore.com</a>
+                <a href="mailto:vthuan.dev@gmail.com">vthuan.dev@gmail.com</a>
               </div>
             </div>
             <div class="social-links">

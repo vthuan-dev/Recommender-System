@@ -4,6 +4,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 from scipy.sparse.linalg import svds
 from sklearn.preprocessing import MinMaxScaler
 import logging
+from scipy.sparse import csr_matrix
 
 logger = logging.getLogger(__name__)
 
@@ -91,9 +92,13 @@ class CollaborativeRecommender:
                 self.mean_ratings = self.user_item_matrix.mean(axis=1)
                 ratings_centered = self.user_item_matrix.sub(self.mean_ratings, axis=0)
                 
-                # Điều chỉnh số factors dựa trên kích thước ma trận
-                k = min(30, min(self.user_item_matrix.shape) - 1)
-                U, sigma, Vt = svds(ratings_centered.astype(float), k=k)
+                # Ensure matrix is numeric and convert to sparse
+                ratings_centered = ratings_centered.fillna(0)
+                sparse_ratings = csr_matrix(ratings_centered.values)
+                
+                # Perform SVD on sparse matrix
+                k = min(30, min(sparse_ratings.shape) - 1)
+                U, sigma, Vt = svds(sparse_ratings, k=k)
                 
                 # Áp dụng regularization
                 sigma = np.diag(sigma / (1 + 0.05 * np.sqrt(len(self.user_item_matrix))))

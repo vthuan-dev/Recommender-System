@@ -97,18 +97,18 @@
     </div>
 
     <!-- Top Bar -->
-    <div class="top-bar">
+    <div class="top-bar" data-v-4926cc32>
       <div class="container">
         <div class="top-bar-content">
           <div class="contact-info">
             <a href="tel:1900xxxx">
               <i class="fas fa-phone-alt"></i>
-              <span>1900 xxxx</span>
+              <span>0706871283</span>
             </a>
             <span class="divider">|</span>
             <a href="mailto:support@tstore.com">
               <i class="fas fa-envelope"></i>
-              <span>support@tstore.com</span>
+              <span>vthuan.dev@gmail.com</span>
             </a>
           </div>
           <div class="top-links">
@@ -127,7 +127,7 @@
     </div>
 
     <!-- Main Header -->
-    <div class="main-header">
+    <div class="main-header" data-v-4926cc32>
       <div class="container">
         <div class="header-content">
           <router-link to="/" class="logo">
