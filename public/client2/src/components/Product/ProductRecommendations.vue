@@ -18,25 +18,70 @@
   </div>
 </template>
 
-<script setup>
-import { computed } from 'vue'
+<script>
+import { computed, ref, onMounted } from 'vue'
 import { useStore } from 'vuex'
 import ProductCard from './ProductCard.vue'
+import axios from 'axios'
 
-const store = useStore()
-const isAuthenticated = computed(() => store.state.auth.isAuthenticated)
+export default {
+  name: 'ProductRecommendations',
+  components: {
+    ProductCard
+  },
+  props: {
+    userId: {
+      type: Number,
+      required: true
+    }
+  },
+  setup(props) {
+    const store = useStore()
+    const isAuthenticated = computed(() => store.state.auth.isAuthenticated)
+    const recommendations = ref([])
 
-const title = computed(() => 
-  isAuthenticated.value ? 'Gợi ý sản phẩm' : 'Sản phẩm phổ biến'
-)
-const subtitle = computed(() => 
-  isAuthenticated.value ? 'Dành riêng cho bạn' : 'Được nhiều người quan tâm'
-)
+    const title = computed(() => 
+      isAuthenticated.value ? 'Gợi ý sản phẩm' : 'Sản phẩm phổ biến'
+    )
+    const subtitle = computed(() => 
+      isAuthenticated.value ? 'Dành riêng cho bạn' : 'Được nhiều người quan tâm'
+    )
 
-const { userId } = defineProps({
-  userId: {
-    type: Number,
-    required: true
+    const loadRecommendations = async () => {
+      try {
+        const response = await axios.get(`http://localhost:5001/api/collaborative/recommend`, {
+          params: {
+            user_id: props.userId
+          }
+        })
+        if (response.data.success) {
+          recommendations.value = response.data.recommendations
+        }
+      } catch (error) {
+        console.error('Error loading recommendations:', error)
+        // Fallback to popularity recommendations
+        try {
+          const fallbackResponse = await axios.get('http://localhost:5001/api/popularity/recommend', {
+            params: { limit: 8 }
+          })
+          if (fallbackResponse.data.success) {
+            recommendations.value = fallbackResponse.data.recommendations
+          }
+        } catch (fallbackError) {
+          console.error('Fallback error:', fallbackError)
+        }
+      }
+    }
+
+    onMounted(() => {
+      loadRecommendations()
+    })
+
+    return {
+      recommendations,
+      title,
+      subtitle
+    }
   }
-})
+}
 </script>

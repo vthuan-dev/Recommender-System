@@ -715,7 +715,7 @@ const newAddress = ref({
 })
 
 const isSubmitting = ref(false)
-const addressModal = ref(null)
+// const addressModal = ref(null)
 const provinces = ref([])
 const districts = ref([])
 const wards = ref([])
@@ -914,11 +914,11 @@ const placeOrder = async () => {
 };
 
 // Thêm hàm đóng modal
-const closeAddressModal = () => {
-  if (addressModal.value) {
-    addressModal.value.hide()
-  }
-}
+// const closeAddressModal = () => {
+//   if (addressModal.value) {
+//     addressModal.value.hide()
+//   }
+// }
 
 // Sửa lại hàm showAddAddressModal
 const showAddAddressModal = () => {

@@ -323,6 +323,7 @@ export default {
         }))
 
         const trendingResponse = await axiosInstance.get('/trending-products')
+        trendingProducts.value = trendingResponse.data
         
         // Gọi loadRecommendations thay vì gọi API trực tiếp
         await loadRecommendations()
@@ -450,12 +451,13 @@ export default {
     }
   },
   methods: {
-    handleAddToWishlist(product) {
-      // Xử lý thêm vào wishlist
-    },
-    handleAddToCart(product) {
-      // Xử lý thêm vào giỏ hàng
-    }
+    // Remove these duplicate methods since they're already defined in setup()
+    // handleAddToWishlist(product) {
+    //   // Xử lý thêm vào wishlist
+    // },
+    // handleAddToCart(product) {
+    //   // Xử lý thêm vào giỏ hàng
+    // }
   }
 }
 </script>
