@@ -9,6 +9,9 @@ import mysql.connector
 from datetime import datetime
 import logging
 import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import os
 
 app = Flask(__name__)
 # Cấu hình logging
@@ -658,6 +661,93 @@ def get_hybrid_recommendations():
             'success': False,
             'error': str(e)
         }), 500
+
+@app.route('/api/analytics/popularity', methods=['GET'])
+def get_popularity_analytics():
+    """API để xem analytics của popularity-based recommendations dưới dạng trực quan"""
+    try:
+        # Lấy recommender
+        recommender = get_recommender()
+        
+        # Tạo figure với subplot layout
+        plt.style.use('seaborn')  # Sử dụng style đẹp hơn
+        fig = plt.figure(figsize=(20, 12))
+        
+        # 1. Phân phối Popularity Score
+        plt.subplot(2, 3, 1)
+        sns.histplot(data=recommender.recommendations, x='popularity_score', bins=20)
+        plt.title('Phân phối Popularity Score', fontsize=12, pad=10)
+        
+        # 2. Top 10 sản phẩm phổ biến
+        plt.subplot(2, 3, 2)
+        top_10 = recommender.recommendations.head(10)
+        sns.barplot(data=top_10, y='name', x='popularity_score')
+        plt.title('Top 10 Sản phẩm phổ biến nhất', fontsize=12, pad=10)
+        
+        # 3. Phân phối theo danh mục
+        plt.subplot(2, 3, 3)
+        category_counts = recommender.recommendations['category_name'].value_counts()
+        plt.pie(category_counts.values, labels=category_counts.index, autopct='%1.1f%%')
+        plt.title('Phân phối theo danh mục', fontsize=12, pad=10)
+        
+        # 4. Tương quan giữa các metrics
+        plt.subplot(2, 3, 4)
+        metrics = ['total_views', 'sold_count', 'unique_viewers', 'avg_rating']
+        sns.heatmap(recommender.recommendations[metrics].corr(), annot=True, cmap='coolwarm')
+        plt.title('Tương quan giữa các metrics', fontsize=12, pad=10)
+        
+        # 5. Mối quan hệ Views - Sales
+        plt.subplot(2, 3, 5)
+        plt.scatter(recommender.recommendations['total_views'], 
+                   recommender.recommendations['sold_count'],
+                   alpha=0.6)
+        plt.xlabel('Tổng lượt xem')
+        plt.ylabel('Số lượng bán')
+        plt.title('Mối quan hệ Views - Sales', fontsize=12, pad=10)
+        
+        # 6. Phân phối giá theo danh mục
+        plt.subplot(2, 3, 6)
+        sns.boxplot(data=recommender.recommendations, y='category_name', x='min_price')
+        plt.title('Phân phối giá theo danh mục', fontsize=12, pad=10)
+        
+        # Điều chỉnh layout
+        plt.tight_layout()
+        
+        # Hiển thị figure trong cửa sổ mới
+        plt.show()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Analytics visualization displayed'
+        })
+        
+    except Exception as e:
+        logger.error(f"Error generating analytics: {str(e)}")
+        logger.exception("Full traceback:")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+# Thêm route để xem ảnh trực tiếp (optional)
+@app.route('/analytics/popularity/view', methods=['GET'])
+def view_popularity_analytics():
+    """Trang web để xem analytics"""
+    return """
+    <html>
+        <head>
+            <title>Popularity Analytics</title>
+            <style>
+                body { margin: 20px; font-family: Arial; }
+                img { max-width: 100%; height: auto; }
+            </style>
+        </head>
+        <body>
+            <h1>Popularity-based Recommender Analytics</h1>
+            <img src="/static/analytics/popularity_analytics.png" />
+        </body>
+    </html>
+    """
 
 if __name__ == '__main__':
     # Khởi tạo các recommender theo thứ tự

@@ -202,12 +202,13 @@ export default {
           throw new Error('No authentication token found');
         }
 
-        const response = await fetch('/api/dashboard/stats', {
+        const response = await fetch('/api/admin/stats', {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token.trim()}`,
             'Content-Type': 'application/json'
-          }
+          },
+          credentials: 'include'
         });
 
         if (!response.ok) {

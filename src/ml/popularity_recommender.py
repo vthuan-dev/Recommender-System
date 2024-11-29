@@ -5,6 +5,10 @@ from sklearn.preprocessing import MinMaxScaler
 from datetime import datetime
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
+import matplotlib.pyplot as plt
+import seaborn as sns
+import plotly.express as px
+import plotly.graph_objects as go
 
 class PopularityRecommender:
     def __init__(self):
@@ -378,3 +382,82 @@ class PopularityRecommender:
                     'error': str(e)
                 }
             }
+
+    def plot_analytics(self):
+        """Tạo dashboard phân tích"""
+        
+        # Set up the matplotlib figure
+        plt.style.use('seaborn')
+        fig = plt.figure(figsize=(20, 12))
+        
+        # 1. Popularity Score Distribution
+        plt.subplot(2, 3, 1)
+        sns.histplot(data=self.recommendations, x='popularity_score', bins=20)
+        plt.title('Phân phối Popularity Score')
+        
+        # 2. Top 10 Popular Products
+        plt.subplot(2, 3, 2)
+        top_10 = self.recommendations.head(10)
+        sns.barplot(data=top_10, y='name', x='popularity_score')
+        plt.title('Top 10 Sản phẩm phổ biến nhất')
+        
+        # 3. Category Distribution
+        plt.subplot(2, 3, 3)
+        category_counts = self.recommendations['category_name'].value_counts()
+        plt.pie(category_counts.values, labels=category_counts.index, autopct='%1.1f%%')
+        plt.title('Phân phối theo danh mục')
+        
+        # 4. Metrics Correlation
+        plt.subplot(2, 3, 4)
+        metrics = ['total_views', 'sold_count', 'unique_viewers', 'avg_rating']
+        sns.heatmap(self.recommendations[metrics].corr(), annot=True, cmap='coolwarm')
+        plt.title('Tương quan giữa các metrics')
+        
+        # 5. Views vs Sales
+        plt.subplot(2, 3, 5)
+        plt.scatter(self.recommendations['total_views'], 
+                   self.recommendations['sold_count'])
+        plt.xlabel('Tổng lượt xem')
+        plt.ylabel('Số lượng bán')
+        plt.title('Mối quan hệ Views - Sales')
+        
+        # 6. Price Distribution
+        plt.subplot(2, 3, 6)
+        sns.boxplot(data=self.recommendations, y='category_name', x='min_price')
+        plt.title('Phân phối giá theo danh mục')
+        
+        plt.tight_layout()
+        plt.savefig('popularity_analytics.png')
+        plt.show()
+
+    def create_interactive_dashboard(self):
+        """Tạo dashboard tương tác với Plotly"""
+        
+        # 1. Popularity Score Distribution
+        fig1 = px.histogram(self.recommendations, 
+                           x='popularity_score',
+                           title='Phân phối Popularity Score')
+        
+        # 2. Top Products
+        fig2 = px.bar(self.recommendations.head(10),
+                      x='name', y='popularity_score',
+                      title='Top 10 Sản phẩm phổ biến nhất')
+        
+        # 3. Category Distribution
+        fig3 = px.pie(self.recommendations,
+                      names='category_name',
+                      title='Phân phối theo danh mục')
+        
+        # 4. Metrics Scatter Plot
+        fig4 = px.scatter(self.recommendations,
+                         x='total_views', y='sold_count',
+                         size='popularity_score',
+                         color='category_name',
+                         hover_data=['name'],
+                         title='Phân tích đa chiều Metrics')
+        
+        # Show all plots
+        fig1.show()
+        fig2.show()
+        fig3.show()
+        fig4.show()
