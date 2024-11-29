@@ -681,28 +681,37 @@ export default {
         }
 
         const response = await axios.get(endpoint, { params });
-        console.log('Related products response:', response.data); // Thêm log để debug
+        console.log('Related products raw response:', response.data); // Log raw response
 
-        if (response.data.success) {
-          // Map dữ liệu và đảm bảo có id
-          relatedProducts.value = response.data.recommendations.map(product => ({
-            id: product.id || product.product_id, // Thêm fallback cho product_id
-            name: product.name || product.product_name, // Thêm fallback cho product_name
-            image_url: product.image_url,
-            brand_name: product.brand_name,
-            category_name: product.category_name,
-            min_price: product.min_price || product.price || 0,
-            max_price: product.max_price || product.original_price || 0,
-            metrics: {
-              avg_rating: Number(product.metrics?.avg_rating || 0),
-              review_count: product.metrics?.review_count || 0,
-              sold_count: product.metrics?.sold_count || 0
-            },
-            reason: product.reason
-          }));
+        if (response.data && Array.isArray(response.data.recommendations)) {
+          relatedProducts.value = response.data.recommendations.map(product => {
+            // Log mỗi sản phẩm để debug
+            console.log('Processing product:', product);
+            
+            return {
+              id: product.id || product.product_id || product._id, // Thêm nhiều fallback
+              name: product.name || product.product_name || product.title,
+              image_url: product.image_url || product.imageUrl || product.image,
+              min_price: Number(product.price || product.min_price || 0),
+              max_price: Number(product.original_price || product.max_price || product.price || 0),
+              metrics: {
+                avg_rating: Number(product.avg_rating || product.rating || 0),
+                review_count: Number(product.review_count || 0),
+                sold_count: Number(product.sold_count || 0)
+              },
+              reason: product.reason || 'Sản phẩm tương tự'
+            };
+          });
+
+          // Log processed products
+          console.log('Processed related products:', relatedProducts.value);
+        } else {
+          console.warn('Invalid recommendations format:', response.data);
+          relatedProducts.value = [];
         }
       } catch (error) {
         console.error('Error loading related products:', error);
+        relatedProducts.value = [];
       }
     };
 
