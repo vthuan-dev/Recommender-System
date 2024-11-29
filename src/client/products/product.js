@@ -411,10 +411,31 @@ router.get('/recommendations', authenticateJWT, async (req, res) => {
       [similarUsers.map(u => u.user_id), userProductIds]
     );
 
-    res.json(recommendedProducts);
+    // Đảm bảo response có đúng cấu trúc
+    const recommendations = recommendedProducts.map(product => ({
+      id: product.id,
+      name: product.name,
+      image_url: product.image_url,
+      min_price: product.price,
+      max_price: product.original_price,
+      metrics: {
+        avg_rating: product.avg_rating,
+        review_count: product.review_count,
+        sold_count: product.sold_count
+      },
+      reason: product.reason
+    }));
+
+    res.json({
+      success: true,
+      recommendations
+    });
   } catch (error) {
-    console.error('Lỗi khi lấy gợi ý sản phẩm:', error);
-    res.status(500).json({ message: 'Lỗi khi lấy gợi ý sản phẩm', error: error.message });
+    console.error('Error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
   }
 });
 

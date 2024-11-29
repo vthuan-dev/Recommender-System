@@ -1,11 +1,10 @@
 <template>
   <div class="product-card">
     <router-link 
-      :to="{
-        name: 'ProductDetail',
-        params: { id: product.id }
-      }" 
+      v-if="product.id" 
+      :to="`/products/${product.id}`"
       class="product-link"
+      @click.native="handleProductClick"
     >
       <div class="card border-0 rounded-4 shadow-hover h-100">
         <div v-if="product.max_price > product.min_price" class="discount-badge">
@@ -58,6 +57,58 @@
         </div>
       </div>
     </router-link>
+    <div v-else class="product-link">
+      <div class="card border-0 rounded-4 shadow-hover h-100">
+        <div v-if="product.max_price > product.min_price" class="discount-badge">
+          -{{ calculateDiscount(product.max_price, product.min_price) }}%
+        </div>
+        <div class="product-image">
+          <img 
+            :src="getImageUrl(product.image_url)" 
+            :alt="product.name"
+            @error="handleImageError"
+          >
+          <div class="product-actions">
+            <button class="action-btn" @click.prevent="$emit('add-to-wishlist', product)">
+              <i class="fas fa-heart"></i>
+            </button>
+            <button class="action-btn" @click.prevent="$emit('add-to-cart', product)">
+              <i class="fas fa-shopping-cart"></i>
+            </button>
+          </div>
+        </div>
+        <div class="card-body">
+          <h5 class="product-title">{{ product.name }}</h5>
+          <div class="product-price">
+            <span class="new-price">{{ formattedPrice.min }}</span>
+            <span v-if="product.max_price > product.min_price" 
+                  class="old-price text-muted text-decoration-line-through ms-2">
+              {{ formattedPrice.max }}
+            </span>
+          </div>
+          <div class="product-metrics small text-muted">
+            <span v-if="product.metrics?.avg_rating" class="me-2">
+              <i class="fas fa-star text-warning"></i>
+              {{ product.metrics.avg_rating.toFixed(1) }}
+            </span>
+            <span v-if="product.metrics?.review_count" class="me-2">
+              <i class="fas fa-comment-dots"></i>
+              {{ product.metrics.review_count }} đánh giá
+            </span>
+            <span v-if="product.metrics?.sold_count">
+              <i class="fas fa-shopping-cart"></i>
+              {{ product.metrics.sold_count }} đã bán
+            </span>
+          </div>
+          <div v-if="product.reason" class="recommendation-reason">
+            <span class="badge bg-soft-primary rounded-pill">
+              <i class="fas fa-thumbs-up me-1"></i>
+              {{ product.reason }}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -67,7 +118,11 @@ export default {
   props: {
     product: {
       type: Object,
-      required: true
+      required: true,
+      validator: function(value) {
+        // Validate required fields
+        return value.name && (value.id || value.product_id)
+      }
     }
   },
   computed: {
@@ -78,6 +133,9 @@ export default {
         min: this.formatPrice(minPrice),
         max: maxPrice > minPrice ? this.formatPrice(maxPrice) : null
       }
+    },
+    productId() {
+      return this.product.id || this.product.product_id
     }
   },
   methods: {
@@ -105,6 +163,12 @@ export default {
     },
     calculateDiscount(oldPrice, newPrice) {
       return Math.round((oldPrice - newPrice) / oldPrice * 100)
+    },
+    handleProductClick() {
+      // Prevent default scroll behavior
+      if (this.$route.name === 'ProductDetail') {
+        this.$router.push(`/products/${this.product.id}`).catch(() => {})
+      }
     }
   }
 }

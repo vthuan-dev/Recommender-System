@@ -147,6 +147,9 @@ const router = createRouter({
   history: createWebHistory(process.env.BASE_URL),
   routes,
   scrollBehavior(to, from, savedPosition) {
+    if (to.name === 'ProductDetail' && from.name === 'ProductDetail') {
+      return { top: 0, behavior: 'smooth' }
+    }
     if (savedPosition) {
       return savedPosition
     } else {
@@ -156,8 +159,9 @@ const router = createRouter({
 })
 
 router.beforeResolve(async (to, from, next) => {
-  if (to.name === from.name && to.params.id !== from.params.id) {
+  if (to.name === 'ProductDetail' && from.name === 'ProductDetail' && to.params.id !== from.params.id) {
     to.meta.reload = true
+    await router.isReady()
   }
   next()
 })

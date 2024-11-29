@@ -311,7 +311,11 @@
               :product="product"
               @add-to-wishlist="handleAddToWishlist"
               @add-to-cart="handleAddToCart"
-            />
+            >
+              <template #reason v-if="product.reason">
+                <small class="text-muted">{{ product.reason }}</small>
+              </template>
+            </ProductCard>
           </div>
         </div>
         <div v-else class="text-center py-4">
@@ -662,30 +666,39 @@ export default {
 
     const loadRelatedProducts = async (productId) => {
       try {
-        // Gọi API content-based recommendation
-        const response = await axios.get(`http://localhost:5001/api/content-based/recommend`, {
-          params: {
-            product_id: productId,
-            n_items: 8
-          }
-        });
+        const token = localStorage.getItem('token');
+        const userId = localStorage.getItem('userId');
+
+        let endpoint = 'http://localhost:5001/api/content-based/recommend';
+        let params = {
+          product_id: productId,
+          n_items: 8
+        };
+
+        if (token && userId) {
+          endpoint = 'http://localhost:5001/api/hybrid/recommend';
+          params.user_id = userId;
+        }
+
+        const response = await axios.get(endpoint, { params });
+        console.log('Related products response:', response.data); // Thêm log để debug
 
         if (response.data.success) {
-          // Map dữ liệu đúng format
+          // Map dữ liệu và đảm bảo có id
           relatedProducts.value = response.data.recommendations.map(product => ({
-            id: product.id,
-            name: product.name,
+            id: product.id || product.product_id, // Thêm fallback cho product_id
+            name: product.name || product.product_name, // Thêm fallback cho product_name
             image_url: product.image_url,
             brand_name: product.brand_name,
             category_name: product.category_name,
-            min_price: product.min_price || 0,
-            max_price: product.max_price || 0,
+            min_price: product.min_price || product.price || 0,
+            max_price: product.max_price || product.original_price || 0,
             metrics: {
               avg_rating: Number(product.metrics?.avg_rating || 0),
-              review_count: Number(product.metrics?.review_count || 0),
-              sold_count: Number(product.metrics?.sold_count || 0)
+              review_count: product.metrics?.review_count || 0,
+              sold_count: product.metrics?.sold_count || 0
             },
-            reason: product.reason || 'Có thể bạn thích'
+            reason: product.reason
           }));
         }
       } catch (error) {
@@ -886,7 +899,8 @@ export default {
       ws,
       getImageUrl,
       handleImageError,
-      reviewStatusMessage
+      reviewStatusMessage,
+      loadRelatedProducts
     }
   }
 }
