@@ -12,6 +12,8 @@
           <div class="stat-detail">
             <span class="pending">Chờ xử lý: {{ stats.orderStats.pendingOrders }}</span>
             <span class="processing">Đang xử lý: {{ stats.orderStats.processingOrders }}</span>
+            <span class="completed">Hoàn thành: {{ stats.orderStats.completedOrders }}</span>
+            <span class="cancelled">Đã hủy: {{ stats.orderStats.cancelledOrders }}</span>
           </div>
         </div>
       </div>
@@ -45,12 +47,14 @@
     <!-- Biểu đồ doanh thu -->
     <div class="chart-section">
       <h2>Biểu đồ doanh thu</h2>
-      <LineChart 
-        v-if="showChart"
-        :data="revenueChartData"
-        :options="chartOptions"
-        :height="300"
-      />
+      <div class="chart-container">
+        <LineChart 
+          v-if="showChart"
+          :data="revenueChartData"
+          :options="chartOptions"
+          :height="200"
+        />
+      </div>
     </div>
 
     <!-- Top sản phẩm -->
@@ -74,7 +78,7 @@
 
 <script>
 import { Line as LineChart } from 'vue-chartjs';
-import { 
+import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
@@ -96,13 +100,9 @@ ChartJS.register(
 );
 
 export default {
-  name: 'Dashboard',
-  components: {
-    LineChart
-  },
+  components: { LineChart },
   data() {
     return {
-      showChart: false,
       stats: {
         orderStats: {
           totalOrders: 0,
@@ -112,29 +112,61 @@ export default {
           cancelledOrders: 0,
           totalRevenue: 0
         },
-        productStats: {
-          totalProducts: 0,
-          outOfStockProducts: 0,
-          lowStockProducts: 0
-        },
+        dailyRevenue: [],
+        monthlyRevenue: [],
+        productStats: {},
         topProducts: [],
         revenueChart: []
       },
+      showChart: false,
       chartOptions: {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
           legend: {
-            position: 'top',
+            display: false
           },
-          title: {
-            display: true,
-            text: 'Biểu đồ doanh thu 30 ngày gần nhất'
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                return 'Doanh thu: ' + new Intl.NumberFormat('vi-VN', {
+                  style: 'currency',
+                  currency: 'VND'
+                }).format(context.raw);
+              }
+            }
           }
         },
         scales: {
           y: {
-            beginAtZero: true
+            beginAtZero: true,
+            ticks: {
+              callback: function(value) {
+                return new Intl.NumberFormat('vi-VN', {
+                  style: 'currency',
+                  currency: 'VND',
+                  notation: 'compact',
+                  maximumFractionDigits: 1
+                }).format(value);
+              },
+              font: {
+                size: 10
+              }
+            }
+          },
+          x: {
+            grid: {
+              display: false
+            },
+            ticks: {
+              font: {
+                size: 10
+              },
+              maxRotation: 45,
+              minRotation: 45,
+              autoSkip: true,
+              maxTicksLimit: 10
+            }
           }
         }
       }
@@ -143,25 +175,16 @@ export default {
   computed: {
     revenueChartData() {
       return {
-        labels: this.stats.revenueChart.map(item => item.date) || [],
-        datasets: [
-          {
-            label: 'Doanh thu (VNĐ)',
-            data: this.stats.revenueChart.map(item => item.revenue) || [],
-            borderColor: '#3498db',
-            backgroundColor: 'rgba(52, 152, 219, 0.2)',
-            tension: 0.4,
-            fill: true
-          },
-          {
-            label: 'Số đơn hàng',
-            data: this.stats.revenueChart.map(item => item.total_orders) || [],
-            borderColor: '#2ecc71',
-            backgroundColor: 'rgba(46, 204, 113, 0.2)',
-            tension: 0.4,
-            fill: true
-          }
-        ]
+        labels: this.stats.dailyRevenue.map(item => {
+          const date = new Date(item.date);
+          return date.toLocaleDateString('vi-VN');
+        }),
+        datasets: [{
+          label: 'Doanh thu',
+          data: this.stats.dailyRevenue.map(item => item.revenue),
+          borderColor: '#4F46E5',
+          tension: 0.4
+        }]
       };
     }
   },
@@ -174,26 +197,38 @@ export default {
     },
     async fetchDashboardStats() {
       try {
-        const response = await fetch('/api/admin/dashboard/stats', {
+        const token = localStorage.getItem('adminToken');
+        if (!token) {
+          throw new Error('No authentication token found');
+        }
+
+        const response = await fetch('/api/dashboard/stats', {
+          method: 'GET',
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+            'Authorization': `Bearer ${token.trim()}`,
+            'Content-Type': 'application/json'
           }
         });
-        const data = await response.json();
-        if (data.success) {
-          this.stats = data.data;
-          this.showChart = true; // Chỉ hiển thị chart sau khi có data
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        if (result.success) {
+          this.stats = result.data;
+          this.showChart = true;
+        } else {
+          throw new Error(result.message || 'Failed to fetch dashboard stats');
         }
       } catch (error) {
         console.error('Error fetching dashboard stats:', error);
+        this.$emit('show-error', `Không thể tải dữ liệu thống kê: ${error.message}`);
       }
     }
   },
   mounted() {
     this.fetchDashboardStats();
-  },
-  beforeUnmount() {
-    this.showChart = false;
   }
 };
 </script>
@@ -205,29 +240,32 @@ export default {
 
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 2rem;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
 }
 
 .stat-card {
   background: white;
-  border-radius: 12px;
-  padding: 1.5rem;
+  border-radius: 8px;
+  padding: 1.25rem;
   display: flex;
   align-items: center;
-  gap: 1.5rem;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  gap: 1rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .stat-icon {
-  width: 60px;
-  height: 60px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.5rem;
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  font-size: 1.25rem;
 }
 
 .stat-icon.orders { background: rgba(52, 152, 219, 0.1); color: #3498db; }
@@ -235,36 +273,65 @@ export default {
 .stat-icon.products { background: rgba(155, 89, 182, 0.1); color: #9b59b6; }
 
 .stat-info h3 {
-  margin: 0;
-  font-size: 1rem;
-  color: #718096;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #64748b;
 }
 
 .stat-value {
-  margin: 0.5rem 0;
-  font-size: 1.5rem;
+  margin: 0.25rem 0;
+  font-size: 1.25rem;
   font-weight: 600;
-  color: #2d3748;
+  color: #1e293b;
 }
 
 .stat-detail {
   display: flex;
-  gap: 1rem;
-  font-size: 0.875rem;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+}
+
+.stat-detail span {
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  background: #f1f5f9;
+}
+
+.pending { color: #eab308; }
+.processing { color: #3b82f6; }
+.warning { color: #ef4444; }
+.alert { color: #f97316; }
+.completed { color: #10b981; }
+.cancelled { color: #ef4444; }
+
+.stat-period {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin: 0;
 }
 
 .chart-section {
   background: white;
-  border-radius: 12px;
-  padding: 1.5rem;
-  margin-bottom: 2rem;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  max-width: 100%;
+}
+
+.chart-container {
+  position: relative;
+  height: 300px;
+  width: 100%;
+  margin: 0 auto;
 }
 
 .chart-section h2 {
-  margin: 0 0 1.5rem;
-  font-size: 1.25rem;
+  margin: 0 0 1rem;
+  font-size: 1rem;
   color: #2d3748;
+  font-weight: 500;
 }
 
 .top-products {
@@ -315,12 +382,31 @@ export default {
 }
 
 @media (max-width: 768px) {
-  .stats-grid {
-    grid-template-columns: 1fr;
+  .dashboard {
+    padding: 1rem;
   }
   
-  .products-grid {
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  .stats-grid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  }
+  
+  .stat-card {
+    padding: 1rem;
+  }
+  
+  .stat-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 1rem;
+  }
+  
+  .chart-section {
+    padding: 1rem;
+    margin-bottom: 1rem;
+  }
+  
+  .chart-section h2 {
+    font-size: 0.875rem;
   }
 }
 </style> 

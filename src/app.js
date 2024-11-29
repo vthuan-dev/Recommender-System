@@ -18,6 +18,7 @@ const server = http.createServer(app);
 
 // Khởi tạo WebSocket server
 initializeWebSocket(server);
+const dashboardController = require('./admin/dashboard/dashboard-controller');
 
 //client
 const productRoutes = require('./client/products/product.js');
@@ -100,7 +101,7 @@ app.use('/api', [
 ]);
 app.use('/api/admin', [
     productManagementRoutes,
-
+    dashboardController,
     orderManagementRoutes,
     adminAuthRoutes
 ]);
@@ -217,4 +218,13 @@ const recommendationRoutes = require('./client/products/recommendations.js');
 
 // Sử dụng routes
 app.use('/api/recommendations', recommendationRoutes);
+
+
+// Đăng ký route cho dashboard
+// app.use('/api/admin', [
+//     productManagementRoutes,
+//     orderManagementRoutes,
+//     adminAuthRoutes,
+//     dashboardController
+// ]);
 

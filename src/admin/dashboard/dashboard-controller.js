@@ -1,84 +1,120 @@
 const express = require('express');
-const { pool } = require('../../database/dbconfig');
-const { authenticateJWT } = require('../../database/dbconfig');
+const { pool, authenticateJWT } = require('../../database/dbconfig');
 const router = express.Router();
 
-// API lấy thống kê tổng quan
-router.get('/dashboard/stats', authenticateJWT, async (req, res) => {
-  const connection = await pool.getConnection();
+// Route test không cần xác thực
+router.get('/dashboard/test', (req, res) => {
+  res.json({ 
+    message: 'Dashboard API is working',
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Route test có xác thực
+router.get('/dashboard/test-auth', authenticateJWT, (req, res) => {
+  res.json({ 
+    message: 'Dashboard API with auth is working',
+    user: req.user,
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Route chính giữ nguyên
+router.get('/stats', authenticateJWT, async (req, res) => {
+  let connection;
   try {
-    // Thống kê đơn hàng
-    const [orderStats] = await connection.query(`
-      SELECT 
-        COUNT(*) as totalOrders,
-        COUNT(CASE WHEN status = 'pending' THEN 1 END) as pendingOrders,
-        COUNT(CASE WHEN status = 'processing' THEN 1 END) as processingOrders,
-        COUNT(CASE WHEN status = 'completed' THEN 1 END) as completedOrders,
-        COUNT(CASE WHEN status = 'cancelled' THEN 1 END) as cancelledOrders,
-        SUM(total_amount) as totalRevenue
-      FROM orders
-      WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
-    `);
+    console.log('Attempting to get database connection...');
+    
+    connection = await pool.getConnection();
+    console.log('Database connection successful');
 
-    // Thống kê sản phẩm
-    const [productStats] = await connection.query(`
-      SELECT 
-        COUNT(*) as totalProducts,
-        COUNT(CASE WHEN stock_quantity = 0 THEN 1 END) as outOfStockProducts,
-        COUNT(CASE WHEN stock_quantity <= low_stock_threshold THEN 1 END) as lowStockProducts
-      FROM products
-    `);
+    // Khai báo tất cả biến cần thiết
+    let orderStats, productStats, topProducts, revenueChart, userStats, 
+        reviewStats, recentReviews, popularProducts, brandStats, 
+        dailyRevenue, monthlyRevenue;
 
-    // Top 5 sản phẩm bán chạy
-    const [topProducts] = await connection.query(`
-      SELECT 
-        p.id,
-        p.name,
-        p.image_url,
-        SUM(oi.quantity) as total_sold,
-        SUM(oi.quantity * oi.price) as revenue
-      FROM products p
-      JOIN order_items oi ON p.id = oi.product_id
-      JOIN orders o ON oi.order_id = o.id
-      WHERE o.status = 'completed'
-      AND o.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
-      GROUP BY p.id
-      ORDER BY total_sold DESC
-      LIMIT 5
-    `);
+    // Query orderStats
+    try {
+      [orderStats] = await connection.query(`
+        SELECT 
+          COUNT(*) as totalOrders,
+          COUNT(CASE WHEN status = 'pending' THEN 1 END) as pendingOrders,
+          COUNT(CASE WHEN status = 'processing' THEN 1 END) as processingOrders,
+          COUNT(CASE WHEN status = 'delivered' THEN 1 END) as completedOrders,
+          COUNT(CASE WHEN status = 'cancelled' THEN 1 END) as cancelledOrders,
+          COALESCE(SUM(CASE WHEN status = 'delivered' THEN total ELSE 0 END), 0) as totalRevenue
+        FROM orders
+        WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+      `);
+      console.log('Order stats query successful:', orderStats[0]);
+    } catch (error) {
+      console.error('Error in order stats query:', error);
+      throw error;
+    }
 
-    // Doanh thu theo ngày (30 ngày gần nhất)
-    const [revenueChart] = await connection.query(`
-      SELECT 
-        DATE(created_at) as date,
-        COUNT(*) as total_orders,
-        SUM(total_amount) as revenue
-      FROM orders
-      WHERE status = 'completed'
-      AND created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
-      GROUP BY DATE(created_at)
-      ORDER BY date ASC
-    `);
+    // Query dailyRevenue
+    try {
+      [dailyRevenue] = await connection.query(`
+        SELECT 
+          DATE(created_at) as date,
+          COUNT(*) as total_orders,
+          SUM(total) as revenue,
+          COUNT(CASE WHEN status = 'delivered' THEN 1 END) as completed_orders,
+          COUNT(CASE WHEN status = 'cancelled' THEN 1 END) as cancelled_orders
+        FROM orders
+        WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+        GROUP BY DATE(created_at)
+        ORDER BY date DESC
+      `);
+      console.log('Daily revenue query successful:', dailyRevenue);
+    } catch (error) {
+      console.error('Error in daily revenue query:', error);
+      throw error;
+    }
 
+    // Query monthlyRevenue
+    try {
+      [monthlyRevenue] = await connection.query(`
+        SELECT 
+          DATE_FORMAT(created_at, '%Y-%m') as month,
+          COUNT(*) as total_orders,
+          SUM(total) as revenue,
+          COUNT(CASE WHEN status = 'delivered' THEN 1 END) as completed_orders,
+          COUNT(CASE WHEN status = 'cancelled' THEN 1 END) as cancelled_orders,
+          ROUND(AVG(total), 2) as average_order_value
+        FROM orders
+        WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
+        GROUP BY DATE_FORMAT(created_at, '%Y-%m')
+        ORDER BY month DESC
+      `);
+      console.log('Monthly revenue query successful:', monthlyRevenue);
+    } catch (error) {
+      console.error('Error in monthly revenue query:', error);
+      throw error;
+    }
+
+    // Gửi response với chỉ những dữ liệu cần thiết
     res.json({
       success: true,
       data: {
-        orderStats: orderStats[0],
-        productStats: productStats[0],
-        topProducts,
-        revenueChart
+        orderStats: orderStats[0] || {},
+        dailyRevenue: dailyRevenue || [],
+        monthlyRevenue: monthlyRevenue || []
       }
     });
 
   } catch (error) {
-    console.error('Error fetching dashboard stats:', error);
+    console.error('Error in dashboard stats:', error);
     res.status(500).json({
       success: false,
       message: 'Lỗi khi lấy dữ liệu thống kê',
       error: error.message
     });
   } finally {
-    connection.release();
+    if (connection) {
+      await connection.release();
+      console.log('Database connection released');
+    }
   }
 });
 

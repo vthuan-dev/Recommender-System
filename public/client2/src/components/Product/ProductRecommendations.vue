@@ -19,7 +19,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { computed } from 'vue'
 import { useStore } from 'vuex'
 import ProductCard from './ProductCard.vue'
 
@@ -33,7 +33,7 @@ const subtitle = computed(() =>
   isAuthenticated.value ? 'Dành riêng cho bạn' : 'Được nhiều người quan tâm'
 )
 
-const props = defineProps({
+const { userId } = defineProps({
   userId: {
     type: Number,
     required: true
