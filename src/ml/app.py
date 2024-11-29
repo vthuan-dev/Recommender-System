@@ -4,6 +4,7 @@ from flask_cors import CORS
 from popularity_recommender import PopularityRecommender
 from collaborative_recommender import CollaborativeRecommender
 from content_based_recommender import ContentBasedRecommender
+from hybrid_recommender import HybridRecommender
 import mysql.connector
 from datetime import datetime
 import logging
@@ -44,6 +45,7 @@ CACHE_DURATION = 3600  # 1 giờ
 # Thêm global variable
 collab_recommender = None
 content_based_recommender = None
+hybrid_recommender = None
 
 def get_recommender():
     """Lấy recommender từ cache hoặc train mới nếu cần"""
@@ -220,7 +222,7 @@ def get_collaborative_recommendations():
             n_items=int(request.args.get('limit', 8))
         )
         
-        # Format response giống như popularity recommendations
+        # Format response giống nh popularity recommendations
         product_details = get_product_details(conn, recommendations)
         conn.close()
         
@@ -577,7 +579,7 @@ def get_content_based_recommendations():
         }), 500
 
 def get_similarity_reason(similarity_score):
-    """Tạo lý do gợi ý dựa trên similarity score"""
+    """To lý do gợi ý dựa trên similarity score"""
     if similarity_score > 0.8:
         return 'Rất tương tự với sản phẩm bạn đang xem'
     elif similarity_score > 0.6:
@@ -598,11 +600,70 @@ def init_content_based():
         logger.error(f"Error initializing content-based model: {str(e)}")
         return False
 
+def init_hybrid():
+    """Khởi tạo hybrid recommender"""
+    global hybrid_recommender
+    try:
+        conn = mysql.connector.connect(**db_config)
+        hybrid_recommender = HybridRecommender()
+        hybrid_recommender.fit(conn)  # Truyền connection vào
+        conn.close()
+        logger.info("Hybrid recommender initialized successfully")
+        return True
+    except Exception as e:
+        logger.error(f"Error initializing hybrid recommender: {str(e)}")
+        return False
+
+@app.route('/api/hybrid/recommend', methods=['GET'])
+def get_hybrid_recommendations():
+    try:
+        user_id = request.args.get('user_id', type=int)
+        product_id = request.args.get('product_id', type=int)
+        
+        logger.info(f"=== Hybrid API request ===")
+        logger.info(f"user_id: {user_id}, product_id: {product_id}")
+        
+        if not hybrid_recommender:
+            logger.error("Hybrid recommender not initialized")
+            return jsonify({
+                'success': False,
+                'error': 'Hybrid recommender not initialized'
+            }), 500
+            
+        recommendations = hybrid_recommender.recommend(
+            user_id=user_id,
+            product_id=product_id
+        )
+        
+        logger.info(f"Got {len(recommendations)} recommendations")
+        
+        response = {
+            'success': True,
+            'recommendations': recommendations,
+            'metadata': {
+                'source': 'hybrid',
+                'user_id': user_id,
+                'product_id': product_id,
+                'total_items': len(recommendations)
+            }
+        }
+        
+        logger.info(f"Sending response with {len(recommendations)} items")
+        return jsonify(response)
+        
+    except Exception as e:
+        logger.error(f"Error in hybrid recommendations: {str(e)}")
+        logger.exception("Full traceback:")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 if __name__ == '__main__':
-    # Khởi tạo các recommender
-    get_recommender()
+    # Khởi tạo các recommender theo thứ tự
+    get_recommender()  # Popularity recommender
     init_collaborative()
     init_content_based()
+    init_hybrid()  # Hybrid recommender phải được khởi tạo sau cùng
     
-    # Thêm debug mode
     app.run(host='0.0.0.0', port=5001, debug=True)
