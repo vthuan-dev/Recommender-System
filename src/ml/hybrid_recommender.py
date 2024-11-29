@@ -70,29 +70,14 @@ class HybridRecommender:
             
             # Case 1: Có cả user_id và product_id
             if user_id and product_id:
-                # Get collaborative recommendations
-                logger.info("Getting collaborative recommendations...")
-                collab_recs = self.collaborative.recommend(user_id, n_items=n_items)
-                logger.info(f"Got {len(collab_recs)} collaborative recs")
-                
-                if collab_recs:
-                    for i, rec in enumerate(collab_recs):
-                        weight = 0.6 * (1.0 - i/len(collab_recs) * 0.3)  # Giảm dần theo thứ tự
-                        recommendations.append({
-                            'product_id': int(rec),
-                            'weight': weight,
-                            'reason': 'collaborative',
-                            'source': 'collaborative'
-                        })
-
-                # Get content-based recommendations
+                # Get content-based recommendations first (vì đang xem sản phẩm)
                 logger.info("Getting content-based recommendations...")
                 content_recs = self.content_based.recommend(product_id, n_items=n_items)
                 logger.info(f"Got {len(content_recs)} content-based recs")
                 
                 if content_recs:
-                    for i, rec in enumerate(content_recs):
-                        weight = 0.3 * (1.0 - i/len(content_recs) * 0.3)
+                    for i, rec in enumerate(content_recs[:n_items//2]):  # Lấy một nửa từ content-based
+                        weight = 0.5 * (1.0 - i/len(content_recs) * 0.3)
                         recommendations.append({
                             'product_id': int(rec['id']),
                             'weight': weight,
@@ -100,20 +85,36 @@ class HybridRecommender:
                             'source': 'content'
                         })
 
-                # Get popularity recommendations
-                logger.info("Getting popularity recommendations...")
-                popular_recs = self.popularity.recommend(limit=n_items//2)
-                logger.info(f"Got popularity recs: {popular_recs}")
+                # Get collaborative recommendations
+                logger.info("Getting collaborative recommendations...")
+                collab_recs = self.collaborative.recommend(user_id, n_items=n_items)
+                logger.info(f"Got {len(collab_recs)} collaborative recs")
                 
-                if popular_recs:
-                    for i, rec in enumerate(popular_recs):
-                        weight = 0.1 * (1.0 - i/len(popular_recs) * 0.3)
+                if collab_recs:
+                    for i, rec in enumerate(collab_recs[:n_items//2]):  # Lấy một nửa từ collaborative
+                        weight = 0.4 * (1.0 - i/len(collab_recs) * 0.3)
                         recommendations.append({
-                            'product_id': int(rec['product_id']),
+                            'product_id': int(rec),
                             'weight': weight,
-                            'reason': 'popularity',
-                            'source': 'popularity'
+                            'reason': 'collaborative',
+                            'source': 'collaborative'
                         })
+
+                # Get popularity recommendations nếu chưa đủ số lượng
+                if len(recommendations) < n_items:
+                    logger.info("Getting popularity recommendations...")
+                    popular_recs = self.popularity.recommend(limit=n_items//4)  # Lấy 1/4 từ popularity
+                    logger.info(f"Got popularity recs: {popular_recs}")
+                    
+                    if popular_recs:
+                        for i, rec in enumerate(popular_recs):
+                            weight = 0.1 * (1.0 - i/len(popular_recs) * 0.3)
+                            recommendations.append({
+                                'product_id': int(rec['product_id']),
+                                'weight': weight,
+                                'reason': 'popularity',
+                                'source': 'popularity'
+                            })
 
                 # Tạo connection mới và lấy thông tin chi tiết sản phẩm
                 conn = self._get_db_connection()
@@ -209,23 +210,23 @@ class HybridRecommender:
                     
                     # Xác định reason dựa trên nguồn và weight
                     if source == 'collaborative':
-                        if weight > 0.8:
+                        if weight > 0.85:
                             reason = "Rất phù hợp với sở thích của bạn"
-                        elif weight > 0.6:
+                        elif weight > 0.75:
                             reason = "Phù hợp với sở thích của bạn"
                         else:
                             reason = "Có thể bạn sẽ thích"
                     elif source == 'content':
-                        if weight > 0.8:
+                        if weight > 0.85:
                             reason = "Rất tương tự với sản phẩm bạn đang xem"
-                        elif weight > 0.6:
+                        elif weight > 0.75:
                             reason = "Tương tự với sản phẩm bạn đang xem"
                         else:
                             reason = "Sản phẩm liên quan"
                     else:  # popularity
-                        if weight > 0.8:
+                        if weight > 0.85:
                             reason = "Đang rất thịnh hành"
-                        elif weight > 0.6:
+                        elif weight > 0.75:
                             reason = "Đang thịnh hành"
                         else:
                             reason = "Được nhiều người quan tâm"
