@@ -1711,5 +1711,60 @@ tr:hover {
 .col-md-3:nth-child(2) { animation-delay: 0.2s; }
 .col-md-3:nth-child(3) { animation-delay: 0.3s; }
 .col-md-3:nth-child(4) { animation-delay: 0.4s; }
+
+.breadcrumb {
+  background: transparent;
+  padding: 0.75rem 0;
+  margin-bottom: 1.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.breadcrumb-item {
+  display: flex;
+  align-items: center;
+  font-size: 0.9rem;
+}
+
+.breadcrumb-item + .breadcrumb-item {
+  padding-left: 0.5rem;
+}
+
+.breadcrumb-item + .breadcrumb-item::before {
+  content: "/";
+  padding-right: 0.5rem;
+  color: #6c757d;
+  font-weight: normal;
+}
+
+.breadcrumb-item a {
+  color: #0d6efd;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.breadcrumb-item a:hover {
+  color: #0a58ca;
+  text-decoration: underline;
+}
+
+.breadcrumb-item.active {
+  color: #6c757d;
+  font-weight: 500;
+}
+
+@media (max-width: 768px) {
+  .breadcrumb {
+    padding: 0.5rem 0;
+    margin-bottom: 1rem;
+    font-size: 0.85rem;
+  }
+  
+  .breadcrumb-item {
+    font-size: 0.85rem;
+  }
+}
 </style>
 

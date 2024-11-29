@@ -114,18 +114,23 @@
         <div class="row g-4">
           <div v-for="category in categories" 
                :key="category.id" 
-               class="col-6 col-md-3">
-            <router-link :to="`/category/${category.id}`" 
-                        class="category-card">
-              <div class="card h-100 border-0 rounded-4 shadow-hover">
-                <div class="card-body text-center p-4">
-                  <div class="category-icon mb-3">
-                    <i :class="[getCategoryIcon(category.name), 'fa-3x']"></i>
-                  </div>
-                  <h5 class="card-title mb-0">{{ category.name }}</h5>
+               class="col-12 mb-4">
+            <div class="category-block">
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <h3 class="category-title">{{ category.name }}</h3>
+                <router-link :to="`/category/${category.id}`" class="btn btn-outline-primary">
+                  Xem tất cả
+                </router-link>
+              </div>
+              
+              <div class="row g-4">
+                <div v-for="product in category.products" 
+                     :key="product.id" 
+                     class="col-6 col-md-3">
+                  <ProductCard :product="product" />
                 </div>
               </div>
-            </router-link>
+            </div>
           </div>
         </div>
       </div>
@@ -429,6 +434,32 @@ export default {
     const isLoggedIn = computed(() => store.state.auth.isAuthenticated)
 
     const currentUser = computed(() => store.state.auth.user)
+
+    const loadCategoriesWithProducts = async () => {
+      try {
+        const categoriesResponse = await axiosInstance.get('/categories');
+        const categoriesData = categoriesResponse.data;
+        
+        // Lấy preview sản phẩm cho mỗi danh mục
+        const categoriesWithProducts = await Promise.all(
+          categoriesData.map(async (category) => {
+            const response = await axiosInstance.get(`/categories/${category.id}/preview?limit=4`);
+            return {
+              ...category,
+              products: response.data.products
+            };
+          })
+        );
+        
+        categories.value = categoriesWithProducts;
+      } catch (error) {
+        console.error('Lỗi khi tải danh mục và sản phẩm:', error);
+      }
+    };
+
+    onMounted(() => {
+      loadCategoriesWithProducts();
+    });
 
     return {
       heroSlides,
@@ -751,5 +782,30 @@ export default {
   border-radius: 4px;
   font-weight: bold;
   z-index: 1;
+}
+
+.category-block {
+  background: #fff;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+.category-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #2c3e50;
+  margin: 0;
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+  .category-block {
+    padding: 1rem;
+  }
+  
+  .category-title {
+    font-size: 1.2rem;
+  }
 }
 </style>

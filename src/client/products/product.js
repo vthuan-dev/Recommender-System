@@ -1402,4 +1402,60 @@ router.post('/products/reviews/:reviewId/replies', authenticateJWT, checkAdminRo
   }
 });
 
+// Thêm route để lấy sản phẩm theo danh mục với giới hạn số lượng
+router.get('/categories/:categoryId/preview', async (req, res) => {
+  try {
+    const { categoryId } = req.params;
+    const limit = req.query.limit || 4; // Mặc định lấy 4 sản phẩm mỗi danh mục
+
+    // Kiểm tra danh mục tồn tại
+    const [categoryCheck] = await pool.query(
+      'SELECT * FROM categories WHERE id = ?',
+      [categoryId]
+    );
+
+    if (categoryCheck.length === 0) {
+      return res.status(404).json({ message: 'Không tìm thấy danh mục' });
+    }
+
+    // Lấy sản phẩm theo danh mục với thông tin brand và đánh giá
+    const [products] = await pool.query(`
+      SELECT 
+        p.*,
+        b.name as brand_name,
+        MIN(pv.price) as min_price,
+        MAX(pv.price) as max_price,
+        (SELECT AVG(rating) FROM reviews r WHERE r.product_id = p.id) as avg_rating,
+        (SELECT COUNT(*) FROM reviews r WHERE r.product_id = p.id) as review_count
+      FROM products p
+      LEFT JOIN brands b ON p.brand_id = b.id
+      LEFT JOIN productvariants pv ON p.id = pv.product_id
+      WHERE p.category_id = ?
+      GROUP BY p.id
+      ORDER BY RAND()
+      LIMIT ?
+    `, [categoryId, parseInt(limit)]);
+
+    // Format response
+    const formattedProducts = products.map(product => ({
+      ...product,
+      image_url: formatImageUrl(product).image_url,
+      avg_rating: product.avg_rating || 0,
+      review_count: product.review_count || 0
+    }));
+
+    res.json({
+      category: categoryCheck[0],
+      products: formattedProducts
+    });
+
+  } catch (error) {
+    console.error('Lỗi khi lấy preview sản phẩm theo danh mục:', error);
+    res.status(500).json({ 
+      message: 'Lỗi khi lấy preview sản phẩm theo danh mục', 
+      error: error.message 
+    });
+  }
+});
+
 module.exports = router;
