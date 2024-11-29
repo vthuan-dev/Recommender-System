@@ -2,7 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router';
 import SignIn from '../components/auth/SignIn.vue';
 import SignUp from '../components/auth/SignUp.vue';
 import AdminLayout from '../components/layout/AdminLayout.vue';
-import Dashboard from '../views/Dashboard.vue';
+import Dashboard from '../components/dashboard/Dashboard.vue';
 import Settings from '../components/settings/Settings.vue';
 import ProductManager from '../components/products/ProductManager.vue';
 import Orders from '../views/Orders.vue';
@@ -32,7 +32,10 @@ const routes = [
       {
         path: 'dashboard',
         name: 'Dashboard',
-        component: Dashboard
+        component: Dashboard,
+        meta: {
+          title: 'Thống kê tổng quan'
+        }
       },
       {
         path: 'settings',

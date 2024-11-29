@@ -110,10 +110,10 @@
             <th style="width: 100px">Tổng tồn</th>
             <th style="width: 150px">Giá thấp nhất</th>
             <th style="width: 150px">Giá cao nhất</th>
+            <th style="width: 100px">Lượt xem</th>
+            <th style="width: 120px">Đánh giá</th>
+            <th style="width: 100px">Đã bán</th>
             <th style="width: 120px">Thao tác</th>
-            <th>Lượt xem</th>
-            <th>Đánh giá</th>
-            <th>Đã bán</th>
           </tr>
         </thead>
         <tbody>
@@ -165,6 +165,22 @@
               </td>
               <td>{{ formatPrice(getMinPrice(product.variants)) }}</td>
               <td>{{ formatPrice(getMaxPrice(product.variants)) }}</td>
+              <td class="text-center">
+                {{ formatNumber(product.view_count) }}
+              </td>
+              <td class="text-center">
+                <template v-if="product.review_count > 0">
+                  <span class="rating">
+                    {{ formatRating(product.avg_rating) }}
+                    <i class="fas fa-star text-warning"></i>
+                  </span>
+                  <small>({{ formatNumber(product.review_count) }})</small>
+                </template>
+                <span v-else class="text-muted">Chưa có</span>
+              </td>
+              <td class="text-center">
+                {{ formatNumber(calculateTotalSold(product.variants)) }}
+              </td>
               <td>
                 <div class="action-buttons">
                   <button 
@@ -184,22 +200,6 @@
                     <i class="fas fa-trash" v-else></i>
                   </button>
                 </div>
-              </td>
-              <td class="text-center">
-                {{ formatNumber(product.view_count) }}
-              </td>
-              <td class="text-center">
-                <template v-if="product.review_count > 0">
-                  <span class="rating">
-                    {{ formatRating(product.avg_rating) }}
-                    <i class="fas fa-star text-warning"></i>
-                  </span>
-                  <small>({{ formatNumber(product.review_count) }})</small>
-                </template>
-                <span v-else class="text-muted">Chưa có</span>
-              </td>
-              <td class="text-center">
-                {{ formatNumber(calculateTotalSold(product.variants)) }}
               </td>
             </tr>
             

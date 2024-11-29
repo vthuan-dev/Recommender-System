@@ -24,55 +24,69 @@
       </div>
 
       <nav class="sidebar-nav">
-        <router-link to="/admin/dashboard" class="nav-item" active-class="active">
+        <div 
+          class="nav-item"
+          :class="{ active: $route.path === '/admin/dashboard' }"
+          @click="navigateTo('Dashboard')"
+        >
           <i class="fas fa-chart-line"></i>
-          <span>Dashboard</span>
-        </router-link>
+          <span>Thống kê</span>
+        </div>
 
-        <router-link to="/admin/users" class="nav-item" active-class="active">
+        <div 
+          class="nav-item"
+          :class="{ active: $route.path === '/admin/users' }"
+          @click="navigateTo('UserManagement')"
+        >
           <i class="fas fa-users"></i>
           <span>Quản lý người dùng</span>
-        </router-link>
+        </div>
 
-        <router-link to="/admin/products" class="nav-item" active-class="active">
+        <div 
+          class="nav-item"
+          :class="{ active: $route.path === '/admin/products' }"
+          @click="navigateTo('ProductManager')"
+        >
           <i class="fas fa-box"></i>
           <span>Sản phẩm</span>
-        </router-link>
+        </div>
 
-        <router-link to="/admin/orders" class="nav-item" active-class="active">
+        <div 
+          class="nav-item"
+          :class="{ active: $route.path === '/admin/orders' }"
+          @click="navigateTo('Orders')"
+        >
           <i class="fas fa-shopping-cart"></i>
           <span>Đơn hàng</span>
-        </router-link>
+        </div>
 
-        <router-link to="/admin/users/customers" class="nav-item" active-class="active">
-          <i class="fas fa-users"></i>
-          <span>Khách hàng</span>
-        </router-link>
-
-        <router-link to="/admin/reviews" class="nav-item" active-class="active">
+        <div 
+          class="nav-item"
+          :class="{ active: $route.path === '/admin/reviews' }"
+          @click="navigateTo('ReviewManagement')"
+        >
           <i class="fas fa-star"></i>
           <span>Đánh giá sản phẩm</span>
-        </router-link>
+        </div>
 
-        <router-link 
-          to="/admin/settings" 
-          class="nav-item" 
-          active-class="active"
+        <div 
+          class="nav-item"
+          :class="{ active: $route.path === '/admin/settings' }"
+          @click="navigateTo('Settings')"
         >
           <i class="fas fa-cog"></i>
           <span>Cài đặt</span>
-        </router-link>
+        </div>
 
-        <button @click="logout" class="nav-item logout-btn">
+        <div @click="logout" class="nav-item logout-btn">
           <i class="fas fa-sign-out-alt"></i>
           <span>Đăng xuất</span>
-        </button>
+        </div>
       </nav>
     </div>
 
     <!-- Main Content -->
     <div class="main-content">
-      <!-- Top Navbar -->
       <nav class="top-navbar">
         <button class="menu-toggle" @click="toggleSidebar">
           <i class="fas fa-bars"></i>
@@ -118,8 +132,30 @@ export default {
     }
   },
   methods: {
+    async navigateTo(routeName) {
+      try {
+        if (this.isSidebarOpen) {
+          this.toggleSidebar();
+        }
+        
+        if (this.$route.name === routeName) {
+          return;
+        }
+
+        await this.$router.push({ 
+          name: routeName 
+        }).catch(err => {
+          if (err.name !== 'NavigationDuplicated') {
+            throw err;
+          }
+        });
+
+      } catch (error) {
+        console.error('Navigation error:', error);
+      }
+    },
     toggleSidebar() {
-      this.isSidebarOpen = !this.isSidebarOpen
+      this.isSidebarOpen = !this.isSidebarOpen;
     },
     toggleUserMenu() {
       this.isUserMenuOpen = !this.isUserMenuOpen;
@@ -304,6 +340,8 @@ export default {
   text-decoration: none;
   border-radius: 12px;
   transition: all 0.3s ease;
+  cursor: pointer;
+  user-select: none;
 }
 
 .nav-item:hover, .nav-item.active {
@@ -610,5 +648,15 @@ export default {
 .submenu-enter-to,
 .submenu-leave-from {
   max-height: 400px;
+}
+
+/* Thêm styles cho biểu tượng thống kê */
+.nav-item i.fa-chart-line {
+  color: #4CAF50;
+}
+
+.nav-item:hover i.fa-chart-line,
+.nav-item.active i.fa-chart-line {
+  color: white;
 }
 </style>
