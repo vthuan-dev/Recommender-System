@@ -853,7 +853,7 @@ export default {
     // Thêm computed property để hiển thị message
     const reviewStatusMessage = computed(() => {
       if (!isAuthenticated.value) {
-        return 'Vui lòng đăng nhập để đánh giá sản phẩm';
+        return 'Vui lòng đăng nhập để đánh giá sản ph���m';
       }
       if (hasReviewed.value) {
         return 'Bạn đã đánh giá sản phẩm này rồi';
@@ -1764,6 +1764,119 @@ tr:hover {
   
   .breadcrumb-item {
     font-size: 0.85rem;
+  }
+}
+
+/* Review Form Styling */
+.review-form {
+  background: #ffffff;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+}
+
+.review-form:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.review-form h5 {
+  color: #2c3e50;
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.rating-input {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.rating-input span {
+  color: #4a5568;
+  font-weight: 500;
+}
+
+.stars {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.stars i {
+  font-size: 1.5rem;
+  color: #d1d5db;
+  transition: all 0.2s ease;
+}
+
+.stars i:hover {
+  transform: scale(1.1);
+}
+
+.stars i.text-warning {
+  color: #fbbf24;
+}
+
+.form-group textarea.form-control {
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 1rem;
+  font-size: 0.95rem;
+  resize: vertical;
+  min-height: 120px;
+  transition: all 0.3s ease;
+}
+
+.form-group textarea.form-control:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.form-group textarea.form-control::placeholder {
+  color: #9ca3af;
+}
+
+.review-form .btn-primary {
+  background-color: #3b82f6;
+  border: none;
+  padding: 0.75rem 2rem;
+  font-weight: 500;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.review-form .btn-primary:hover:not(:disabled) {
+  background-color: #2563eb;
+  transform: translateY(-1px);
+}
+
+.review-form .btn-primary:disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .review-form {
+    padding: 1rem !important;
+  }
+
+  .rating-input {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .stars i {
+    font-size: 1.25rem;
+  }
+
+  .review-form .btn-primary {
+    width: 100%;
+    padding: 0.625rem;
   }
 }
 </style>

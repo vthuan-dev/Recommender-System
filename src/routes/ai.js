@@ -7,46 +7,116 @@ const hf = new HfInference(process.env.HF_API_KEY);
 
 // Database các câu hỏi và câu trả lời
 const qaDatabase = {
-  // Chào hỏi
+  // 1. Chào hỏi & Giới thiệu
   'xin chào': ['Xin chào!', 'Chào bạn!', 'Xin chào, tôi có thể giúp gì cho bạn?'],
   'hi': ['Hi bạn!', 'Chào bạn!', 'Xin chào, bạn cần giúp gì không?'],
+  'tạm biệt': ['Tạm biệt bạn!', 'Hẹn gặp lại!', 'Chúc bạn một ngày tốt lành!'],
+  'bạn là ai': ['Tôi là trợ lý ảo của T-Store, tôi có thể giúp bạn tìm hiểu về sản phẩm và dịch vụ của chúng tôi'],
   
-  // Laptop
-  'laptop': {
-    'general': 'T-Store có nhiều laptop từ các thương hiệu như Dell, HP, Lenovo.',
-    'gaming': 'Chúng tôi có các laptop gaming từ các hãng MSI, ASUS ROG, Acer Predator.',
-    'văn phòng': 'Có nhiều laptop văn phòng mỏng nhẹ từ Dell, HP, Lenovo.',
-    'giá': {
-      'dưới 15': 'Có các model laptop học tập, văn phòng cơ bản từ 10-15 triệu.',
-      '15-25': 'Có các laptop tầm trung đa năng từ 15-25 triệu.',
-      'trên 25': 'Có các laptop cao cấp, gaming từ 25-50 triệu.'
-    }
+  // 2. Thông tin chung về cửa hàng
+  'cửa hàng': {
+    'general': 'T-Store là cửa hàng công nghệ uy tín với nhiều năm kinh nghiệm',
+    'địa chỉ': 'Địa chỉ cửa hàng: 123 Đường ABC, Quận XYZ, TP.HCM',
+    'giờ làm việc': 'Cửa hàng mở cửa từ 8h00 - 22h00 các ngày trong tuần',
+    'liên hệ': 'Bạn có thể liên hệ qua hotline: 1900xxxx hoặc email: support@tstore.com'
   },
-  
-  // Điện thoại
-  'điện thoại': {
-    'general': 'T-Store có đa dạng điện thoại từ nhiều thương hiệu.',
-    'iphone': 'Chúng tôi có các đời iPhone từ 11 đến 15 Pro Max.',
-    'samsung': 'Có các dòng Samsung Galaxy S, A và Z Fold.',
+
+  // 3. Sản phẩm
+  'laptop': {
+    'general': 'T-Store có nhiều laptop từ các thương hiệu như Dell, HP, Lenovo',
+    'gaming': 'Các laptop gaming hot: MSI GF63, ASUS ROG, Acer Nitro 5',
+    'văn phòng': 'Laptop văn phòng phổ biến: Dell Inspiron, HP Pavilion, Lenovo ThinkPad',
+    'macbook': 'Có các dòng MacBook Air M1/M2, MacBook Pro 14/16 inch',
     'giá': {
-      'dưới 5': 'Có các điện thoại phổ thông từ Samsung, Xiaomi dưới 5 triệu.',
-      '5-15': 'Có các điện thoại tầm trung đến cao cấp từ 5-15 triệu.',
-      'trên 15': 'Có các flagship mới nhất trên 15 triệu.'
+      'dưới 15': 'Laptop học tập cơ bản: Acer Aspire, Asus VivoBook từ 10-15 triệu',
+      '15-25': 'Laptop đồ họa, gaming tầm trung: Dell Gaming G15, HP Victus từ 15-25 triệu',
+      'trên 25': 'Laptop cao cấp: MacBook Pro, Dell XPS, gaming cao cấp từ 25-50 triệu'
     }
   },
 
-  // Dịch vụ
-  'bảo hành': 'Sản phẩm được bảo hành 12-24 tháng tùy loại.',
-  'trả góp': 'Hỗ trợ trả góp 0% qua nhiều ngân hàng.',
-  'đổi trả': 'Đổi trả miễn phí trong 30 ngày đầu.',
-  
-  // Default
-  'default': 'Xin lỗi, bạn có thể nói rõ hơn được không?'
+  'điện thoại': {
+    'general': 'Đa dạng điện thoại từ phổ thông đến cao cấp',
+    'iphone': 'iPhone 13/14/15 series, giá từ 15-45 triệu',
+    'samsung': 'Samsung Galaxy S23, Z Fold5, A series giá từ 4-45 triệu',
+    'xiaomi': 'Xiaomi Redmi Note 12, POCO series giá từ 3-15 triệu',
+    'oppo': 'OPPO Reno10, Find N3 series giá từ 7-45 triệu',
+    'giá': {
+      'dưới 5': 'Realme C55, Redmi 12C, Samsung Galaxy A14',
+      '5-10': 'Redmi Note 12, OPPO A78, Samsung A34',
+      '10-15': 'iPhone 11, Samsung S21 FE, OPPO Reno10',
+      'trên 15': 'iPhone 15 series, Samsung S23, Z Fold5'
+    }
+  },
+
+  // 4. Thanh toán & Đơn hàng
+  'thanh toán': {
+    'general': 'Nhiều phương thức thanh toán: tiền mặt, chuyển khoản, thẻ tín dụng',
+    'trả góp': 'Hỗ trợ trả góp 0% qua thẻ tín dụng hoặc CMND + Hộ khẩu',
+    'banking': 'Chấp nhận thanh toán qua các ngân hàng lớn và ví điện tử',
+    'hóa đơn': 'Xuất hóa đơn VAT theo yêu cầu'
+  },
+
+  'đơn hàng': {
+    'general': 'Theo dõi đơn hàng qua email hoặc số điện thoại',
+    'trạng thái': 'Kiểm tra trạng thái đơn hàng trong mục Đơn hàng của tài khoản',
+    'hủy đơn': 'Có thể hủy đơn hàng trong vòng 24h nếu chưa giao',
+    'thời gian': 'Giao hàng trong 1-3 ngày tùy khu vực'
+  },
+
+  // 5. Chính sách & Dịch vụ
+  'bảo hành': {
+    'general': 'Bảo hành chính hãng 12-24 tháng',
+    'địa điểm': 'Bảo hành tại cửa hàng hoặc trung tâm bảo hành hãng',
+    'quy trình': 'Kiểm tra và thông báo thời gian sửa chữa trong 24h',
+    'chi phí': 'Miễn phí trong thời gian bảo hành'
+  },
+
+  'đổi trả': {
+    'general': 'Đổi trả miễn phí trong 30 ngày',
+    'điều kiện': 'Sản phẩm còn nguyên vẹn, đầy đủ phụ kiện',
+    'quy trình': 'Liên hệ hotline hoặc mang trực tiếp đến cửa hàng',
+    'hoàn tiền': 'Hoàn tiền trong 24h qua phương thức thanh toán ban đầu'
+  },
+
+  // 6. Khuyến mãi & Ưu đãi
+  'khuyến mãi': {
+    'general': 'Cập nhật khuyến mãi mới nhất tại tstore.com/khuyen-mai',
+    'sinh nhật': 'Giảm thêm 5% cho khách hàng trong tháng sinh nhật',
+    'học sinh': 'Giảm 5% cho học sinh, sinh viên có thẻ',
+    'combo': 'Giảm thêm khi mua combo sản phẩm'
+  },
+
+  // 7. Tài khoản & Thành viên
+  'tài khoản': {
+    'general': 'Đăng ký tài khoản để tích điểm và nhận ưu đãi',
+    'đăng ký': 'Đăng ký nhanh với email hoặc số điện thoại',
+    'điểm thưởng': 'Tích 1 điểm cho mỗi 100,000đ chi tiêu',
+    'hạng thành viên': 'Silver, Gold, Platinum với ưu đãi tăng dần'
+  },
+
+  // Default response
+  'default': 'Xin lỗi, bạn có thể nói rõ hơn được không? Tôi có thể tư vấn về sản phẩm, đơn hàng, bảo hành và các dịch vụ khác.'
 };
 
-function findBestResponse(userMessage) {
-  // Chuyển sang chữ thường để so sánh
+function findBestResponse(userMessage, context) {
   userMessage = userMessage.toLowerCase();
+  
+  // Xử lý các từ khóa đồng nghĩa
+  const synonyms = {
+    'giá bao nhiêu': 'giá',
+    'bao nhiêu tiền': 'giá',
+    'mua trả góp': 'trả góp',
+    'bảo trì': 'bảo hành',
+    'giao hàng': 'đơn hàng',
+    'ship': 'đơn hàng',
+    'sale': 'khuyến mãi',
+    'discount': 'khuyến mãi'
+  };
+
+  // Thay thế từ đồng nghĩa
+  Object.entries(synonyms).forEach(([key, value]) => {
+    userMessage = userMessage.replace(key, value);
+  });
   
   // Kiểm tra từng từ khóa
   for (const [key, value] of Object.entries(qaDatabase)) {
@@ -109,43 +179,27 @@ async function getVietAIResponse(message) {
   }
 }
 
+const userContexts = new Map();
+
 router.post('/chat', async (req, res) => {
-  try {
-    const { message } = req.body;
-    if (!message) {
-      return res.status(400).json({ error: 'Message is required' });
-    }
+  const { message, userId } = req.body;
+  
+  // Lấy context của user
+  let context = userContexts.get(userId) || {
+    lastTopic: null,
+    questionCount: 0
+  };
 
-    // Bước 1: Thử tìm câu trả lời từ database
-    let reply = findBestResponse(message);
-
-    // Bước 2: Nếu không tìm thấy câu trả lời phù hợp từ database, 
-    // thử dùng VietAI
-    if (reply === qaDatabase.default) {
-      try {
-        const aiReply = await getVietAIResponse(message);
-        if (aiReply && aiReply.length > 10) { // Kiểm tra câu trả lời có ý nghĩa
-          reply = aiReply;
-        }
-      } catch (error) {
-        console.error('AI Error:', error);
-        // Giữ nguyên reply từ database nếu AI fails
-      }
-    }
-
-    // Đảm bảo reply luôn là string
-    res.json({ 
-      reply: typeof reply === 'string' ? reply : qaDatabase.default,
-      isBot: true
-    });
-
-  } catch (error) {
-    console.error('Chat Error:', error);
-    res.status(500).json({ 
-      reply: 'Xin lỗi, tôi đang gặp sự cố. Vui lòng thử lại sau.',
-      isError: true 
-    });
-  }
+  // Cập nhật context
+  context.questionCount++;
+  
+  // Tìm câu trả lời dựa trên context
+  let reply = findBestResponse(message, context);
+  
+  // Lưu context
+  userContexts.set(userId, context);
+  
+  res.json({ reply, isBot: true });
 });
 
 // Thêm endpoint để kiểm tra trạng thái AI
@@ -165,5 +219,48 @@ router.get('/status', async (req, res) => {
     });
   }
 });
+
+function getSuggestions(topic) {
+  const suggestions = {
+    'general': [
+      'Cửa hàng có những sản phẩm gì?',
+      'Chính sách bảo hành như thế nào?',
+      'Có hỗ trợ trả góp không?',
+      'Thời gian giao hàng mất bao lâu?'
+    ],
+    'laptop': [
+      'Laptop gaming giá bao nhiêu?',
+      'Có Macbook không?',
+      'Laptop văn phòng giá rẻ?',
+      'Có trả góp laptop không?'
+    ],
+    'điện thoại': [
+      'iPhone mới nhất giá bao nhiêu?',
+      'Có Samsung Galaxy không?',
+      'Điện thoại tầm 5-10 triệu?',
+      'Xiaomi có những mẫu nào?'
+    ],
+    'thanh toán': [
+      'Có những hình thức thanh toán nào?',
+      'Điều kiện trả góp thế nào?',
+      'Có hỗ trợ chuyển khoản không?',
+      'Thủ tục trả góp cần gì?'
+    ],
+    'bảo hành': [
+      'Thời gian bảo hành bao lâu?',
+      'Địa điểm bảo hành ở đâu?',
+      'Chính sách đổi trả thế nào?',
+      'Bảo hành có mất phí không?'
+    ],
+    'khuyến mãi': [
+      'Có chương trình khuyến mãi nào?',
+      'Ưu đãi sinh viên thế nào?',
+      'Giảm giá theo combo?',
+      'Có voucher giảm giá không?'
+    ]
+  };
+  
+  return suggestions[topic] || suggestions['general'];
+}
 
 module.exports = router; 

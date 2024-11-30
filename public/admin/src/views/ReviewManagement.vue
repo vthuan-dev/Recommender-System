@@ -373,7 +373,7 @@
   }
   
   .review-card {
-    background: white;
+    background: rgb(78, 84, 170);
     padding: 1.5rem;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
@@ -421,7 +421,7 @@
   .review-meta {
     display: flex;
     justify-content: space-between;
-    color: #6b7280;
+    color: #a6b4cf;
     font-size: 0.875rem;
   }
   
@@ -510,7 +510,7 @@
   }
   
   .conversation-title {
-    color: #4b5563;
+    color: #acbfda;
     margin-bottom: 1rem;
   }
   
@@ -523,7 +523,7 @@
   .reply-item {
     padding: 1rem;
     border-radius: 0.5rem;
-    background-color: #f9fafb;
+    background-color: #325170;
   }
   
   .admin-reply {
