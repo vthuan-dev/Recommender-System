@@ -12,6 +12,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import os
+import threading
+import queue
 
 app = Flask(__name__)
 # Cấu hình logging
@@ -49,6 +51,9 @@ CACHE_DURATION = 3600  # 1 giờ
 collab_recommender = None
 content_based_recommender = None
 hybrid_recommender = None
+
+# Queue để lưu các events
+event_queue = queue.Queue()
 
 def get_recommender():
     """Lấy recommender từ cache hoặc train mới nếu cần"""
@@ -748,6 +753,57 @@ def view_popularity_analytics():
         </body>
     </html>
     """
+
+@app.route('/api/track', methods=['POST'])
+def track_user_action():
+    """API để track hành vi người dùng"""
+    try:
+        data = request.json
+        required_fields = ['user_id', 'product_id', 'action']
+        if not all(field in data for field in required_fields):
+            return jsonify({'error': 'Missing required fields'}), 400
+            
+        # Thêm event vào queue
+        event_queue.put({
+            'user_id': data['user_id'],
+            'product_id': data['product_id'],
+            'action': data['action'],
+            'timestamp': datetime.now().isoformat()
+        })
+        
+        return jsonify({'success': True})
+    except Exception as e:
+        logger.error(f"Error tracking user action: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+def process_events():
+    """Background task xử lý events"""
+    while True:
+        try:
+            event = event_queue.get(timeout=1)
+            
+            # Cập nhật model dựa trên action
+            if event['action'] == 'view':
+                weight = 1
+            elif event['action'] == 'cart':
+                weight = 2
+            elif event['action'] == 'purchase': 
+                weight = 3
+                
+            # Cập nhật collaborative model
+            collaborative_recommender.update_user_item(
+                event['user_id'],
+                event['product_id'],
+                weight
+            )
+            
+        except queue.Empty:
+            continue
+        except Exception as e:
+            logger.error(f"Error processing event: {e}")
+
+# Start background thread
+threading.Thread(target=process_events, daemon=True).start()
 
 if __name__ == '__main__':
     # Khởi tạo các recommender theo thứ tự

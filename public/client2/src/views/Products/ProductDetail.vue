@@ -328,10 +328,10 @@
 <script>
 import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useStore } from 'vuex'
 import ProductCard from '@/components/Product/ProductCard.vue'
 import axios from 'axios'
 import AppToast from '@/components/Toast/Toast.vue'
-// import Swal from 'sweetalert2'
 import { useToast } from 'vue-toastification'
 
 export default {
@@ -341,8 +341,9 @@ export default {
     AppToast
   },
   setup() {
+    const store = useStore()
     const route = useRoute()
-    const router = useRouter();
+    const router = useRouter()
     const product = ref(null)
     const selectedVariant = ref(null)
     const selectedColor = ref(null)
@@ -542,6 +543,7 @@ export default {
             pauseOnHover: true,
             draggable: true,
           })
+          await trackUserAction('cart')
         }
       } catch (error) {
         console.error('Lỗi khi thêm vào giỏ hàng:', error)
@@ -729,6 +731,7 @@ export default {
     onMounted(async () => {
       if (route.params.id) {
         await fetchProductDetail(route.params.id)
+        await trackUserAction('view')
       }
       fetchReviews()
       checkCanReview()
@@ -853,13 +856,27 @@ export default {
     // Thêm computed property để hiển thị message
     const reviewStatusMessage = computed(() => {
       if (!isAuthenticated.value) {
-        return 'Vui lòng đăng nhập để đánh giá sản ph���m';
+        return 'Vui lòng đăng nhập để đánh giá sản phẩm';
       }
       if (hasReviewed.value) {
         return 'Bạn đã đánh giá sản phẩm này rồi';
       }
       return 'Bạn cần mua và nhận hàng trước khi đánh giá sản phẩm này';
     });
+
+    const trackUserAction = async (action) => {
+      if (!store.state.auth.isAuthenticated) return;
+      
+      try {
+        await axios.post('http://localhost:5001/api/track', {
+          user_id: store.state.auth.user.userId,
+          product_id: route.params.id,
+          action: action
+        });
+      } catch (error) {
+        console.error('Error tracking user action:', error);
+      }
+    };
 
     return {
       product,
@@ -909,7 +926,8 @@ export default {
       getImageUrl,
       handleImageError,
       reviewStatusMessage,
-      loadRelatedProducts
+      loadRelatedProducts,
+      trackUserAction
     }
   }
 }

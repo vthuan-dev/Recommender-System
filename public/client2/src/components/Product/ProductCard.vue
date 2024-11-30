@@ -47,10 +47,10 @@
               {{ product.metrics.sold_count }} đã bán
             </span>
           </div>
-          <div v-if="product.reason" class="recommendation-reason">
+          <div v-if="recommendationReason" class="recommendation-reason">
             <span class="badge bg-soft-primary rounded-pill">
               <i class="fas fa-thumbs-up me-1"></i>
-              {{ product.reason }}
+              {{ recommendationReason }}
             </span>
           </div>
         </div>
@@ -98,10 +98,10 @@
             {{ product.metrics.sold_count }} đã bán
           </span>
         </div>
-        <div v-if="product.reason" class="recommendation-reason">
+        <div v-if="recommendationReason" class="recommendation-reason">
           <span class="badge bg-soft-primary rounded-pill">
             <i class="fas fa-thumbs-up me-1"></i>
-            {{ product.reason }}
+            {{ recommendationReason }}
           </span>
         </div>
       </div>
@@ -134,6 +134,17 @@ export default {
       const id = this.product.id || this.product.product_id || this.product._id;
       console.log('Product ID computed:', id, 'for product:', this.product);
       return id;
+    },
+    recommendationReason() {
+      if (!this.product.reason) return null;
+      
+      // Format reason dựa trên source
+      if (this.product.source === 'collaborative') {
+        return 'Dựa trên lịch sử xem của bạn';
+      } else if (this.product.source === 'content') {
+        return 'Sản phẩm tương tự';
+      }
+      return this.product.reason;
     }
   },
   methods: {
