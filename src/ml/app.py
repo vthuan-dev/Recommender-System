@@ -14,21 +14,26 @@ import seaborn as sns
 import os
 import threading
 import queue
+import time
 
 app = Flask(__name__)
 # Cấu hình logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# CORS config
+# Cập nhật CORS config chi tiết hơn
 CORS(app, resources={
     r"/api/*": {
-        "origins": ["http://localhost:8080", "http://localhost:3000", "http://localhost:5173"],
+        "origins": [
+            "http://localhost:5173",  # Admin frontend
+            "http://localhost:5174",  # Client frontend
+            "http://localhost:3000",
+            "http://localhost:8080"
+        ],
         "methods": ["GET", "POST", "OPTIONS"],
         "allow_headers": ["Content-Type", "Authorization"],
         "expose_headers": ["Content-Type"],
-        "supports_credentials": True,
-        "max_age": 3600
+        "supports_credentials": True
     }
 })
 
@@ -52,8 +57,20 @@ collab_recommender = None
 content_based_recommender = None
 hybrid_recommender = None
 
+# Khởi tạo các biến theo dõi trạng thái
+training_status = {
+    'last_train_time': None,
+    'total_events_processed': 0,
+    'pending_events': 0,
+    'model_version': 1,
+    'source': None  # Nguồn recommendation hiện tại
+}
+
 # Queue để lưu các events
 event_queue = queue.Queue()
+
+# Thêm biến để theo dõi trạng thái khởi tạo
+collaborative_initialized = False
 
 def get_recommender():
     """Lấy recommender từ cache hoặc train mới nếu cần"""
@@ -82,25 +99,20 @@ def get_recommender():
             
     return recommender
 
-@app.route('/api/recommended-products', methods=['GET', 'OPTIONS'])
+@app.route('/api/recommended-products', methods=['GET'])
 def get_recommended_products():
-    if request.method == 'OPTIONS':
-        return '', 204  # Return empty response for OPTIONS
-        
     try:
-        # Lấy user_id từ request
         user_id = request.args.get('user_id')
         
         if user_id and check_user_interactions(user_id):
-            # Nếu có user_id và đủ tương tác -> dùng collaborative
+            # Dùng collaborative
             recommendations = collaborative_recommender.recommend(
                 user_id=user_id,
                 n_items=int(request.args.get('limit', 8))
             )
-            source = 'collaborative'
-            algorithm = 'matrix-factorization'
+            training_status['source'] = 'collaborative'
         else:
-            # Không có user_id hoặc ít tương tác -> dùng popularity
+            # Dùng popularity
             recommendations = get_recommender().recommend(
                 limit=int(request.args.get('limit', 8)),
                 category=request.args.get('category'),
@@ -108,32 +120,15 @@ def get_recommended_products():
                 min_price=request.args.get('min_price'),
                 max_price=request.args.get('max_price')
             )
-            source = 'popularity'
-            algorithm = 'weighted-ranking'
-
-        # Format response
-        formatted_recommendations = [{
-            'product_id': rec['product_id'],
-            'name': rec['name'],
-            'image_url': rec['image_url'],
-            'brand_name': rec['brand_name'],
-            'category_name': rec['category_name'],
-            'min_price': rec['min_price'],
-            'max_price': rec['max_price'],
-            'metrics': {
-                'avg_rating': round(float(rec['avg_rating']), 1),
-                'review_count': int(rec['review_count']),
-                'sold_count': int(rec['sold_count'])
-            }
-        } for rec in recommendations]
+            training_status['source'] = 'popularity'
 
         return jsonify({
             'success': True,
-            'recommendations': formatted_recommendations,
+            'recommendations': recommendations,
             'metadata': {
-                'source': source,
-                'algorithm': algorithm,
-                'total_items': len(formatted_recommendations)
+                'source': training_status['source'],
+                'model_version': training_status['model_version'],
+                'last_updated': training_status['last_train_time']
             }
         })
 
@@ -141,8 +136,7 @@ def get_recommended_products():
         logger.error(f"Error in get_recommended_products: {str(e)}")
         return jsonify({
             'success': False,
-            'error': str(e),
-            'source': 'error'
+            'error': str(e)
         }), 500
 
 @app.route('/api/retrain', methods=['POST'])
@@ -267,44 +261,35 @@ def get_collaborative_recommendations():
 
 @app.route('/api/collaborative/status', methods=['GET'])
 def get_collaborative_status():
-    """API để kiểm tra trạng thái ca collaborative model"""
+    """API để lấy thông tin về collaborative model"""
     try:
+        if not collaborative_initialized:
+            return jsonify({
+                'status': 'inactive',
+                'error': 'Collaborative recommender not initialized'
+            })
+
         if collaborative_recommender is None:
             return jsonify({
-                'status': 'not_initialized',
-                'message': 'Model not initialized'
+                'status': 'error',
+                'error': 'Recommender instance is None'
             })
             
-        # Lấy thông tin chi tiết về user cụ thể
-        user_id = request.args.get('user_id')
-        if user_id:
-            user_exists = int(user_id) in collaborative_recommender.user_item_matrix.index
-            user_interactions = None
-            if user_exists:
-                user_interactions = collaborative_recommender.user_item_matrix.loc[int(user_id)].sum()
-            
-            return jsonify({
-                'status': 'active',
-                'user_info': {
-                    'user_id': user_id,
-                    'exists_in_matrix': user_exists,
-                    'total_interactions': user_interactions if user_exists else 0
-                }
-            })
-            
-        # Thông tin tổng quan về model
-        return jsonify({
+        stats = {
             'status': 'active',
-            'matrix_shape': collaborative_recommender.user_item_matrix.shape,
-            'unique_users': len(collaborative_recommender.user_item_matrix.index),
-            'unique_items': len(collaborative_recommender.user_item_matrix.columns),
-            'sparsity': (collaborative_recommender.user_item_matrix == 0).sum().sum() / 
-                       (collaborative_recommender.user_item_matrix.shape[0] * 
-                        collaborative_recommender.user_item_matrix.shape[1])
-        })
+            'unique_users': len(collaborative_recommender.user_item_matrix.index) if hasattr(collaborative_recommender, 'user_item_matrix') else 0,
+            'unique_items': len(collaborative_recommender.user_item_matrix.columns) if hasattr(collaborative_recommender, 'user_item_matrix') else 0,
+            'sparsity': collaborative_recommender.calculate_sparsity() if hasattr(collaborative_recommender, 'calculate_sparsity') else 0
+        }
+        
+        logger.info(f"Collaborative stats: {stats}")
+        
+        return jsonify(stats)
         
     except Exception as e:
-        logger.error(f"Error getting model status: {str(e)}")
+        logger.error(f"Error getting collaborative stats: {str(e)}")
+        # Thêm full traceback để debug
+        logger.exception("Full traceback:")
         return jsonify({
             'status': 'error',
             'error': str(e)
@@ -356,21 +341,27 @@ def get_product_details(conn, product_ids):
     return df.to_dict('records')
 
 def init_collaborative():
-    """Khởi tạo và train collaborative model"""
-    global collaborative_recommender
+    """Khởi tạo collaborative recommender"""
     try:
+        global collaborative_recommender, collaborative_initialized
+        
         conn = mysql.connector.connect(**db_config)
         collaborative_recommender = CollaborativeRecommender()
-        collaborative_recommender.fit(conn)
+        success = collaborative_recommender.fit(conn)
         conn.close()
-        logger.info("Collaborative model initialized successfully")
-        return True
+        
+        if success:
+            collaborative_initialized = True
+            logger.info("Collaborative recommender initialized successfully")
+            return True
+        return False
+        
     except Exception as e:
-        logger.error(f"Error initializing collaborative model: {str(e)}")
+        logger.error(f"Error initializing collaborative recommender: {str(e)}")
         return False
 
 def check_user_interactions(user_id):
-    """Kiểm tra xem user có đủ tương tác để dùng collaborative filtering không"""
+    """Kiểm tra xem user có đủ tương tác để dùng collaborative filtering kh��ng"""
     try:
         conn = mysql.connector.connect(**db_config)
         cursor = conn.cursor()
@@ -689,7 +680,7 @@ def get_popularity_analytics():
         sns.barplot(data=top_10, y='name', x='popularity_score')
         plt.title('Top 10 Sản phẩm phổ biến nhất', fontsize=12, pad=10)
         
-        # 3. Phân phối theo danh mục
+        # 3. Ph��n phối theo danh mục
         plt.subplot(2, 3, 3)
         category_counts = recommender.recommendations['category_name'].value_counts()
         plt.pie(category_counts.values, labels=category_counts.index, autopct='%1.1f%%')
@@ -776,40 +767,187 @@ def track_user_action():
         logger.error(f"Error tracking user action: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/training/status', methods=['GET'])
+def get_training_status():
+    """API để kiểm tra trạng thái training"""
+    try:
+        conn = mysql.connector.connect(**db_config)
+        stats = calculate_model_stats(conn)
+        conn.close()
+
+        if stats is None:
+            return jsonify({
+                'success': False,
+                'error': 'Failed to calculate stats'
+            }), 500
+
+        current_queue_size = event_queue.qsize()
+        training_status['pending_events'] = current_queue_size
+        
+        return jsonify({
+            'success': True,
+            'status': {
+                **training_status,
+                'model_stats': stats,
+                'model_initialized': collaborative_initialized
+            }
+        })
+    except Exception as e:
+        logger.error(f"Error getting training status: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
 def process_events():
     """Background task xử lý events"""
     while True:
         try:
             event = event_queue.get(timeout=1)
             
+            # Log event details
+            logger.info(f"Processing event: {event}")
+            
             # Cập nhật model dựa trên action
-            if event['action'] == 'view':
-                weight = 1
-            elif event['action'] == 'cart':
-                weight = 2
-            elif event['action'] == 'purchase': 
-                weight = 3
-                
+            weight = {
+                'view': 1,
+                'cart': 2, 
+                'purchase': 3
+            }.get(event['action'], 1)
+            
+            start_time = time.time()
+            
             # Cập nhật collaborative model
-            collaborative_recommender.update_user_item(
-                event['user_id'],
-                event['product_id'],
-                weight
+            if collaborative_initialized and collaborative_recommender:
+                success = collaborative_recommender.update_user_item(
+                    event['user_id'],
+                    event['product_id'],
+                    weight
+                )
+                if not success:
+                    logger.error("Failed to update collaborative model")
+            
+            # Cập nhật trạng thái
+            training_status['total_events_processed'] += 1
+            training_status['model_version'] += 1
+            training_status['last_train_time'] = datetime.now().isoformat()
+            training_status['training_time'] = round(time.time() - start_time, 3)
+            
+            logger.info(
+                f"Processed event in {training_status['training_time']}s: "
+                f"{event['action']} - Total: {training_status['total_events_processed']}"
             )
             
         except queue.Empty:
             continue
         except Exception as e:
             logger.error(f"Error processing event: {e}")
+            logger.exception("Full traceback:")
 
 # Start background thread
 threading.Thread(target=process_events, daemon=True).start()
 
+def calculate_model_stats(conn):
+    """Tính toán thống kê về dữ liệu training"""
+    try:
+        # Query thống kê tương tác với GROUP BY
+        stats_query = """
+        WITH interaction_stats AS (
+            SELECT 
+                COUNT(DISTINCT upv.user_id) as view_users,
+                COUNT(DISTINCT upv.product_id) as viewed_products,
+                SUM(upv.view_count) as total_views
+            FROM user_product_views upv
+        ),
+        purchase_stats AS (
+            SELECT 
+                COUNT(DISTINCT o.user_id) as purchase_users,
+                COUNT(DISTINCT oi.product_id) as purchased_products,
+                COUNT(*) as total_purchases
+            FROM orders o
+            JOIN orderitems oi ON o.id = oi.order_id
+            WHERE o.status != 'cancelled'
+        ),
+        review_stats AS (
+            SELECT 
+                COUNT(DISTINCT user_id) as review_users,
+                COUNT(DISTINCT product_id) as reviewed_products,
+                COUNT(*) as total_reviews
+            FROM reviews
+        ),
+        product_stats AS (
+            SELECT COUNT(*) as total_products
+            FROM products
+        )
+        SELECT 
+            i.view_users,
+            i.viewed_products,
+            i.total_views,
+            p.purchase_users,
+            p.purchased_products,
+            p.total_purchases,
+            r.review_users,
+            r.reviewed_products,
+            r.total_reviews,
+            ps.total_products
+        FROM interaction_stats i
+        CROSS JOIN purchase_stats p
+        CROSS JOIN review_stats r
+        CROSS JOIN product_stats ps
+        """
+        
+        stats_df = pd.read_sql(stats_query, conn)
+        row = stats_df.iloc[0]
+
+        # Tính matrix stats nếu model đã được khởi tạo
+        matrix_stats = {}
+        if collaborative_initialized and collaborative_recommender is not None:
+            try:
+                matrix_stats = {
+                    'users': len(collaborative_recommender.user_item_matrix.index),
+                    'items': len(collaborative_recommender.user_item_matrix.columns),
+                    'sparsity': collaborative_recommender.calculate_sparsity()
+                }
+            except Exception as e:
+                logger.error(f"Error calculating matrix stats: {str(e)}")
+                matrix_stats = {
+                    'users': 0,
+                    'items': 0,
+                    'sparsity': 0
+                }
+
+        return {
+            'interactions': {
+                'views': {
+                    'users': int(row['view_users']),
+                    'products': int(row['viewed_products']),
+                    'total': int(row['total_views'])
+                },
+                'purchases': {
+                    'users': int(row['purchase_users']),
+                    'products': int(row['purchased_products']),
+                    'total': int(row['total_purchases'])
+                },
+                'reviews': {
+                    'users': int(row['review_users']),
+                    'products': int(row['reviewed_products']),
+                    'total': int(row['total_reviews'])
+                }
+            },
+            'products': {
+                'total': int(row['total_products'])
+            },
+            'matrix_stats': matrix_stats
+        }
+
+    except Exception as e:
+        logger.error(f"Error calculating model stats: {str(e)}")
+        return None
+
 if __name__ == '__main__':
-    # Khởi tạo các recommender theo thứ tự
+    # Đảm bảo init theo đúng thứ tự
+    logger.info("Initializing recommenders...")
     get_recommender()  # Popularity recommender
-    init_collaborative()
+    init_collaborative()  # Collaborative recommender
     init_content_based()
-    init_hybrid()  # Hybrid recommender phải được khởi tạo sau cùng
+    init_hybrid()
     
+    logger.info("All recommenders initialized, starting server...")
     app.run(host='0.0.0.0', port=5001, debug=True)

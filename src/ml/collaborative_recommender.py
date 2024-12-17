@@ -171,3 +171,74 @@ class CollaborativeRecommender:
             logger.error(f"Error in collaborative recommend: {str(e)}")
             logger.exception("Full traceback:")  # This will log the full stack trace
             return []
+
+    def calculate_sparsity(self):
+        """Tính độ thưa của ma trận user-item"""
+        if self.user_item_matrix is None:
+            return 0
+            
+        total_cells = self.user_item_matrix.shape[0] * self.user_item_matrix.shape[1]
+        filled_cells = np.count_nonzero(~np.isnan(self.user_item_matrix))
+        
+        # Tính tỷ lệ phần trăm các ô có giá trị
+        sparsity = (total_cells - filled_cells) / total_cells * 100
+        return round(sparsity, 2)
+
+    def update_user_item(self, user_id, item_id, weight):
+        """Cập nhật ma trận user-item với tương tác mới"""
+        try:
+            # Convert to int
+            user_id = int(user_id)
+            item_id = int(item_id)
+            
+            logger.info(f"Updating matrix for user {user_id}, item {item_id}, weight {weight}")
+            
+            # Kiểm tra user và item có trong ma trận không
+            if user_id not in self.user_item_matrix.index:
+                logger.warning(f"User {user_id} not in matrix, adding new row")
+                # Thêm user mới với toàn bộ giá trị 0
+                new_row = pd.Series(0, index=self.user_item_matrix.columns)
+                self.user_item_matrix.loc[user_id] = new_row
+                
+            if item_id not in self.user_item_matrix.columns:
+                logger.warning(f"Item {item_id} not in matrix, adding new column")
+                # Thêm item mới với toàn bộ giá trị 0
+                self.user_item_matrix[item_id] = 0
+                
+            # Cập nhật giá trị tương tác
+            current_value = self.user_item_matrix.loc[user_id, item_id]
+            # Sử dụng exponential decay để giảm ảnh hưởng của các tương tác cũ
+            decay_factor = 0.8
+            new_value = current_value * decay_factor + weight * (1 - decay_factor)
+            
+            self.user_item_matrix.loc[user_id, item_id] = new_value
+            
+            # Cập nhật mean ratings
+            self.mean_ratings = self.user_item_matrix.mean(axis=1)
+            
+            # Re-train model nếu có đủ dữ liệu mới
+            if len(self.user_item_matrix) > 0:
+                # Normalize và SVD
+                ratings_centered = self.user_item_matrix.sub(self.mean_ratings, axis=0)
+                ratings_centered = ratings_centered.fillna(0)
+                sparse_ratings = csr_matrix(ratings_centered.values)
+                
+                # Perform SVD
+                k = min(30, min(sparse_ratings.shape) - 1)
+                U, sigma, Vt = svds(sparse_ratings, k=k)
+                
+                # Áp dụng regularization
+                sigma = np.diag(sigma / (1 + 0.05 * np.sqrt(len(self.user_item_matrix))))
+                
+                self.user_factors = U.dot(sigma)
+                self.item_factors = Vt.T
+                
+                logger.info(f"Model updated - Matrix shape: {self.user_item_matrix.shape}")
+                logger.info(f"Sparsity: {self.calculate_sparsity()}%")
+                
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error updating user-item matrix: {str(e)}")
+            logger.exception("Full traceback:")
+            return False

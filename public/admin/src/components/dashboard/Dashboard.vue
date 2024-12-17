@@ -42,6 +42,33 @@
           </div>
         </div>
       </div>
+
+      <div class="stat-card">
+        <div class="stat-icon ml-training">
+          <i class="fas fa-brain"></i>
+        </div>
+        <div class="stat-info">
+          <h3>Trạng thái Training</h3>
+          <div class="training-stats">
+            <div class="training-stat">
+              <span class="label">Events đã xử lý:</span>
+              <span class="value">{{ trainingStatus.total_events_processed }}</span>
+            </div>
+            <div class="training-stat">
+              <span class="label">Events đang chờ:</span>
+              <span class="value">{{ trainingStatus.pending_events }}</span>
+            </div>
+            <div class="training-stat">
+              <span class="label">Phiên bản model:</span>
+              <span class="value">v{{ trainingStatus.model_version }}</span>
+            </div>
+            <div class="training-stat">
+              <span class="label">Cập nhật cuối:</span>
+              <span class="value">{{ formatTrainingTime(trainingStatus.last_train_time) }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Biểu đồ doanh thu -->
@@ -69,6 +96,31 @@
             <h4>{{ product.name }}</h4>
             <p>Đã bán: {{ product.total_sold }}</p>
             <p>Doanh thu: {{ formatCurrency(product.revenue) }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Model Analytics Section -->
+    <div class="model-analytics">
+      <h2>Phân tích Model</h2>
+      <div class="analytics-grid">
+        <!-- Collaborative Model Stats -->
+        <div class="analytics-card">
+          <h3>Collaborative Filtering</h3>
+          <div class="model-stats">
+            <div class="stat-row">
+              <span>Số người dùng:</span>
+              <span>{{ modelStats.unique_users || 0 }}</span>
+            </div>
+            <div class="stat-row">
+              <span>Số sản phẩm:</span>
+              <span>{{ modelStats.unique_items || 0 }}</span>
+            </div>
+            <div class="stat-row">
+              <span>Độ thưa:</span>
+              <span>{{ formatSparsity(modelStats.sparsity) }}%</span>
+            </div>
           </div>
         </div>
       </div>
@@ -169,6 +221,18 @@ export default {
             }
           }
         }
+      },
+      trainingStatus: {
+        last_train_time: null,
+        total_events_processed: 0,
+        pending_events: 0,
+        model_version: 1,
+        current_source: null
+      },
+      modelStats: {
+        unique_users: 0,
+        unique_items: 0,
+        sparsity: 0
       }
     };
   },
@@ -226,10 +290,63 @@ export default {
         console.error('Error fetching dashboard stats:', error);
         this.$emit('show-error', `Không thể tải dữ liệu thống kê: ${error.message}`);
       }
+    },
+    async fetchTrainingStatus() {
+      try {
+        const response = await fetch('http://localhost:5001/api/training/status')
+        const data = await response.json()
+        if (data.success) {
+          this.trainingStatus = data.status
+        }
+      } catch (error) {
+        console.error('Error fetching training status:', error)
+      }
+    },
+
+    async fetchModelStats() {
+      try {
+        const response = await fetch('http://localhost:5001/api/collaborative/status')
+        const data = await response.json()
+        if (data.status === 'active') {
+          this.modelStats = {
+            unique_users: data.unique_users,
+            unique_items: data.unique_items,
+            sparsity: data.sparsity * 100
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching model stats:', error)
+      }
+    },
+
+    formatTrainingTime(timestamp) {
+      if (!timestamp) return 'Chưa có'
+      return new Date(timestamp).toLocaleString('vi-VN')
+    },
+
+    formatSparsity(value) {
+      return (value || 0).toFixed(2)
+    },
+
+    startPolling() {
+      this.fetchTrainingStatus()
+      this.fetchModelStats()
+      
+      // Poll every 30 seconds
+      this.pollingInterval = setInterval(() => {
+        this.fetchTrainingStatus()
+        this.fetchModelStats()
+      }, 30000)
     }
   },
   mounted() {
-    this.fetchDashboardStats();
+    this.fetchDashboardStats()
+    this.startPolling()
+  },
+  beforeUnmount() {
+    if (this.pollingInterval) {
+      clearInterval(this.pollingInterval)
+    }
   }
 };
 </script>
@@ -272,6 +389,10 @@ export default {
 .stat-icon.orders { background: rgba(52, 152, 219, 0.1); color: #3498db; }
 .stat-icon.revenue { background: rgba(46, 204, 113, 0.1); color: #2ecc71; }
 .stat-icon.products { background: rgba(155, 89, 182, 0.1); color: #9b59b6; }
+.stat-icon.ml-training { 
+  background: rgba(139, 92, 246, 0.1); 
+  color: #8b5cf6; 
+}
 
 .stat-info h3 {
   font-size: 0.875rem;
@@ -380,6 +501,99 @@ export default {
   margin: 0.25rem 0;
   font-size: 0.875rem;
   color: #718096;
+}
+
+.training-stats {
+  display: grid;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.training-stat {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.training-stat .label {
+  color: #64748b;
+}
+
+.training-stat .value {
+  font-weight: 500;
+  color: #1e293b;
+}
+
+.model-analytics {
+  background: white;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.model-analytics h2 {
+  margin: 0 0 1.25rem;
+  font-size: 1.25rem;
+  color: #1e293b;
+  font-weight: 600;
+}
+
+.analytics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.analytics-card {
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 1.25rem;
+  border: 1px solid #e2e8f0;
+  transition: all 0.2s ease;
+}
+
+.analytics-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+.analytics-card h3 {
+  margin: 0 0 1rem;
+  font-size: 1rem;
+  color: #475569;
+  font-weight: 500;
+}
+
+.model-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem;
+  border-radius: 6px;
+  background: white;
+  transition: background 0.2s ease;
+}
+
+.stat-row:hover {
+  background: #f1f5f9;
+}
+
+.stat-row span:first-child {
+  color: #64748b;
+  font-size: 0.875rem;
+}
+
+.stat-row span:last-child {
+  font-weight: 600;
+  color: #334155;
+  font-size: 0.875rem;
 }
 
 @media (max-width: 768px) {
