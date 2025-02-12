@@ -1,7 +1,9 @@
 const admin = require('firebase-admin');
-const serviceAccount = require('./config/ncln-50535-firebase-adminsdk-ce3b3-334fa0eb08.json');
 
 function initializeFirebase() {
+  // Đọc credentials từ environment variable
+  const serviceAccount = JSON.parse(process.env.FIREBASE_ADMIN_CREDENTIALS);
+  
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
     storageBucket: 'ncln-50535.appspot.com'
