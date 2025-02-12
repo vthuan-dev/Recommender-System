@@ -1,0 +1,18 @@
+{
+    "settings": {
+      "theme": {
+        "title": "Giao diện",
+        "default": "Mặc định",
+        "dark": "Tối",
+        "light": "Sáng",
+        "purple": "Tím",
+        "changed": "Đã thay đổi giao diện",
+        "error": "Lỗi khi thay đổi giao diện"
+      },
+      "language": {
+        "title": "Ngôn ngữ",
+        "changed": "Đã thay đổi ngôn ngữ",
+        "error": "Lỗi khi thay đổi ngôn ngữ"
+      }
+    }
+  }
