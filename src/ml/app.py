@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 CORS(app, resources={
     r"/api/*": {
         "origins": [
-            "http://localhost:5173",  # Admin frontend
+            "http://https://tstore-admin.onrender.com",  # Admin frontend
             "http://localhost:5174",  # Client frontend
             "https://tstore-backend.onrender.com",
             "http://localhost:8080"

@@ -388,7 +388,7 @@ const validateForm = () => {
 const getImageUrl = (url) => {
   if (!url) return '';
   if (url.startsWith('http')) return url;
-  if (url.startsWith('/uploads')) return `http://localhost:5173${url}`; // Thêm domain
+  if (url.startsWith('/uploads')) return `http://https://tstore-admin.onrender.com${url}`; // Thêm domain
   return url;
 };
 

@@ -13,7 +13,7 @@ import './styles/variables.css'
 import axios from 'axios'
 
 // Cấu hình base URL cho axios
-axios.defaults.baseURL = 'http://localhost:5173' // Thay đổi port nếu cần
+axios.defaults.baseURL = 'http://https://tstore-admin.onrender.com' // Thay đổi port nếu cần
 
 const app = createApp(App)
 app.use(store)
