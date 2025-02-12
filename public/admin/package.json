@@ -24,7 +24,7 @@
         "vue-json-excel3": "^1.0.29",
         "vue-router": "^4.4.5",
         "vuex": "^4.1.0",
-        "xlsx": "^0.20.3"
+        "xlsx": "^0.18.5"
     },
     "devDependencies": {
         "@vitejs/plugin-vue": "^4.5.0",
