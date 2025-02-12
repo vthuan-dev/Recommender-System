@@ -225,7 +225,7 @@ export default {
     const error = ref(null)
 
     // API base URL - sửa lại port cho đúng với server
-    const API_URL = 'http://localhost:3000/api'
+    const API_URL = 'https://tstore-backend.onrender.com/api'
 
     // Constants
     const shippingFee = ref(30000)
@@ -277,7 +277,7 @@ export default {
       try {
         loading.value = true
         const token = localStorage.getItem('token')
-        const response = await axios.get('http://localhost:3000/api/cart', {
+        const response = await axios.get('https://tstore-backend.onrender.com/api/cart', {
           headers: {
             Authorization: `Bearer ${token}`
           }
@@ -536,7 +536,7 @@ export default {
       }
       
       // Thêm base URL của server
-      return `http://localhost:3000${formattedUrl}`;
+      return `https://tstore-backend.onrender.com${formattedUrl}`;
     }
 
     return {

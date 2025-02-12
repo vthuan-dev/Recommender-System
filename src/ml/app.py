@@ -27,7 +27,7 @@ CORS(app, resources={
         "origins": [
             "http://localhost:5173",  # Admin frontend
             "http://localhost:5174",  # Client frontend
-            "http://localhost:3000",
+            "https://tstore-backend.onrender.com",
             "http://localhost:8080"
         ],
         "methods": ["GET", "POST", "OPTIONS"],

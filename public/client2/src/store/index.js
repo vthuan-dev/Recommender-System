@@ -67,7 +67,7 @@ export default createStore({
   actions: {
     async login({ commit }, credentials) {
       try {
-        const response = await fetch('http://localhost:3000/api/login-client', {
+        const response = await fetch('https://tstore-backend.onrender.com/api/login-client', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

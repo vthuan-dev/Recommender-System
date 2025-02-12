@@ -193,7 +193,7 @@ export default {
 
       try {
         // Gọi API AI của bạn
-        const response = await axios.post('http://localhost:3000/api/ai/chat', {
+        const response = await axios.post('https://tstore-backend.onrender.com/api/ai/chat', {
           message: userQuestion
         })
 

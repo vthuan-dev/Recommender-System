@@ -140,7 +140,7 @@ import { useRouter } from 'vue-router'
 
 // Tạo instance axios với cấu hình cụ thể
 const api = axios.create({
-  baseURL: 'http://localhost:3000',
+  baseURL: 'https://tstore-backend.onrender.com',
   withCredentials: true
 })
 

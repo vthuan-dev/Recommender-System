@@ -117,7 +117,7 @@ export default {
 
     const fetchAddresses = async () => {
       try {
-        const response = await fetch(`http://localhost:3000/api/addresses`, {
+        const response = await fetch(`https://tstore-backend.onrender.com/api/addresses`, {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           }
@@ -132,7 +132,7 @@ export default {
     const updateProfile = async () => {
       try {
         loading.value = true
-        const response = await fetch(`http://localhost:3000/api/users/${user.value.userId}`, {
+        const response = await fetch(`https://tstore-backend.onrender.com/api/users/${user.value.userId}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',

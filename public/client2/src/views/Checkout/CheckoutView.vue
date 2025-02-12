@@ -778,7 +778,7 @@ onMounted(async () => {
 const fetchAddresses = async () => {
   try {
     const token = localStorage.getItem('token')
-    const response = await axios.get('http://localhost:3000/api/addresses', {
+    const response = await axios.get('https://tstore-backend.onrender.com/api/addresses', {
       headers: { Authorization: `Bearer ${token}` }
     })
     addresses.value = response.data
@@ -885,7 +885,7 @@ const placeOrder = async () => {
 
     const response = await axios({
       method: 'POST',
-      url: 'http://localhost:3000/api/orders',
+      url: 'https://tstore-backend.onrender.com/api/orders',
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('token')}`,
         'Content-Type': 'application/json'
@@ -988,7 +988,7 @@ const submitNewAddress = async () => {
     console.log('Sending address data:', addressData)
 
     const response = await axios.post(
-      'http://localhost:3000/api/addresses',
+      'https://tstore-backend.onrender.com/api/addresses',
       addressData,
       {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
@@ -1325,7 +1325,7 @@ const deleteAddress = async (addressId) => {
       const token = localStorage.getItem('token');
       await axios({
         method: 'DELETE',
-        url: `http://localhost:3000/api/addresses/${addressId}`,
+        url: `https://tstore-backend.onrender.com/api/addresses/${addressId}`,
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -1381,7 +1381,7 @@ const setDefaultAddress = async (addressId) => {
 
     await axios({
       method: 'PUT',
-      url: `http://localhost:3000/api/addresses/${addressId}/default`,
+      url: `https://tstore-backend.onrender.com/api/addresses/${addressId}/default`,
       headers: {
         'Authorization': `Bearer ${token}`
       }
@@ -1451,7 +1451,7 @@ const formatImageUrl = (imageUrl) => {
   }
 
   // Thêm base URL
-  return `http://localhost:3000${imageUrl}`;
+  return `https://tstore-backend.onrender.com${imageUrl}`;
 };
 
 // Thêm hàm xử lý lỗi ảnh

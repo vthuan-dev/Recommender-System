@@ -403,7 +403,7 @@ export default {
         error.value = null
         console.log('Fetching product ID:', id)
         
-        const response = await axios.get(`http://localhost:3000/api/products/${id}`)
+        const response = await axios.get(`https://tstore-backend.onrender.com/api/products/${id}`)
         console.log('API Response:', response.data)
         
         product.value = response.data
@@ -428,7 +428,7 @@ export default {
     const fetchReviews = async (page = 1) => {
       try {
         const response = await axios.get(
-          `http://localhost:3000/api/products/${route.params.id}/reviews?page=${page}&limit=5`
+          `https://tstore-backend.onrender.com/api/products/${route.params.id}/reviews?page=${page}&limit=5`
         );
         reviews.value = response.data.reviews;
         totalPages.value = response.data.pagination.totalPages;
@@ -522,7 +522,7 @@ export default {
 
       try {
         const response = await axios.post(
-          'http://localhost:3000/api/cart/add',
+          'https://tstore-backend.onrender.com/api/cart/add',
           {
             productId: product.value.id,
             variantId: selectedVariant.value.id,
@@ -569,7 +569,7 @@ export default {
         }
 
         const response = await axios.get(
-          `http://localhost:3000/api/products/${route.params.id}/can-review`,
+          `https://tstore-backend.onrender.com/api/products/${route.params.id}/can-review`,
           {
             headers: {
               Authorization: `Bearer ${localStorage.getItem('token')}`
@@ -624,7 +624,7 @@ export default {
 
         // Gọi trực tiếp API đánh giá
         const response = await axios.post(
-          `http://localhost:3000/api/products/${route.params.id}/reviews`,
+          `https://tstore-backend.onrender.com/api/products/${route.params.id}/reviews`,
           reviewData,
           {
             headers: {
@@ -846,7 +846,7 @@ export default {
       }
       
       // Thêm base URL cho đường dẫn tương đối
-      return `http://localhost:3000${imageUrl}`
+      return `https://tstore-backend.onrender.com${imageUrl}`
     }
 
     const handleImageError = (event) => {

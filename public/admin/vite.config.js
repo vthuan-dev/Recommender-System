@@ -13,13 +13,13 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: 'http://localhost:3000',
+        target: 'https://tstore-backend.onrender.com',
         changeOrigin: true,
         secure: false,
         ws: true,
       },
       '/assets': {
-        target: 'http://localhost:3000',
+        target: 'https://tstore-backend.onrender.com',
         changeOrigin: true,
         secure: false,
       }

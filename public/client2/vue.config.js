@@ -15,7 +15,7 @@ module.exports = defineConfig({
     port: 8080,
     proxy: {
       '^/api': {
-        target: 'http://localhost:3000',
+        target: 'https://tstore-backend.onrender.com',
         changeOrigin: true,
         logLevel: 'debug',
         pathRewrite: { '^/api': '/api' },

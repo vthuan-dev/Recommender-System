@@ -178,7 +178,7 @@ export default {
       try {
         loading.value = true;
         
-        const response = await fetch('http://localhost:3000/api/register-client', {
+        const response = await fetch('https://tstore-backend.onrender.com/api/register-client', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -229,7 +229,7 @@ export default {
       const top = window.screenY + (window.outerHeight - height) / 2;
       
       const googleWindow = window.open(
-        'http://localhost:3000/api/auth/google',
+        'https://tstore-backend.onrender.com/api/auth/google',
         'Google Login',
         `width=${width},height=${height},left=${left},top=${top}`
       );
@@ -244,7 +244,7 @@ export default {
 
       // Lắng nghe message từ cửa sổ popup
       const handleMessage = async (event) => {
-        if (event.origin !== 'http://localhost:3000') return;
+        if (event.origin !== 'https://tstore-backend.onrender.com') return;
         
         if (event.data.type === 'google-auth-success') {
           const { token, user } = event.data;

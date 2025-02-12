@@ -4,7 +4,7 @@ import router from '@/router';
 import CustomSweetAlert from '@/components/Common/CustomSweetAlert';
 
 const axiosInstance = axios.create({
-  baseURL: 'http://localhost:3000/api',
+  baseURL: 'https://tstore-backend.onrender.com/api',
   headers: {
     'Content-Type': 'application/json'
   },

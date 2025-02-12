@@ -94,7 +94,7 @@ export default {
           return
         }
 
-        socket.value = io('http://localhost:3000', {
+        socket.value = io('https://tstore-backend.onrender.com', {
           auth: {
             token: token
           }
@@ -130,7 +130,7 @@ export default {
           return
         }
 
-        const response = await axios.get('http://localhost:3000/api/admin/profile')
+        const response = await axios.get('https://tstore-backend.onrender.com/api/admin/profile')
         adminId.value = response.data.id
         connectSocket()
         await loadMessages()

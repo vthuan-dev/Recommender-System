@@ -66,7 +66,7 @@
       const fetchSearchResults = async () => {
         loading.value = true
         try {
-          const response = await axios.get('http://localhost:3000/api/search', {
+          const response = await axios.get('https://tstore-backend.onrender.com/api/search', {
             params: {
               q: route.query.q
             }

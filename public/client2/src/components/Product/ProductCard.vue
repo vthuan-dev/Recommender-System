@@ -165,7 +165,7 @@ export default {
       }
       
       // Thêm base URL cho đường dẫn tương đối
-      return `http://localhost:3000${imageUrl}`
+      return `https://tstore-backend.onrender.com${imageUrl}`
     },
     handleImageError(event) {
       event.target.src = '/assets/images/default-product.png'
