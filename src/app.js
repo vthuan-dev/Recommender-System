@@ -60,7 +60,7 @@ app.use(
 const corsOptions = {
   origin: [
     "http://https://tstore-admin.onrender.com",
-    "http://localhost:8080",
+    "http://https://tstore-client.onrender.com",
     "https://tstore-backend.onrender.com",
   ],
   credentials: true,
@@ -138,7 +138,7 @@ app.use((req, res, next) => {
 // Cấu hình CORS
 app.use(
   cors({
-    origin: ["http://https://tstore-admin.onrender.com", "http://localhost:8080"],
+    origin: ["http://https://tstore-admin.onrender.com", "http://https://tstore-client.onrender.com"],
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],

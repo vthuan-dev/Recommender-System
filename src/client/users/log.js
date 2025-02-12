@@ -27,7 +27,7 @@ router.use(passport.session());
 
 // Giữ nguyên CORS config từ code cũ
 const corsOptions = {
-  origin: 'http://localhost:8080',
+  origin: 'http://https://tstore-client.onrender.com',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,

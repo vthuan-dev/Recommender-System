@@ -27,7 +27,7 @@ async function saveMessageToDb(message, senderId, receiverId) {
 function setupSocket(server) {
   const io = socketIO(server, {
     cors: {
-      origin: ["http://localhost:8080", "http://localhost:8081"],
+      origin: ["http://https://tstore-client.onrender.com", "http://localhost:8081"],
       credentials: true
     }
   });
